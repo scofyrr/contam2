@@ -32,7 +32,7 @@ export function ComprobantePage({ tipo }: { tipo: "VENTA" | "COMPRA" }) {
   const now = new Date();
   const defPeriodo = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  const rows = useQuery({ queryKey: [isVenta ? "ventas" : "compras"], queryFn: () => listFn({ data: undefined }) });
+  const rows = useQuery({ queryKey: [isVenta ? "ventas" : "compras"], queryFn: () => isVenta ? listVFn({ data: undefined }) : listCFn({ data: undefined }) });
   const ents = useQuery({ queryKey: ["entidades"], queryFn: () => entFn() });
 
   const [open, setOpen] = useState(false);
@@ -80,7 +80,7 @@ export function ComprobantePage({ tipo }: { tipo: "VENTA" | "COMPRA" }) {
         payload.base_gravada_dg = form.base;
         payload.igv_dg = form.igv;
       }
-      await createFn({ data: payload });
+      await (isVenta ? createVFn({ data: payload }) : createCFn({ data: payload }));
       toast.success("Comprobante registrado y asiento contable generado");
       setOpen(false);
       setForm({ ...form, numero: "", base: 0, igv: 0, total: 0 });
