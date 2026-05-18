@@ -188,7 +188,7 @@ export const sunatToken = createServerFn({ method: "POST" })
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body,
     });
-    const json = (await res.json()) as Record<string, unknown>;
-    if (!res.ok) return { ok: false, error: JSON.stringify(json) };
-    return { ok: true, token: json };
+    const text = await res.text();
+    if (!res.ok) return { ok: false, error: text };
+    return { ok: true, token: text };
   });
