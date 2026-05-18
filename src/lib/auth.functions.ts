@@ -1,24 +1,20 @@
 // src/lib/auth.functions.ts
-// CONTAM — Server functions de autenticación (sin Supabase Auth).
-// Valida email/contraseña contra la tabla `usuarios` y mantiene la sesión por cookie.
+"use server"; // <-- Directiva vital para TanStack Start: expone de forma segura estas funciones al cliente mediante RPC
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import crypto from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { getContamSession } from "./session.server";
+import { getContamSession } from "./session"; // <-- Apuntando al archivo unificado y limpio src/lib/session.ts
+import { ContamRol } from "./types"; // <-- Importando el tipo desde su archivo independiente libre de dependencias de servidor
 
-// Exportamos los roles permitidos en CONTAM para usarlos en la UI si es necesario
-export type ContamRol = "ADMIN" | "CONTADOR" | "OPERADOR";
-
-// Helper para hashing estático (ideal para pruebas iniciales y desarrollo rápido)
 function sha256(input: string) {
   return crypto.createHash("sha256").update(input, "utf8").digest("hex");
 }
 
 /**
  * Server Function: Iniciar Sesión
- * Valida las credenciales en el backend y genera la cookie de sesión.
+ * Valida las credenciales contra la tabla 'usuarios' y actualiza la cookie cifrada.
  */
 export const login = createServerFn({ method: "POST" })
   .inputValidator(
@@ -28,7 +24,7 @@ export const login = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    // Consulta directa a la tabla local de usuarios usando el cliente administrativo
+    // Consulta a la tabla de usuarios locales
     const { data: user, error } = await supabaseAdmin
       .from("usuarios")
       .select("id, email, nombre, rol, activo, password_hash")
@@ -39,12 +35,12 @@ export const login = createServerFn({ method: "POST" })
     if (!user) throw new Error("Credenciales inválidas");
     if (!user.activo) throw new Error("El usuario se encuentra desactivado");
     
-    // Verificación del hash SHA256 de la contraseña
+    // Verificación del hash de seguridad
     if (user.password_hash !== sha256(data.password)) {
       throw new Error("Credenciales inválidas");
     }
 
-    // Actualización de la cookie de sesión segura en el servidor
+    // Actualización de la sesión basada en cookies cifradas (Server-side)
     const session = await getContamSession();
     await session.update({
       userId: user.id,
@@ -63,7 +59,7 @@ export const login = createServerFn({ method: "POST" })
 
 /**
  * Server Function: Cerrar Sesión
- * Limpia por completo los datos de la cookie.
+ * Destruye la información guardada dentro del almacenamiento de la cookie.
  */
 export const logout = createServerFn({ method: "POST" }).handler(async () => {
   const session = await getContamSession();
@@ -73,7 +69,7 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
 
 /**
  * Server Function: Obtener Usuario Actual
- * Devuelve los datos del usuario en sesión o null si no está autenticado.
+ * Recupera el estado de sesión actual para hidratar la UI en el cliente.
  */
 export const me = createServerFn({ method: "GET" }).handler(async () => {
   const session = await getContamSession();
@@ -89,8 +85,7 @@ export const me = createServerFn({ method: "GET" }).handler(async () => {
 
 /**
  * Helper de Servidor: Requerir Sesión Obligatoria
- * No es una Server Function expuesta al cliente, sino un guard para usar internamente
- * en otras funciones del servidor (ej. al emitir un comprobante a SUNAT o consultar el SIRE).
+ * Lógica auxiliar interna para blindar endpoints delicados (CPE, SIRE, etc).
  */
 export async function requireSession() {
   const session = await getContamSession();
