@@ -22,9 +22,12 @@ const TIPO_CPE: Record<string, string> = {
 export function ComprobantePage({ tipo }: { tipo: "VENTA" | "COMPRA" }) {
   const qc = useQueryClient();
   const isVenta = tipo === "VENTA";
-  const listFn = useServerFn(isVenta ? listVentas : listCompras);
-  const createFn = useServerFn(isVenta ? createVenta : createCompra);
+  const listVFn = useServerFn(listVentas);
+  const listCFn = useServerFn(listCompras);
+  const createVFn = useServerFn(createVenta);
+  const createCFn = useServerFn(createCompra);
   const entFn = useServerFn(listEntidades);
+
 
   const now = new Date();
   const defPeriodo = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
