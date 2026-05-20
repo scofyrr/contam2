@@ -32,7 +32,7 @@ export function ComprobantePage({ tipo }: { tipo: "VENTA" | "COMPRA" }) {
   const now = new Date();
   const defPeriodo = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  const rows = useQuery({ queryKey: [isVenta ? "ventas" : "compras"], queryFn: () => isVenta ? listVFn({ data: undefined }) : listCFn({ data: undefined }) });
+  const rows = useQuery<any[]>({ queryKey: [isVenta ? "ventas" : "compras"], queryFn: (() => isVenta ? listVFn({ data: undefined }) : listCFn({ data: undefined })) as any });
   const ents = useQuery({ queryKey: ["entidades"], queryFn: () => entFn() });
 
   const [open, setOpen] = useState(false);
