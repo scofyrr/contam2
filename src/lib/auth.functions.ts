@@ -5,7 +5,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import crypto from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { getContamSession } from "./session"; // <-- Apuntando al archivo unificado y limpio src/lib/session.ts
+import { getContamSession } from "./session.server";
 import { ContamRol } from "./types"; // <-- Importando el tipo desde su archivo independiente libre de dependencias de servidor
 
 function sha256(input: string) {
