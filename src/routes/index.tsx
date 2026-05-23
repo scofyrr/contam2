@@ -1,10 +1,12 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { me } from "@/lib/auth.functions";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/")({
-  beforeLoad: async () => {
-    const u = await me();
-    if (u) throw redirect({ to: "/dashboard" });
-    throw redirect({ to: "/login" });
-  },
+  component: IndexRedirect,
 });
+
+function IndexRedirect() {
+  const { session, loading } = useSession();
+  if (loading) return <div className="min-h-screen grid place-items-center text-muted-foreground text-sm">Cargando…</div>;
+  return <Navigate to={session ? "/sire-registros" : "/login"} />;
+}
