@@ -12,11 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppVentasRouteImport } from './routes/_app.ventas'
-import { Route as AppSireRouteImport } from './routes/_app.sire'
-import { Route as AppEntidadesRouteImport } from './routes/_app.entidades'
-import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
-import { Route as AppComprasRouteImport } from './routes/_app.compras'
+import { Route as AppSireRegistrosRouteImport } from './routes/_app.sire-registros'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -32,90 +28,35 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppVentasRoute = AppVentasRouteImport.update({
-  id: '/ventas',
-  path: '/ventas',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSireRoute = AppSireRouteImport.update({
-  id: '/sire',
-  path: '/sire',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppEntidadesRoute = AppEntidadesRouteImport.update({
-  id: '/entidades',
-  path: '/entidades',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppComprasRoute = AppComprasRouteImport.update({
-  id: '/compras',
-  path: '/compras',
+const AppSireRegistrosRoute = AppSireRegistrosRouteImport.update({
+  id: '/sire-registros',
+  path: '/sire-registros',
   getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/compras': typeof AppComprasRoute
-  '/dashboard': typeof AppDashboardRoute
-  '/entidades': typeof AppEntidadesRoute
-  '/sire': typeof AppSireRoute
-  '/ventas': typeof AppVentasRoute
+  '/sire-registros': typeof AppSireRegistrosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/compras': typeof AppComprasRoute
-  '/dashboard': typeof AppDashboardRoute
-  '/entidades': typeof AppEntidadesRoute
-  '/sire': typeof AppSireRoute
-  '/ventas': typeof AppVentasRoute
+  '/sire-registros': typeof AppSireRegistrosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/compras': typeof AppComprasRoute
-  '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/entidades': typeof AppEntidadesRoute
-  '/_app/sire': typeof AppSireRoute
-  '/_app/ventas': typeof AppVentasRoute
+  '/_app/sire-registros': typeof AppSireRegistrosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/login'
-    | '/compras'
-    | '/dashboard'
-    | '/entidades'
-    | '/sire'
-    | '/ventas'
+  fullPaths: '/' | '/login' | '/sire-registros'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/login'
-    | '/compras'
-    | '/dashboard'
-    | '/entidades'
-    | '/sire'
-    | '/ventas'
-  id:
-    | '__root__'
-    | '/'
-    | '/_app'
-    | '/login'
-    | '/_app/compras'
-    | '/_app/dashboard'
-    | '/_app/entidades'
-    | '/_app/sire'
-    | '/_app/ventas'
+  to: '/' | '/login' | '/sire-registros'
+  id: '__root__' | '/' | '/_app' | '/login' | '/_app/sire-registros'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -147,58 +88,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/ventas': {
-      id: '/_app/ventas'
-      path: '/ventas'
-      fullPath: '/ventas'
-      preLoaderRoute: typeof AppVentasRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/sire': {
-      id: '/_app/sire'
-      path: '/sire'
-      fullPath: '/sire'
-      preLoaderRoute: typeof AppSireRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/entidades': {
-      id: '/_app/entidades'
-      path: '/entidades'
-      fullPath: '/entidades'
-      preLoaderRoute: typeof AppEntidadesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/dashboard': {
-      id: '/_app/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AppDashboardRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/compras': {
-      id: '/_app/compras'
-      path: '/compras'
-      fullPath: '/compras'
-      preLoaderRoute: typeof AppComprasRouteImport
+    '/_app/sire-registros': {
+      id: '/_app/sire-registros'
+      path: '/sire-registros'
+      fullPath: '/sire-registros'
+      preLoaderRoute: typeof AppSireRegistrosRouteImport
       parentRoute: typeof AppRoute
     }
   }
 }
 
 interface AppRouteChildren {
-  AppComprasRoute: typeof AppComprasRoute
-  AppDashboardRoute: typeof AppDashboardRoute
-  AppEntidadesRoute: typeof AppEntidadesRoute
-  AppSireRoute: typeof AppSireRoute
-  AppVentasRoute: typeof AppVentasRoute
+  AppSireRegistrosRoute: typeof AppSireRegistrosRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppComprasRoute: AppComprasRoute,
-  AppDashboardRoute: AppDashboardRoute,
-  AppEntidadesRoute: AppEntidadesRoute,
-  AppSireRoute: AppSireRoute,
-  AppVentasRoute: AppVentasRoute,
+  AppSireRegistrosRoute: AppSireRegistrosRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -211,3 +116,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
