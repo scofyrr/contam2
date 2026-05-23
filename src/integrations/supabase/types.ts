@@ -404,6 +404,168 @@ export type Database = {
           },
         ]
       }
+      registros_sire: {
+        Row: {
+          anio_dam_dsi: string | null
+          bi_grav: number | null
+          bi_grav_y_no_grav: number | null
+          bi_no_grav: number | null
+          campos_38_41: Json | null
+          campos_libres: Json | null
+          car_orig_indicador: string | null
+          car_sunat: string | null
+          clasificacion_bienes_serv: string | null
+          cod_dam_dsi: string | null
+          cod_moneda: string
+          cod_tipo_cdp: string
+          created_at: string
+          fecha_emision: string
+          fecha_emision_mod: string | null
+          fecha_vencimiento: string | null
+          icbper: number | null
+          id: string
+          id_proyecto_operadores: string | null
+          igv_grav: number | null
+          igv_grav_y_no_grav: number | null
+          igv_no_grav: number | null
+          importe_total: number
+          impuesto_beneficio: number | null
+          isc: number | null
+          nombre_contraparte: string | null
+          nro_cdp_final: string | null
+          nro_cdp_inicial: string
+          nro_cdp_mod: string | null
+          nro_doc_contraparte: string | null
+          observaciones: string | null
+          otros_tributos: number | null
+          pct_participacion: number | null
+          periodo: string
+          razon_social: string
+          ruc: string
+          serie_cdp: string | null
+          serie_cdp_mod: string | null
+          tipo: string
+          tipo_cambio: number | null
+          tipo_cdp_mod: string | null
+          tipo_doc_contraparte: string | null
+          tipo_venta_config: Json | null
+          updated_at: string
+          valor_no_grav: number | null
+        }
+        Insert: {
+          anio_dam_dsi?: string | null
+          bi_grav?: number | null
+          bi_grav_y_no_grav?: number | null
+          bi_no_grav?: number | null
+          campos_38_41?: Json | null
+          campos_libres?: Json | null
+          car_orig_indicador?: string | null
+          car_sunat?: string | null
+          clasificacion_bienes_serv?: string | null
+          cod_dam_dsi?: string | null
+          cod_moneda?: string
+          cod_tipo_cdp: string
+          created_at?: string
+          fecha_emision: string
+          fecha_emision_mod?: string | null
+          fecha_vencimiento?: string | null
+          icbper?: number | null
+          id?: string
+          id_proyecto_operadores?: string | null
+          igv_grav?: number | null
+          igv_grav_y_no_grav?: number | null
+          igv_no_grav?: number | null
+          importe_total?: number
+          impuesto_beneficio?: number | null
+          isc?: number | null
+          nombre_contraparte?: string | null
+          nro_cdp_final?: string | null
+          nro_cdp_inicial: string
+          nro_cdp_mod?: string | null
+          nro_doc_contraparte?: string | null
+          observaciones?: string | null
+          otros_tributos?: number | null
+          pct_participacion?: number | null
+          periodo: string
+          razon_social: string
+          ruc: string
+          serie_cdp?: string | null
+          serie_cdp_mod?: string | null
+          tipo: string
+          tipo_cambio?: number | null
+          tipo_cdp_mod?: string | null
+          tipo_doc_contraparte?: string | null
+          tipo_venta_config?: Json | null
+          updated_at?: string
+          valor_no_grav?: number | null
+        }
+        Update: {
+          anio_dam_dsi?: string | null
+          bi_grav?: number | null
+          bi_grav_y_no_grav?: number | null
+          bi_no_grav?: number | null
+          campos_38_41?: Json | null
+          campos_libres?: Json | null
+          car_orig_indicador?: string | null
+          car_sunat?: string | null
+          clasificacion_bienes_serv?: string | null
+          cod_dam_dsi?: string | null
+          cod_moneda?: string
+          cod_tipo_cdp?: string
+          created_at?: string
+          fecha_emision?: string
+          fecha_emision_mod?: string | null
+          fecha_vencimiento?: string | null
+          icbper?: number | null
+          id?: string
+          id_proyecto_operadores?: string | null
+          igv_grav?: number | null
+          igv_grav_y_no_grav?: number | null
+          igv_no_grav?: number | null
+          importe_total?: number
+          impuesto_beneficio?: number | null
+          isc?: number | null
+          nombre_contraparte?: string | null
+          nro_cdp_final?: string | null
+          nro_cdp_inicial?: string
+          nro_cdp_mod?: string | null
+          nro_doc_contraparte?: string | null
+          observaciones?: string | null
+          otros_tributos?: number | null
+          pct_participacion?: number | null
+          periodo?: string
+          razon_social?: string
+          ruc?: string
+          serie_cdp?: string | null
+          serie_cdp_mod?: string | null
+          tipo?: string
+          tipo_cambio?: number | null
+          tipo_cdp_mod?: string | null
+          tipo_doc_contraparte?: string | null
+          tipo_venta_config?: Json | null
+          updated_at?: string
+          valor_no_grav?: number | null
+        }
+        Relationships: []
+      }
+      tabla_pcge: {
+        Row: {
+          codigo: string
+          descripcion: string
+          nivel: number
+        }
+        Insert: {
+          codigo: string
+          descripcion: string
+          nivel?: number
+        }
+        Update: {
+          codigo?: string
+          descripcion?: string
+          nivel?: number
+        }
+        Relationships: []
+      }
       usuarios: {
         Row: {
           activo: boolean
