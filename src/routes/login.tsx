@@ -20,8 +20,21 @@ function LoginPage() {
   const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
 
-  if (sessLoading) return null;
-  if (session) return <Navigate to="/sire-registros" />;
+  // ✅ Cambiado: mostrar un loading spinner en lugar de null
+  if (sessLoading) {
+    return (
+      <div className="min-h-screen grid place-items-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm">Verificando sesión...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (session) {
+    return <Navigate to="/sire-registros" />;
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,18 +68,34 @@ function LoginPage() {
       <div className="flex items-center justify-center p-8">
         <form onSubmit={onSubmit} className="w-full max-w-sm space-y-6">
           <div className="space-y-2">
-            <div className="size-11 rounded-md bg-primary text-primary-foreground grid place-items-center mb-3"><Lock className="size-5" /></div>
+            <div className="size-11 rounded-md bg-primary text-primary-foreground grid place-items-center mb-3">
+              <Lock className="size-5" />
+            </div>
             <h2 className="font-display text-2xl font-semibold">Iniciar sesión</h2>
             <p className="text-sm text-muted-foreground">Usa el administrador por defecto para comenzar.</p>
           </div>
           <div className="space-y-3">
             <div>
               <Label htmlFor="email">Correo</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
+              <Input 
+                id="email" 
+                type="email" 
+                required 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                autoComplete="username" 
+              />
             </div>
             <div>
               <Label htmlFor="password">Contraseña</Label>
-              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                autoComplete="current-password" 
+              />
             </div>
           </div>
           <Button type="submit" disabled={loading} className="w-full" size="lg">
@@ -74,7 +103,10 @@ function LoginPage() {
           </Button>
           <div className="rounded-md border bg-muted/50 p-3 text-xs text-muted-foreground flex gap-2">
             <FileText className="size-4 shrink-0 mt-0.5" />
-            <div><strong className="text-foreground">Credenciales:</strong><br />admin@contam.pe / admin123</div>
+            <div>
+              <strong className="text-foreground">Credenciales:</strong>
+              <br />admin@contam.pe / admin123
+            </div>
           </div>
         </form>
       </div>
