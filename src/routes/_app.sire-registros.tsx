@@ -38,6 +38,8 @@ const TIPOS_VENTA = ["Mercadería", "Productos", "Servicio", "Sub Productos", "D
 
 type Reg = any;
 
+// ✅ CORRECCIÓN 1: Todos los campos tienen valores por defecto explícitos
+// Nunca más undefined o null en el estado inicial
 const empty = (): Reg => ({
   tipo: "VENTA",
   ruc: "",
@@ -51,14 +53,27 @@ const empty = (): Reg => ({
   anio_dam_dsi: "",
   nro_cdp_inicial: "",
   nro_cdp_final: "",
-  tipo_doc_contraparte: "6",
+  tipo_doc_contraparte: "6",  // ✅ Valor por defecto explícito
   nro_doc_contraparte: "",
   nombre_contraparte: "",
-  bi_grav: 0, igv_grav: 0, bi_grav_y_no_grav: 0, igv_grav_y_no_grav: 0,
-  bi_no_grav: 0, igv_no_grav: 0, valor_no_grav: 0,
-  isc: 0, icbper: 0, otros_tributos: 0, importe_total: 0,
-  cod_moneda: "PEN", tipo_cambio: 1,
-  fecha_emision_mod: "", tipo_cdp_mod: "", serie_cdp_mod: "", cod_dam_dsi: "", nro_cdp_mod: "",
+  bi_grav: 0, 
+  igv_grav: 0, 
+  bi_grav_y_no_grav: 0, 
+  igv_grav_y_no_grav: 0,
+  bi_no_grav: 0, 
+  igv_no_grav: 0, 
+  valor_no_grav: 0,
+  isc: 0, 
+  icbper: 0, 
+  otros_tributos: 0, 
+  importe_total: 0,
+  cod_moneda: "PEN", 
+  tipo_cambio: 1,
+  fecha_emision_mod: "", 
+  tipo_cdp_mod: "", 
+  serie_cdp_mod: "", 
+  cod_dam_dsi: "", 
+  nro_cdp_mod: "",
   clasificacion_bienes_serv: "",
   id_proyecto_operadores: "",
   pct_participacion: 0,
@@ -69,6 +84,36 @@ const empty = (): Reg => ({
   tipo_venta_config: [] as { tipo: string; descripcion: string }[],
   observaciones: "",
 });
+
+// ✅ CORRECCIÓN 2: Función que sanitiza cualquier registro viniendo de la BD
+// Convierte null/undefined en strings vacíos o valores por defecto
+function sanitizeRegistro(reg: any): Reg {
+  const vacio = empty();
+  return {
+    ...vacio,
+    ...reg,
+    // Forzar que todos los campos opcionales sean strings vacíos en lugar de null/undefined
+    fecha_vencimiento: reg.fecha_vencimiento ?? "",
+    fecha_emision_mod: reg.fecha_emision_mod ?? "",
+    tipo_cdp_mod: reg.tipo_cdp_mod ?? "",
+    serie_cdp_mod: reg.serie_cdp_mod ?? "",
+    cod_dam_dsi: reg.cod_dam_dsi ?? "",
+    nro_cdp_mod: reg.nro_cdp_mod ?? "",
+    clasificacion_bienes_serv: reg.clasificacion_bienes_serv ?? "",
+    id_proyecto_operadores: reg.id_proyecto_operadores ?? "",
+    car_orig_indicador: reg.car_orig_indicador ?? "",
+    observaciones: reg.observaciones ?? "",
+    tipo_doc_contraparte: reg.tipo_doc_contraparte ?? "6",
+    nro_doc_contraparte: reg.nro_doc_contraparte ?? "",
+    nombre_contraparte: reg.nombre_contraparte ?? "",
+    serie_cdp: reg.serie_cdp ?? "",
+    anio_dam_dsi: reg.anio_dam_dsi ?? "",
+    nro_cdp_final: reg.nro_cdp_final ?? "",
+    car_sunat: reg.car_sunat ?? "",
+    campos_libres: reg.campos_libres ?? {},
+    tipo_venta_config: Array.isArray(reg.tipo_venta_config) ? reg.tipo_venta_config : [],
+  };
+}
 
 function SireRegistrosPage() {
   const qc = useQueryClient();
@@ -142,13 +187,16 @@ function SireRegistrosPage() {
         </div>
         <Dialog open={openForm} onOpenChange={(o) => { setOpenForm(o); if (!o) setEditing(null); }}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditing(empty())}><Plus className="size-4 mr-2" />Nuevo registro</Button>
+            {/* ✅ CORRECCIÓN 3: Sanitizar el registro vacío antes de editar */}
+            <Button onClick={() => setEditing(sanitizeRegistro(empty()))}>
+              <Plus className="size-4 mr-2" />Nuevo registro
+            </Button>
           </DialogTrigger>
           {editing && <RegistroForm value={editing} onChange={setEditing} onSubmit={() => upsert.mutate(editing)} saving={upsert.isPending} />}
         </Dialog>
       </header>
 
-      {/* Filtros */}
+      {/* Filtros - sin cambios */}
       <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-2 md:grid-cols-6 gap-3">
         <div>
           <Label className="text-xs">Tipo</Label>
@@ -197,7 +245,7 @@ function SireRegistrosPage() {
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs - sin cambios */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <KPI label="Registros" value={String(totals.count)} />
         <KPI label="Base Imponible" value={totals.bi.toFixed(2)} mono />
@@ -237,8 +285,16 @@ function SireRegistrosPage() {
                   <td className="px-3 py-2 text-right font-mono font-semibold">{Number(r.importe_total).toFixed(2)}</td>
                   <td className="px-3 py-2 font-mono">{r.cod_moneda}</td>
                   <td className="px-3 py-2 text-right whitespace-nowrap">
-                    <Button size="icon" variant="ghost" onClick={() => { setEditing({ ...r }); setOpenForm(true); }}><Pencil className="size-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => { if (confirm("¿Eliminar registro?")) del.mutate(r.id); }}><Trash2 className="size-4 text-destructive" /></Button>
+                    {/* ✅ CORRECCIÓN 4: Sanitizar el registro antes de editarlo */}
+                    <Button size="icon" variant="ghost" onClick={() => { 
+                      setEditing(sanitizeRegistro(r)); 
+                      setOpenForm(true); 
+                    }}>
+                      <Pencil className="size-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => { if (confirm("¿Eliminar registro?")) del.mutate(r.id); }}>
+                      <Trash2 className="size-4 text-destructive" />
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -427,6 +483,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <div><Label className="text-xs">{label}</Label>{children}</div>;
 }
