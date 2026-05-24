@@ -3,6 +3,7 @@ import { useSession } from "@/hooks/use-session";
 import { supabase } from "@/integrations/supabase/client";
 import { FileSpreadsheet, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -16,9 +17,39 @@ function AppLayout() {
   const { session, loading } = useSession();
   const router = useRouter();
   const location = useLocation();
+  const [forceRender, setForceRender] = useState(false);
 
-  if (loading) return <div className="min-h-screen grid place-items-center text-muted-foreground text-sm">Cargando sesión…</div>;
-  if (!session) return <Navigate to="/login" />;
+  // ✅ Timeout de emergencia para Lovable
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.log("⚠️ Timeout: forzando render");
+        setForceRender(true);
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  // Si pasó el timeout y sigue loading, mostrar error
+  if (loading && forceRender) {
+    return (
+      <div className="min-h-screen grid place-items-center text-center p-8">
+        <div className="space-y-4">
+          <div className="text-destructive text-lg">⚠️ Error de conexión con Supabase</div>
+          <p className="text-muted-foreground">No se pudo cargar la sesión. Verificá las variables de entorno de Supabase.</p>
+          <Button onClick={() => window.location.reload()}>Reintentar</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return <div className="min-h-screen grid place-items-center text-muted-foreground text-sm">Cargando sesión…</div>;
+  }
+  
+  if (!session) {
+    return <Navigate to="/login" />;
+  }
 
   return (
     <div className="min-h-screen flex bg-background">
