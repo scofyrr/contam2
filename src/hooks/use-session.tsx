@@ -1,4 +1,4 @@
-// hooks/use-session.tsx - MODIFICADO
+// hooks/use-session.tsx - MODIFICADO CON MODO DEMO
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,22 +7,56 @@ type Ctx = {
   session: Session | null; 
   user: User | null; 
   loading: boolean;
-  error: Error | null; // AÑADIR error para mejor manejo
+  error: Error | null;
 };
 
 const SessionContext = createContext<Ctx>({ 
   session: null, 
   user: null, 
-  loading: true,
+  loading: false,  // ← Cambiado a false por defecto
   error: null
 });
 
 export function SessionProvider({ children }: { children: ReactNode }) {
+  // 🔥 MODO DEMO - FORZAR loading = false INMEDIATAMENTE
+  const DEMO_MODE = true;  // ← Cambia a false para usar Supabase real
+  
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!DEMO_MODE); // ← false si DEMO_MODE es true
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // 🔥 MODO DEMO: Crear sesión falsa y salir
+    if (DEMO_MODE) {
+      console.log("🎭 MODO DEMO ACTIVADO - loading=false inmediato");
+      
+      // Crear usuario de demostración
+      const mockUser = {
+        id: "demo-user-id",
+        email: "demo@contam.com",
+        user_metadata: { nombre: "Usuario Demo" },
+        app_metadata: {},
+        aud: "authenticated",
+        created_at: new Date().toISOString(),
+      } as User;
+      
+      const mockSession = {
+        user: mockUser,
+        access_token: "demo_token",
+        refresh_token: "demo_refresh",
+        expires_at: Date.now() + 3600000,
+      } as Session;
+      
+      setSession(mockSession);
+      setLoading(false);
+      setError(null);
+      
+      return; // Salir del efecto, no ejecutar código de Supabase
+    }
+
+    // ============================================
+    // CÓDIGO NORMAL DE SUPABASE (solo si DEMO_MODE = false)
+    // ============================================
     let mounted = true;
     let timeoutId: NodeJS.Timeout;
 
@@ -30,7 +64,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       try {
         console.log("🔵 Iniciando verificación de sesión...");
         
-        // Intentar obtener la sesión
         const { data, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -54,7 +87,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       console.log("🔄 Evento auth:", event, newSession?.user?.email || "sin sesión");
       
@@ -65,7 +97,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Timeout de seguridad MÁS LARGO (10 segundos para dar tiempo)
     timeoutId = setTimeout(() => {
       if (mounted && loading) {
         console.error("⏰ TIMEOUT: No se pudo obtener la sesión después de 10 segundos");
@@ -74,7 +105,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
     }, 10000);
 
-    // Ejecutar inicialización
     initializeAuth();
 
     return () => {
@@ -84,7 +114,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  console.log("🎨 SessionProvider - loading:", loading, "session:", !!session, "error:", !!error);
+  console.log("🎨 SessionProvider - loading:", loading, "session:", !!session, "error:", !!error, "demo:", DEMO_MODE);
 
   return (
     <SessionContext.Provider value={{ session, user: session?.user ?? null, loading, error }}>
