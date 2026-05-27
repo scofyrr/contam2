@@ -1,5 +1,6 @@
-import { createFileRoute, useRouter, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
+// src/routes/login.tsx - VERSIÓN SIMPLIFICADA Y CORREGIDA
+import { createFileRoute } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { Button } from "@/components/ui/button";
@@ -9,18 +10,32 @@ import { toast } from "sonner";
 import { FileText, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Ingresar — CONTAM" }] }),
   component: LoginPage,
 });
 
 function LoginPage() {
-  const router = useRouter();
   const { session, loading: sessLoading } = useSession();
   const [email, setEmail] = useState("admin@contam.pe");
-  const [password, setPassword] = useState("admin123");
+  const [password, setPassword] = useState("Admin123456!");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Cambiado: mostrar un loading spinner en lugar de null
+  // Verificar sesión al cargar
+  useEffect(() => {
+    const checkLocalStorage = () => {
+      const token = localStorage.getItem('sb-auth-token');
+      console.log("🔍 [LocalStorage] Token (sb-auth-token):", token ? "✅ Sí" : "❌ No");
+    };
+    checkLocalStorage();
+  }, []);
+
+  // Redirigir si hay sesión
+  useEffect(() => {
+    if (!sessLoading && session) {
+      console.log("✅ Sesión detectada, redirigiendo a /sire-registros");
+      window.location.href = "/sire-registros";
+    }
+  }, [sessLoading, session]);
+
   if (sessLoading) {
     return (
       <div className="min-h-screen grid place-items-center">
@@ -33,20 +48,48 @@ function LoginPage() {
   }
 
   if (session) {
-    return <Navigate to="/sire-registros" />;
+    return (
+      <div className="min-h-screen grid place-items-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm">Redirigiendo al dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    
+    console.log("🔐 Intentando login con:", email);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+      
+      if (error) throw error;
+      
+      if (data?.session) {
+        console.log("✅ Login exitoso!");
+        console.log("📝 Usuario:", data.session.user.email);
+        
+        toast.success("Bienvenido a CONTAM");
+        
+        // 🔥 REDIRECCIÓN INMEDIATA
+        window.location.href = "/sire-registros";
+      } else {
+        console.error("❌ No se recibió sesión");
+        toast.error("Error: No se pudo establecer la sesión");
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("❌ Error:", err);
+      toast.error(err.message);
+      setLoading(false);
     }
-    toast.success("Bienvenido a CONTAM");
-    router.navigate({ to: "/sire-registros" });
   }
 
   return (
@@ -83,7 +126,6 @@ function LoginPage() {
                 required 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
-                autoComplete="username" 
               />
             </div>
             <div>
@@ -94,7 +136,6 @@ function LoginPage() {
                 required 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
-                autoComplete="current-password" 
               />
             </div>
           </div>
@@ -105,7 +146,7 @@ function LoginPage() {
             <FileText className="size-4 shrink-0 mt-0.5" />
             <div>
               <strong className="text-foreground">Credenciales:</strong>
-              <br />admin@contam.pe / admin123
+              <br />admin@contam.pe / Admin123456!
             </div>
           </div>
         </form>

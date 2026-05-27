@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, ChevronsUpDown, Search, RotateCcw } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronsUpDown, Search, RotateCcw, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/sire-registros")({
-  head: () => ({ meta: [{ title: "Registros SIRE — CONTAM" }] }),
   component: SireRegistrosPage,
 });
 
@@ -26,6 +25,7 @@ const TIPOS_CDP = [
   { c: "12", l: "12 - Ticket" },
   { c: "00", l: "00 - Otros" },
 ];
+
 const TIPOS_DOC = [
   { c: "0", l: "0 - No domiciliado" },
   { c: "1", l: "1 - DNI" },
@@ -33,13 +33,61 @@ const TIPOS_DOC = [
   { c: "6", l: "6 - RUC" },
   { c: "7", l: "7 - Pasaporte" },
 ];
+
 const MONEDAS = ["PEN", "USD", "EUR"];
 const TIPOS_VENTA = ["Mercadería", "Productos", "Servicio", "Sub Productos", "Devoluciones", "Activo"];
 
 type Reg = any;
 
-// ✅ CORRECCIÓN 1: Todos los campos tienen valores por defecto explícitos
-// Nunca más undefined o null en el estado inicial
+interface ColumnConfig {
+  id: string;
+  header: string;
+  accessorKey: string;
+  visible: boolean;
+  isNumeric?: boolean;
+}
+
+// ============================================
+// SOLO LAS COLUMNAS QUE EXISTEN EN LA BD
+// ============================================
+const ALL_COLUMNS: ColumnConfig[] = [
+  { id: "tipo", header: "TIPO", accessorKey: "tipo", visible: true },
+  { id: "ruc", header: "RUC", accessorKey: "ruc", visible: true },
+  { id: "razon_social", header: "RAZON SOCIAL", accessorKey: "razon_social", visible: true },
+  { id: "periodo", header: "PERIODO", accessorKey: "periodo", visible: true },
+  { id: "car_sunat", header: "CAR SUNAT", accessorKey: "car_sunat", visible: true },
+  { id: "fecha_emision", header: "FECHA EMISIÓN CDP", accessorKey: "fecha_emision", visible: true },
+  { id: "fecha_vencimiento", header: "FECHA VENCIMIENTO CDP", accessorKey: "fecha_vencimiento", visible: true },
+  { id: "cod_tipo_cdp", header: "COD. TIPO CDP", accessorKey: "cod_tipo_cdp", visible: true },
+  { id: "serie_cdp", header: "SERIE CDP", accessorKey: "serie_cdp", visible: true },
+  { id: "anio_dam_dsi", header: "AÑO DAM O DSI", accessorKey: "anio_dam_dsi", visible: true },
+  { id: "nro_cdp_inicial", header: "NRO CDP INICIAL", accessorKey: "nro_cdp_inicial", visible: true },
+  { id: "nro_cdp_final", header: "NRO CDP FINAL", accessorKey: "nro_cdp_final", visible: true },
+  { id: "tipo_doc_contraparte", header: "TIPO DOC PROVEEDOR", accessorKey: "tipo_doc_contraparte", visible: true },
+  { id: "nro_doc_contraparte", header: "NRO DOC PROVEEDOR", accessorKey: "nro_doc_contraparte", visible: true },
+  { id: "nombre_contraparte", header: "NOMBRE CONTRAPARTE", accessorKey: "nombre_contraparte", visible: true },
+  { id: "bi_grav", header: "BI GRAV.", accessorKey: "bi_grav", visible: true, isNumeric: true },
+  { id: "igv_grav", header: "IGV GRAV.", accessorKey: "igv_grav", visible: true, isNumeric: true },
+  { id: "bi_grav_y_no_grav", header: "BI GRAV. Y NO GRAV.", accessorKey: "bi_grav_y_no_grav", visible: false, isNumeric: true },
+  { id: "igv_grav_y_no_grav", header: "IGV GRAV. Y NO GRAV.", accessorKey: "igv_grav_y_no_grav", visible: false, isNumeric: true },
+  { id: "bi_no_grav", header: "BI NO GRAV.", accessorKey: "bi_no_grav", visible: false, isNumeric: true },
+  { id: "igv_no_grav", header: "IGV NO GRAV.", accessorKey: "igv_no_grav", visible: false, isNumeric: true },
+  { id: "valor_no_grav", header: "VALOR NO GRAV.", accessorKey: "valor_no_grav", visible: false, isNumeric: true },
+  { id: "isc", header: "ISC", accessorKey: "isc", visible: false, isNumeric: true },
+  { id: "icbper", header: "ICBPER", accessorKey: "icbper", visible: false, isNumeric: true },
+  { id: "otros_tributos", header: "OTROS TRIBUTOS", accessorKey: "otros_tributos", visible: false, isNumeric: true },
+  { id: "importe_total", header: "IMPORTE TOTAL", accessorKey: "importe_total", visible: true, isNumeric: true },
+  { id: "cod_moneda", header: "MONEDA", accessorKey: "cod_moneda", visible: true },
+  { id: "tipo_cambio", header: "TIPO CAMBIO", accessorKey: "tipo_cambio", visible: false, isNumeric: true },
+  { id: "fecha_emision_mod", header: "F. EMISION DOC MOD", accessorKey: "fecha_emision_mod", visible: false },
+  { id: "tipo_cdp_mod", header: "TIPO CDP MOD", accessorKey: "tipo_cdp_mod", visible: false },
+  { id: "serie_cdp_mod", header: "SERIE CDP MOD", accessorKey: "serie_cdp_mod", visible: false },
+  { id: "cod_dam_dsi", header: "COD DAM DSI", accessorKey: "cod_dam_dsi", visible: false },
+  { id: "nro_cdp_mod", header: "NRO CDP MOD", accessorKey: "nro_cdp_mod", visible: false },
+  { id: "clasificacion_bienes_serv", header: "CLASIFICACION", accessorKey: "clasificacion_bienes_serv", visible: false },
+  { id: "observaciones", header: "OBSERVACIONES", accessorKey: "observaciones", visible: false },
+];
+
 const empty = (): Reg => ({
   tipo: "VENTA",
   ruc: "",
@@ -53,46 +101,26 @@ const empty = (): Reg => ({
   anio_dam_dsi: "",
   nro_cdp_inicial: "",
   nro_cdp_final: "",
-  tipo_doc_contraparte: "6",  // ✅ Valor por defecto explícito
+  tipo_doc_contraparte: "6",
   nro_doc_contraparte: "",
   nombre_contraparte: "",
-  bi_grav: 0, 
-  igv_grav: 0, 
-  bi_grav_y_no_grav: 0, 
-  igv_grav_y_no_grav: 0,
-  bi_no_grav: 0, 
-  igv_no_grav: 0, 
-  valor_no_grav: 0,
-  isc: 0, 
-  icbper: 0, 
-  otros_tributos: 0, 
-  importe_total: 0,
-  cod_moneda: "PEN", 
-  tipo_cambio: 1,
-  fecha_emision_mod: "", 
-  tipo_cdp_mod: "", 
-  serie_cdp_mod: "", 
-  cod_dam_dsi: "", 
-  nro_cdp_mod: "",
+  bi_grav: 0, igv_grav: 0, bi_grav_y_no_grav: 0, igv_grav_y_no_grav: 0,
+  bi_no_grav: 0, igv_no_grav: 0, valor_no_grav: 0,
+  isc: 0, icbper: 0, otros_tributos: 0, importe_total: 0,
+  cod_moneda: "PEN", tipo_cambio: 1,
+  fecha_emision_mod: "", tipo_cdp_mod: "", serie_cdp_mod: "", cod_dam_dsi: "", nro_cdp_mod: "",
   clasificacion_bienes_serv: "",
-  id_proyecto_operadores: "",
-  pct_participacion: 0,
-  impuesto_beneficio: 0,
-  car_orig_indicador: "",
+  observaciones: "",
+  tipo_venta_config: [] as { tipo: string; descripcion: string }[],
   campos_38_41: {},
   campos_libres: {},
-  tipo_venta_config: [] as { tipo: string; descripcion: string }[],
-  observaciones: "",
 });
 
-// ✅ CORRECCIÓN 2: Función que sanitiza cualquier registro viniendo de la BD
-// Convierte null/undefined en strings vacíos o valores por defecto
 function sanitizeRegistro(reg: any): Reg {
   const vacio = empty();
   return {
     ...vacio,
     ...reg,
-    // Forzar que todos los campos opcionales sean strings vacíos en lugar de null/undefined
     fecha_vencimiento: reg.fecha_vencimiento ?? "",
     fecha_emision_mod: reg.fecha_emision_mod ?? "",
     tipo_cdp_mod: reg.tipo_cdp_mod ?? "",
@@ -100,8 +128,6 @@ function sanitizeRegistro(reg: any): Reg {
     cod_dam_dsi: reg.cod_dam_dsi ?? "",
     nro_cdp_mod: reg.nro_cdp_mod ?? "",
     clasificacion_bienes_serv: reg.clasificacion_bienes_serv ?? "",
-    id_proyecto_operadores: reg.id_proyecto_operadores ?? "",
-    car_orig_indicador: reg.car_orig_indicador ?? "",
     observaciones: reg.observaciones ?? "",
     tipo_doc_contraparte: reg.tipo_doc_contraparte ?? "6",
     nro_doc_contraparte: reg.nro_doc_contraparte ?? "",
@@ -120,6 +146,39 @@ function SireRegistrosPage() {
   const [filters, setFilters] = useState({ tipo: "TODOS", periodo: "", ruc: "", contraparte: "", cod_tipo_cdp: "TODOS", q: "" });
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Reg | null>(null);
+  
+  // ✅ CORREGIDO: Verificar si window existe antes de usar localStorage
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("sire_columns");
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return ALL_COLUMNS;
+        }
+      }
+    }
+    return ALL_COLUMNS;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sire_columns", JSON.stringify(columns));
+    }
+  }, [columns]);
+
+  const toggleColumn = (columnId: string) => {
+    setColumns(prev => prev.map(col =>
+      col.id === columnId ? { ...col, visible: !col.visible } : col
+    ));
+  };
+
+  const resetColumns = () => {
+    setColumns(ALL_COLUMNS);
+  };
+
+  const visibleColumns = columns.filter(col => col.visible);
 
   const query = useQuery({
     queryKey: ["registros_sire", filters],
@@ -152,7 +211,7 @@ function SireRegistrosPage() {
     mutationFn: async (r: Reg) => {
       const payload = { ...r };
       ["fecha_vencimiento", "fecha_emision_mod"].forEach((k) => { if (!payload[k]) payload[k] = null; });
-      ["nro_cdp_final","serie_cdp","tipo_cdp_mod","serie_cdp_mod","cod_dam_dsi","nro_cdp_mod","anio_dam_dsi","car_sunat","clasificacion_bienes_serv","id_proyecto_operadores","car_orig_indicador","observaciones","tipo_doc_contraparte","nro_doc_contraparte","nombre_contraparte"].forEach((k) => { if (payload[k] === "") payload[k] = null; });
+      ["nro_cdp_final","serie_cdp","tipo_cdp_mod","serie_cdp_mod","cod_dam_dsi","nro_cdp_mod","anio_dam_dsi","car_sunat","clasificacion_bienes_serv","observaciones","tipo_doc_contraparte","nro_doc_contraparte","nombre_contraparte"].forEach((k) => { if (payload[k] === "") payload[k] = null; });
       if (payload.id) {
         const { error } = await supabase.from("registros_sire").update(payload).eq("id", payload.id);
         if (error) throw error;
@@ -178,6 +237,12 @@ function SireRegistrosPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const formatValue = (value: any, isNumeric?: boolean) => {
+    if (value === null || value === undefined) return "-";
+    if (isNumeric && typeof value === "number") return value.toFixed(2);
+    return value;
+  };
+
   return (
     <div className="p-6 max-w-[1600px] mx-auto">
       <header className="mb-6 flex items-center justify-between gap-4">
@@ -187,7 +252,6 @@ function SireRegistrosPage() {
         </div>
         <Dialog open={openForm} onOpenChange={(o) => { setOpenForm(o); if (!o) setEditing(null); }}>
           <DialogTrigger asChild>
-            {/* ✅ CORRECCIÓN 3: Sanitizar el registro vacío antes de editar */}
             <Button onClick={() => setEditing(sanitizeRegistro(empty()))}>
               <Plus className="size-4 mr-2" />Nuevo registro
             </Button>
@@ -196,7 +260,7 @@ function SireRegistrosPage() {
         </Dialog>
       </header>
 
-      {/* Filtros - sin cambios */}
+      {/* Filtros */}
       <div className="rounded-xl border bg-card p-4 mb-4 grid grid-cols-2 md:grid-cols-6 gap-3">
         <div>
           <Label className="text-xs">Tipo</Label>
@@ -245,13 +309,52 @@ function SireRegistrosPage() {
         </div>
       </div>
 
-      {/* KPIs - sin cambios */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <KPI label="Registros" value={String(totals.count)} />
-        <KPI label="Base Imponible" value={totals.bi.toFixed(2)} mono />
-        <KPI label="IGV" value={totals.igv.toFixed(2)} mono />
-        <KPI label="Importe Total" value={totals.total.toFixed(2)} mono />
+        <div className="rounded-xl border bg-card p-4">
+          <div className="text-xs text-muted-foreground">Registros</div>
+          <div className="mt-1 text-xl font-semibold">{String(totals.count)}</div>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <div className="text-xs text-muted-foreground">Base Imponible</div>
+          <div className="mt-1 text-xl font-semibold font-mono">{totals.bi.toFixed(2)}</div>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <div className="text-xs text-muted-foreground">IGV</div>
+          <div className="mt-1 text-xl font-semibold font-mono">{totals.igv.toFixed(2)}</div>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <div className="text-xs text-muted-foreground">Importe Total</div>
+          <div className="mt-1 text-xl font-semibold font-mono">{totals.total.toFixed(2)}</div>
+        </div>
       </div>
+
+      {/* Selector de columnas */}
+      <details className="mb-3">
+        <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Settings2 className="size-4 inline mr-2" />
+          Personalizar columnas ({visibleColumns.length}/{columns.length})
+        </summary>
+        <div className="mt-2 p-3 border rounded-lg bg-muted/30">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-xs font-medium">Selecciona las columnas a mostrar:</span>
+            <Button variant="ghost" size="sm" onClick={resetColumns}>
+              Restablecer
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+            {columns.map(col => (
+              <label key={col.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={col.visible}
+                  onCheckedChange={() => toggleColumn(col.id)}
+                />
+                <span className="truncate">{col.header}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </details>
 
       {/* Tabla */}
       <div className="rounded-xl border bg-card overflow-hidden">
@@ -259,45 +362,71 @@ function SireRegistrosPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
-                {["Tipo","Periodo","F. Emisión","CDP","Serie","Número","Doc. Contraparte","Nombre","BI","IGV","Total","Moneda",""].map((h) => (
-                  <th key={h} className="px-3 py-2 text-left whitespace-nowrap">{h}</th>
+                {visibleColumns.map((col) => (
+                  <th key={col.id} className="px-3 py-2 text-left whitespace-nowrap">
+                    {col.header}
+                  </th>
                 ))}
+                <th className="px-3 py-2 text-center whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {query.isLoading && <tr><td colSpan={13} className="p-8 text-center text-muted-foreground">Cargando…</td></tr>}
-              {query.error && <tr><td colSpan={13} className="p-8 text-center text-destructive">{(query.error as any).message}</td></tr>}
-              {!query.isLoading && (query.data ?? []).length === 0 && (
-                <tr><td colSpan={13} className="p-8 text-center text-muted-foreground">Sin registros para los filtros aplicados.</td></tr>
-              )}
-              {(query.data ?? []).map((r: any) => (
-                <tr key={r.id} className="border-t hover:bg-muted/30">
-                  <td className="px-3 py-2"><Badge variant={r.tipo === "VENTA" ? "default" : "secondary"}>{r.tipo}</Badge></td>
-                  <td className="px-3 py-2 font-mono">{r.periodo}</td>
-                  <td className="px-3 py-2 font-mono">{r.fecha_emision}</td>
-                  <td className="px-3 py-2 font-mono">{r.cod_tipo_cdp}</td>
-                  <td className="px-3 py-2 font-mono">{r.serie_cdp}</td>
-                  <td className="px-3 py-2 font-mono">{r.nro_cdp_inicial}</td>
-                  <td className="px-3 py-2 font-mono">{r.nro_doc_contraparte}</td>
-                  <td className="px-3 py-2 max-w-[220px] truncate">{r.nombre_contraparte}</td>
-                  <td className="px-3 py-2 text-right font-mono">{Number(r.bi_grav).toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{Number(r.igv_grav).toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right font-mono font-semibold">{Number(r.importe_total).toFixed(2)}</td>
-                  <td className="px-3 py-2 font-mono">{r.cod_moneda}</td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap">
-                    {/* ✅ CORRECCIÓN 4: Sanitizar el registro antes de editarlo */}
-                    <Button size="icon" variant="ghost" onClick={() => { 
-                      setEditing(sanitizeRegistro(r)); 
-                      setOpenForm(true); 
-                    }}>
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => { if (confirm("¿Eliminar registro?")) del.mutate(r.id); }}>
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
+              {query.isLoading ? (
+                <tr>
+                  <td colSpan={visibleColumns.length + 1} className="p-8 text-center text-muted-foreground">
+                    Cargando…
                   </td>
                 </tr>
-              ))}
+              ) : query.error ? (
+                <tr>
+                  <td colSpan={visibleColumns.length + 1} className="p-8 text-center text-destructive">
+                    {(query.error as any).message}
+                  </td>
+                </tr>
+              ) : (query.data ?? []).length === 0 ? (
+                <tr>
+                  <td colSpan={visibleColumns.length + 1} className="p-8 text-center text-muted-foreground">
+                    Sin registros para los filtros aplicados.
+                  </td>
+                </tr>
+              ) : (
+                (query.data ?? []).map((r: any) => (
+                  <tr key={r.id} className="border-t hover:bg-muted/30">
+                    {visibleColumns.map((col) => (
+                      <td key={col.id} className="px-3 py-2 whitespace-nowrap">
+                        {col.isNumeric ? (
+                          <span className="font-mono text-right block">
+                            {formatValue(r[col.accessorKey], true)}
+                          </span>
+                        ) : (
+                          formatValue(r[col.accessorKey], false)
+                        )}
+                      </td>
+                    ))}
+                    <td className="px-3 py-2 text-center whitespace-nowrap">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditing(sanitizeRegistro(r));
+                          setOpenForm(true);
+                        }}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          if (confirm("¿Eliminar registro?")) del.mutate(r.id);
+                        }}
+                      >
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -306,18 +435,11 @@ function SireRegistrosPage() {
   );
 }
 
-function KPI({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="rounded-xl border bg-card p-4">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={`mt-1 text-xl font-semibold ${mono ? "font-mono" : "font-display"}`}>{value}</div>
-    </div>
-  );
-}
-
 function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onChange: (r: Reg) => void; onSubmit: () => void; saving: boolean }) {
   const set = (k: string, v: any) => onChange({ ...value, [k]: v });
   const setNum = (k: string, v: string) => set(k, v === "" ? 0 : Number(v));
+
+  // Tipo de venta (multi-select)
   const tv: { tipo: string; descripcion: string }[] = Array.isArray(value.tipo_venta_config) ? value.tipo_venta_config : [];
   const toggleTV = (t: string) => {
     const exists = tv.find((x) => x.tipo === t);
@@ -325,165 +447,142 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
   };
   const setTVDesc = (t: string, d: string) => set("tipo_venta_config", tv.map((x) => x.tipo === t ? { ...x, descripcion: d } : x));
 
-  // Campos libres 41-57
-  const cl: Record<string, string> = value.campos_libres ?? {};
-  const setCL = (n: number, v: string) => set("campos_libres", { ...cl, [`campo_${n}`]: v });
-
   return (
-    <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{value.id ? "Editar" : "Nuevo"} registro SIRE</DialogTitle>
       </DialogHeader>
-
-      <div className="space-y-6">
-        {/* Cabecera */}
-        <Section title="Identificación">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Field label="Tipo">
-              <Select value={value.tipo} onValueChange={(v) => set("tipo", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="VENTA">VENTA</SelectItem>
-                  <SelectItem value="COMPRA">COMPRA</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="RUC contribuyente *"><Input value={value.ruc} onChange={(e) => set("ruc", e.target.value)} maxLength={11} className="font-mono" /></Field>
-            <Field label="Razón social *"><Input value={value.razon_social} onChange={(e) => set("razon_social", e.target.value)} /></Field>
-            <Field label="Periodo (AAAAMM) *"><Input value={value.periodo} onChange={(e) => set("periodo", e.target.value)} maxLength={6} className="font-mono" /></Field>
-            <Field label="CAR SUNAT"><Input value={value.car_sunat ?? ""} onChange={(e) => set("car_sunat", e.target.value)} className="font-mono" /></Field>
-            <Field label="Fecha emisión *"><Input type="date" value={value.fecha_emision} onChange={(e) => set("fecha_emision", e.target.value)} /></Field>
-            <Field label="Fecha vencimiento"><Input type="date" value={value.fecha_vencimiento ?? ""} onChange={(e) => set("fecha_vencimiento", e.target.value)} /></Field>
-            <Field label="Cód. Tipo CDP *">
-              <Select value={value.cod_tipo_cdp} onValueChange={(v) => set("cod_tipo_cdp", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{TIPOS_CDP.map((t) => <SelectItem key={t.c} value={t.c}>{t.l}</SelectItem>)}</SelectContent>
-              </Select>
-            </Field>
-            <Field label="Serie"><Input value={value.serie_cdp ?? ""} onChange={(e) => set("serie_cdp", e.target.value)} className="font-mono" /></Field>
-            <Field label="N° inicial *"><Input value={value.nro_cdp_inicial} onChange={(e) => set("nro_cdp_inicial", e.target.value)} className="font-mono" /></Field>
-            <Field label="N° final"><Input value={value.nro_cdp_final ?? ""} onChange={(e) => set("nro_cdp_final", e.target.value)} className="font-mono" /></Field>
-            <Field label="Año DAM/DSI"><Input value={value.anio_dam_dsi ?? ""} onChange={(e) => set("anio_dam_dsi", e.target.value)} className="font-mono" /></Field>
+      
+      <div className="space-y-4">
+        {/* Datos básicos */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div>
+            <Label className="text-xs">Tipo</Label>
+            <Select value={value.tipo} onValueChange={(v) => set("tipo", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="VENTA">VENTA</SelectItem>
+                <SelectItem value="COMPRA">COMPRA</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </Section>
-
-        <Section title="Contraparte (Cliente / Proveedor)">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Field label="Tipo doc.">
-              <Select value={value.tipo_doc_contraparte ?? ""} onValueChange={(v) => set("tipo_doc_contraparte", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{TIPOS_DOC.map((t) => <SelectItem key={t.c} value={t.c}>{t.l}</SelectItem>)}</SelectContent>
-              </Select>
-            </Field>
-            <Field label="N° documento"><Input value={value.nro_doc_contraparte ?? ""} onChange={(e) => set("nro_doc_contraparte", e.target.value)} className="font-mono" /></Field>
-            <div className="md:col-span-2"><Field label="Nombre / Razón social"><Input value={value.nombre_contraparte ?? ""} onChange={(e) => set("nombre_contraparte", e.target.value)} /></Field></div>
+          <div>
+            <Label className="text-xs">RUC</Label>
+            <Input value={value.ruc} onChange={(e) => set("ruc", e.target.value)} maxLength={11} className="font-mono" />
           </div>
-        </Section>
-
-        <Section title="Importes">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Field label="BI Gravada"><Input type="number" step="0.01" value={value.bi_grav} onChange={(e) => setNum("bi_grav", e.target.value)} /></Field>
-            <Field label="IGV Gravada"><Input type="number" step="0.01" value={value.igv_grav} onChange={(e) => setNum("igv_grav", e.target.value)} /></Field>
-            <Field label="BI Grav+NoGrav"><Input type="number" step="0.01" value={value.bi_grav_y_no_grav} onChange={(e) => setNum("bi_grav_y_no_grav", e.target.value)} /></Field>
-            <Field label="IGV Grav+NoGrav"><Input type="number" step="0.01" value={value.igv_grav_y_no_grav} onChange={(e) => setNum("igv_grav_y_no_grav", e.target.value)} /></Field>
-            <Field label="BI No Gravada"><Input type="number" step="0.01" value={value.bi_no_grav} onChange={(e) => setNum("bi_no_grav", e.target.value)} /></Field>
-            <Field label="IGV No Gravada"><Input type="number" step="0.01" value={value.igv_no_grav} onChange={(e) => setNum("igv_no_grav", e.target.value)} /></Field>
-            <Field label="Valor No Gravado"><Input type="number" step="0.01" value={value.valor_no_grav} onChange={(e) => setNum("valor_no_grav", e.target.value)} /></Field>
-            <Field label="ISC"><Input type="number" step="0.01" value={value.isc} onChange={(e) => setNum("isc", e.target.value)} /></Field>
-            <Field label="ICBPER"><Input type="number" step="0.01" value={value.icbper} onChange={(e) => setNum("icbper", e.target.value)} /></Field>
-            <Field label="Otros tributos"><Input type="number" step="0.01" value={value.otros_tributos} onChange={(e) => setNum("otros_tributos", e.target.value)} /></Field>
-            <Field label="Importe total *"><Input type="number" step="0.01" value={value.importe_total} onChange={(e) => setNum("importe_total", e.target.value)} /></Field>
-            <Field label="Moneda">
-              <Select value={value.cod_moneda} onValueChange={(v) => set("cod_moneda", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{MONEDAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-              </Select>
-            </Field>
-            <Field label="Tipo de cambio"><Input type="number" step="0.001" value={value.tipo_cambio} onChange={(e) => setNum("tipo_cambio", e.target.value)} /></Field>
+          <div className="md:col-span-2">
+            <Label className="text-xs">Razón Social</Label>
+            <Input value={value.razon_social} onChange={(e) => set("razon_social", e.target.value)} />
           </div>
-        </Section>
+          <div>
+            <Label className="text-xs">Periodo</Label>
+            <Input value={value.periodo} onChange={(e) => set("periodo", e.target.value)} placeholder="YYYYMM" className="font-mono" />
+          </div>
+          <div>
+            <Label className="text-xs">Fecha Emisión</Label>
+            <Input type="date" value={value.fecha_emision} onChange={(e) => set("fecha_emision", e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Cód. Tipo CDP</Label>
+            <Select value={value.cod_tipo_cdp} onValueChange={(v) => set("cod_tipo_cdp", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {TIPOS_CDP.map((t) => <SelectItem key={t.c} value={t.c}>{t.l}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Serie</Label>
+            <Input value={value.serie_cdp} onChange={(e) => set("serie_cdp", e.target.value)} className="font-mono" />
+          </div>
+          <div>
+            <Label className="text-xs">N° Inicial</Label>
+            <Input value={value.nro_cdp_inicial} onChange={(e) => set("nro_cdp_inicial", e.target.value)} className="font-mono" />
+          </div>
+          <div>
+            <Label className="text-xs">Doc. Proveedor</Label>
+            <Input value={value.nro_doc_contraparte} onChange={(e) => set("nro_doc_contraparte", e.target.value)} className="font-mono" />
+          </div>
+          <div className="md:col-span-2">
+            <Label className="text-xs">Nombre Proveedor</Label>
+            <Input value={value.nombre_contraparte} onChange={(e) => set("nombre_contraparte", e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">BI Gravada</Label>
+            <Input type="number" step="0.01" value={value.bi_grav} onChange={(e) => setNum("bi_grav", e.target.value)} className="font-mono" />
+          </div>
+          <div>
+            <Label className="text-xs">IGV</Label>
+            <Input type="number" step="0.01" value={value.igv_grav} onChange={(e) => setNum("igv_grav", e.target.value)} className="font-mono" />
+          </div>
+          <div>
+            <Label className="text-xs">Importe Total</Label>
+            <Input type="number" step="0.01" value={value.importe_total} onChange={(e) => setNum("importe_total", e.target.value)} className="font-mono" />
+          </div>
+          <div>
+            <Label className="text-xs">Moneda</Label>
+            <Select value={value.cod_moneda} onValueChange={(v) => set("cod_moneda", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONEDAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-        <Section title="Tipo de Venta (multi-select)">
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-3">
-              {TIPOS_VENTA.map((t) => {
-                const checked = !!tv.find((x) => x.tipo === t);
-                return (
-                  <label key={t} className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={checked} onCheckedChange={() => toggleTV(t)} />{t}
-                  </label>
-                );
-              })}
+        {/* Campos Adicionales */}
+        <div className="border-t pt-3">
+          <h3 className="text-sm font-semibold mb-2">Campos Adicionales</h3>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Clasificación de Bienes y Servicios</Label>
+              <Input value={value.clasificacion_bienes_serv ?? ""} onChange={(e) => set("clasificacion_bienes_serv", e.target.value)} />
             </div>
-            {tv.length > 0 && (
-              <div className="grid md:grid-cols-2 gap-2 pt-2">
-                {tv.map((x) => (
-                  <div key={x.tipo} className="flex gap-2 items-center">
-                    <Badge variant="secondary" className="min-w-[110px] justify-center">{x.tipo}</Badge>
-                    <Input placeholder={`Descripción de ${x.tipo}`} value={x.descripcion} onChange={(e) => setTVDesc(x.tipo, e.target.value)} />
-                  </div>
-                ))}
+
+            <div>
+              <Label className="text-xs mb-2 block">Tipo de Venta (Multi-select)</Label>
+              <div className="flex flex-wrap gap-3 mb-2">
+                {TIPOS_VENTA.map((t) => {
+                  const checked = !!tv.find((x) => x.tipo === t);
+                  return (
+                    <label key={t} className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={checked} onCheckedChange={() => toggleTV(t)} />
+                      {t}
+                    </label>
+                  );
+                })}
               </div>
-            )}
+              {tv.length > 0 && (
+                <div className="grid md:grid-cols-2 gap-2 pt-2">
+                  {tv.map((x) => (
+                    <div key={x.tipo} className="flex gap-2 items-center">
+                      <Badge variant="secondary" className="min-w-[100px] justify-center">{x.tipo}</Badge>
+                      <Input 
+                        placeholder="Descripción" 
+                        value={x.descripcion} 
+                        onChange={(e) => setTVDesc(x.tipo, e.target.value)} 
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-xs">Observaciones</Label>
+              <Input value={value.observaciones ?? ""} onChange={(e) => set("observaciones", e.target.value)} />
+            </div>
           </div>
-        </Section>
-
-        <Collapsible>
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" className="w-full justify-between"><span>Doc. modificado y campos 33-37</span><ChevronsUpDown className="size-4" /></Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-3">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Field label="F. emisión doc. mod."><Input type="date" value={value.fecha_emision_mod ?? ""} onChange={(e) => set("fecha_emision_mod", e.target.value)} /></Field>
-              <Field label="Tipo CDP mod."><Input value={value.tipo_cdp_mod ?? ""} onChange={(e) => set("tipo_cdp_mod", e.target.value)} className="font-mono" /></Field>
-              <Field label="Serie CDP mod."><Input value={value.serie_cdp_mod ?? ""} onChange={(e) => set("serie_cdp_mod", e.target.value)} className="font-mono" /></Field>
-              <Field label="N° CDP mod."><Input value={value.nro_cdp_mod ?? ""} onChange={(e) => set("nro_cdp_mod", e.target.value)} className="font-mono" /></Field>
-              <Field label="Cód. DAM/DSI"><Input value={value.cod_dam_dsi ?? ""} onChange={(e) => set("cod_dam_dsi", e.target.value)} className="font-mono" /></Field>
-              <Field label="Clasif. bienes/serv."><Input value={value.clasificacion_bienes_serv ?? ""} onChange={(e) => set("clasificacion_bienes_serv", e.target.value)} /></Field>
-              <Field label="ID proyecto operadores"><Input value={value.id_proyecto_operadores ?? ""} onChange={(e) => set("id_proyecto_operadores", e.target.value)} /></Field>
-              <Field label="% Participación"><Input type="number" step="0.01" value={value.pct_participacion} onChange={(e) => setNum("pct_participacion", e.target.value)} /></Field>
-              <Field label="Imp. materia beneficio"><Input type="number" step="0.01" value={value.impuesto_beneficio} onChange={(e) => setNum("impuesto_beneficio", e.target.value)} /></Field>
-              <Field label="CAR Orig/Indicador"><Input value={value.car_orig_indicador ?? ""} onChange={(e) => set("car_orig_indicador", e.target.value)} /></Field>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Collapsible>
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" className="w-full justify-between"><span>Campos libres 41 al 57</span><ChevronsUpDown className="size-4" /></Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-3">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Array.from({ length: 17 }, (_, i) => 41 + i).map((n) => (
-                <Field key={n} label={`Campo ${n}`}>
-                  <Input value={cl[`campo_${n}`] ?? ""} onChange={(e) => setCL(n, e.target.value)} />
-                </Field>
-              ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Section title="Observaciones">
-          <Input value={value.observaciones ?? ""} onChange={(e) => set("observaciones", e.target.value)} />
-        </Section>
+        </div>
       </div>
 
-      <DialogFooter>
-        <Button onClick={onSubmit} disabled={saving}>{saving ? "Guardando…" : "Guardar registro"}</Button>
+      <DialogFooter className="mt-4">
+        <Button onClick={onSubmit} disabled={saving}>
+          {saving ? "Guardando..." : "Guardar registro"}
+        </Button>
       </DialogFooter>
     </DialogContent>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-sm font-semibold mb-2 text-foreground/80">{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><Label className="text-xs">{label}</Label>{children}</div>;
-}
+export default SireRegistrosPage;

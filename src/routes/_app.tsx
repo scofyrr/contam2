@@ -1,5 +1,5 @@
-// routes/_app.tsx - MODIFICADO
-import { createFileRoute, Outlet, Link, useRouter, useLocation, Navigate } from "@tanstack/react-router";
+// routes/_app.tsx - VERSIÓN CORREGIDA CON MODO DEMO
+import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
 import { useSession } from "@/hooks/use-session";
 import { supabase } from "@/integrations/supabase/client";
 import { FileSpreadsheet, LogOut, AlertCircle, RefreshCw } from "lucide-react";
@@ -13,13 +13,17 @@ const nav = [
   { to: "/sire-registros", label: "Registros SIRE", icon: FileSpreadsheet },
 ] as const;
 
+// 🔥 VARIABLE PARA CONTROLAR MODO DEMO DESDE UN SOLO LUGAR
+const DEMO_MODE = true;  // ← Cambia a false cuando quieras usar Supabase real
+
 function AppLayout() {
-  const { session, loading, error } = useSession(); // ✅ Obtener error del provider
-  const router = useRouter();
+  const { session, loading, error } = useSession();
   const location = useLocation();
 
-  // ✅ Mostrar error si hay problema de conexión (del provider o 402)
-  if (error) {
+  console.log("🏠 AppLayout - loading:", loading, "session:", !!session, "error:", !!error, "DEMO_MODE:", DEMO_MODE);
+
+  // ✅ Mostrar error solo si NO es modo demo
+  if (error && !DEMO_MODE) {
     return (
       <div className="min-h-screen grid place-items-center p-4 bg-background">
         <div className="text-center space-y-6 max-w-md">
@@ -44,7 +48,6 @@ function AppLayout() {
             <div className="border-t border-border pt-3">
               <p className="text-xs font-medium mb-2">Posibles causas:</p>
               <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
-                <li>Problema de pago en Lovable.dev (Error 402)</li>
                 <li>Variables de entorno de Supabase no configuradas</li>
                 <li>El proyecto de Supabase no existe o está suspendido</li>
                 <li>Problemas de red o CORS</li>
@@ -57,16 +60,13 @@ function AppLayout() {
               <RefreshCw className="size-4 mr-2" />
               Reintentar
             </Button>
-            <Button onClick={() => window.location.href = "/login"} variant="outline">
-              Ir al login
-            </Button>
           </div>
         </div>
       </div>
     );
   }
 
-  // ✅ Loading state con spinner (sin timeout adicional)
+  // ✅ Loading state - Mostrar siempre mientras carga (incluso en demo)
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
@@ -78,12 +78,41 @@ function AppLayout() {
     );
   }
   
-  // ✅ Redirigir si no hay sesión
+  // 🔥 MODIFICACIÓN CLAVE: En modo demo, ignorar la falta de sesión
+  // Si estamos en modo demo, mostrar el dashboard aunque session sea null
+  if (DEMO_MODE) {
+    console.log("🎭 [DEMO] Modo demo activo - Mostrando dashboard con datos de prueba");
+    // Renderizar el dashboard normalmente
+    return renderDashboard(session, location);
+  }
+  
+  // ✅ Modo real: Si no hay sesión, mostrar botón para ir al login
   if (!session) {
-    return <Navigate to="/login" />;
+    return (
+      <div className="min-h-screen grid place-items-center bg-background p-4">
+        <div className="text-center space-y-4">
+          <div className="text-destructive text-lg font-semibold">⚠️ No autenticado</div>
+          <p className="text-muted-foreground text-sm">
+            Por favor, inicia sesión para acceder al sistema.
+          </p>
+          <Button onClick={() => window.location.href = "/login"}>
+            Ir al login
+          </Button>
+        </div>
+      </div>
+    );
   }
 
-  // ✅ App normal
+  // ✅ Modo real con sesión - Mostrar dashboard
+  console.log("✅ Mostrando dashboard para:", session.user?.email);
+  return renderDashboard(session, location);
+}
+
+// 🔥 Función separada para renderizar el dashboard (evita duplicación de código)
+function renderDashboard(session: any, location: any) {
+  const userEmail = session?.user?.email || "demo@contam.pe";
+  const userName = session?.user?.user_metadata?.nombre ?? userEmail?.split('@')[0] ?? "Usuario Demo";
+  
   return (
     <div className="min-h-screen flex bg-background">
       <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col">
@@ -118,9 +147,9 @@ function AppLayout() {
         <div className="p-3 border-t border-sidebar-border space-y-2">
           <div className="px-3 py-2 text-xs">
             <div className="font-medium text-sidebar-foreground truncate">
-              {session.user.user_metadata?.nombre ?? session.user.email?.split('@')[0] ?? "Usuario"}
+              {userName}
             </div>
-            <div className="text-sidebar-foreground/60 text-xs truncate">{session.user.email}</div>
+            <div className="text-sidebar-foreground/60 text-xs truncate">{userEmail}</div>
           </div>
           
           <Button 
@@ -128,8 +157,10 @@ function AppLayout() {
             size="sm" 
             className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             onClick={async () => { 
-              await supabase.auth.signOut(); 
-              router.navigate({ to: "/login" }); 
+              if (session) {
+                await supabase.auth.signOut(); 
+              }
+              window.location.href = "/login";
             }}
           >
             <LogOut className="size-4 mr-2" /> 
