@@ -7,10 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, ChevronsUpDown, Search, RotateCcw, Settings2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, RotateCcw, Settings2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/sire-registros")({
@@ -35,7 +33,21 @@ const TIPOS_DOC = [
 ];
 
 const MONEDAS = ["PEN", "USD", "EUR"];
-const TIPOS_VENTA = ["Mercadería", "Productos", "Servicio", "Sub Productos", "Devoluciones", "Activo"];
+
+// Campos obligatorios
+const REQUIRED_FIELDS = [
+  "ruc",
+  "razon_social", 
+  "periodo",
+  "cod_tipo_cdp",
+  "serie_cdp",
+  "nro_cdp_inicial",
+  "tipo_doc_contraparte",
+  "nro_doc_contraparte",
+  "nombre_contraparte",
+  "importe_total",
+  "cod_moneda"
+];
 
 type Reg = any;
 
@@ -47,48 +59,49 @@ interface ColumnConfig {
   isNumeric?: boolean;
 }
 
-// ============================================
-// SOLO LAS COLUMNAS QUE EXISTEN EN LA BD
-// ============================================
 const ALL_COLUMNS: ColumnConfig[] = [
-  { id: "tipo", header: "TIPO", accessorKey: "tipo", visible: true },
-  { id: "ruc", header: "RUC", accessorKey: "ruc", visible: true },
-  { id: "razon_social", header: "RAZON SOCIAL", accessorKey: "razon_social", visible: true },
-  { id: "periodo", header: "PERIODO", accessorKey: "periodo", visible: true },
+  { id: "ruc", header: "RUC *", accessorKey: "ruc", visible: true },
+  { id: "razon_social", header: "RAZON SOCIAL *", accessorKey: "razon_social", visible: true },
+  { id: "periodo", header: "PERIODO *", accessorKey: "periodo", visible: true },
   { id: "car_sunat", header: "CAR SUNAT", accessorKey: "car_sunat", visible: true },
   { id: "fecha_emision", header: "FECHA EMISIÓN CDP", accessorKey: "fecha_emision", visible: true },
   { id: "fecha_vencimiento", header: "FECHA VENCIMIENTO CDP", accessorKey: "fecha_vencimiento", visible: true },
-  { id: "cod_tipo_cdp", header: "COD. TIPO CDP", accessorKey: "cod_tipo_cdp", visible: true },
-  { id: "serie_cdp", header: "SERIE CDP", accessorKey: "serie_cdp", visible: true },
+  { id: "cod_tipo_cdp", header: "COD. TIPO CDP *", accessorKey: "cod_tipo_cdp", visible: true },
+  { id: "serie_cdp", header: "SERIE CDP *", accessorKey: "serie_cdp", visible: true },
   { id: "anio_dam_dsi", header: "AÑO DAM O DSI", accessorKey: "anio_dam_dsi", visible: true },
-  { id: "nro_cdp_inicial", header: "NRO CDP INICIAL", accessorKey: "nro_cdp_inicial", visible: true },
+  { id: "nro_cdp_inicial", header: "NRO CDP INICIAL *", accessorKey: "nro_cdp_inicial", visible: true },
   { id: "nro_cdp_final", header: "NRO CDP FINAL", accessorKey: "nro_cdp_final", visible: true },
-  { id: "tipo_doc_contraparte", header: "TIPO DOC PROVEEDOR", accessorKey: "tipo_doc_contraparte", visible: true },
-  { id: "nro_doc_contraparte", header: "NRO DOC PROVEEDOR", accessorKey: "nro_doc_contraparte", visible: true },
-  { id: "nombre_contraparte", header: "NOMBRE CONTRAPARTE", accessorKey: "nombre_contraparte", visible: true },
-  { id: "bi_grav", header: "BI GRAV.", accessorKey: "bi_grav", visible: true, isNumeric: true },
-  { id: "igv_grav", header: "IGV GRAV.", accessorKey: "igv_grav", visible: true, isNumeric: true },
-  { id: "bi_grav_y_no_grav", header: "BI GRAV. Y NO GRAV.", accessorKey: "bi_grav_y_no_grav", visible: false, isNumeric: true },
-  { id: "igv_grav_y_no_grav", header: "IGV GRAV. Y NO GRAV.", accessorKey: "igv_grav_y_no_grav", visible: false, isNumeric: true },
-  { id: "bi_no_grav", header: "BI NO GRAV.", accessorKey: "bi_no_grav", visible: false, isNumeric: true },
-  { id: "igv_no_grav", header: "IGV NO GRAV.", accessorKey: "igv_no_grav", visible: false, isNumeric: true },
-  { id: "valor_no_grav", header: "VALOR NO GRAV.", accessorKey: "valor_no_grav", visible: false, isNumeric: true },
+  { id: "tipo_doc_contraparte", header: "TIPO DOC PROVEEDOR *", accessorKey: "tipo_doc_contraparte", visible: true },
+  { id: "nro_doc_contraparte", header: "NRO DOC PROVEEDOR *", accessorKey: "nro_doc_contraparte", visible: true },
+  { id: "nombre_contraparte", header: "NOMBRES/RAZÓN SOCIAL *", accessorKey: "nombre_contraparte", visible: true },
+  { id: "bi_adq_grav", header: "BI ADQ. GRAV.", accessorKey: "bi_adq_grav", visible: true, isNumeric: true },
+  { id: "igv_adq_grav", header: "IGV ADQ. GRAV.", accessorKey: "igv_adq_grav", visible: true, isNumeric: true },
+  { id: "bi_adq_grav_y_no_grav", header: "BI ADQ. GRAV. Y NO GRAV.", accessorKey: "bi_adq_grav_y_no_grav", visible: false, isNumeric: true },
+  { id: "igv_adq_grav_y_no_grav", header: "IGV ADQ. GRAV. Y NO GRAV.", accessorKey: "igv_adq_grav_y_no_grav", visible: false, isNumeric: true },
+  { id: "bi_adq_no_grav", header: "BI ADQ. NO GRAV.", accessorKey: "bi_adq_no_grav", visible: false, isNumeric: true },
+  { id: "igv_adq_no_grav", header: "IGV ADQ. NO GRAV.", accessorKey: "igv_adq_no_grav", visible: false, isNumeric: true },
+  { id: "valor_adq_no_grav", header: "VALOR ADQ. NO GRAV.", accessorKey: "valor_adq_no_grav", visible: false, isNumeric: true },
   { id: "isc", header: "ISC", accessorKey: "isc", visible: false, isNumeric: true },
   { id: "icbper", header: "ICBPER", accessorKey: "icbper", visible: false, isNumeric: true },
-  { id: "otros_tributos", header: "OTROS TRIBUTOS", accessorKey: "otros_tributos", visible: false, isNumeric: true },
-  { id: "importe_total", header: "IMPORTE TOTAL", accessorKey: "importe_total", visible: true, isNumeric: true },
-  { id: "cod_moneda", header: "MONEDA", accessorKey: "cod_moneda", visible: true },
-  { id: "tipo_cambio", header: "TIPO CAMBIO", accessorKey: "tipo_cambio", visible: false, isNumeric: true },
-  { id: "fecha_emision_mod", header: "F. EMISION DOC MOD", accessorKey: "fecha_emision_mod", visible: false },
-  { id: "tipo_cdp_mod", header: "TIPO CDP MOD", accessorKey: "tipo_cdp_mod", visible: false },
-  { id: "serie_cdp_mod", header: "SERIE CDP MOD", accessorKey: "serie_cdp_mod", visible: false },
-  { id: "cod_dam_dsi", header: "COD DAM DSI", accessorKey: "cod_dam_dsi", visible: false },
-  { id: "nro_cdp_mod", header: "NRO CDP MOD", accessorKey: "nro_cdp_mod", visible: false },
-  { id: "clasificacion_bienes_serv", header: "CLASIFICACION", accessorKey: "clasificacion_bienes_serv", visible: false },
-  { id: "observaciones", header: "OBSERVACIONES", accessorKey: "observaciones", visible: false },
+  { id: "otros_tributos", header: "OTROS TRIBUTOS Y CARGOS", accessorKey: "otros_tributos", visible: false, isNumeric: true },
+  { id: "importe_total", header: "IMPORTE TOTAL CDP *", accessorKey: "importe_total", visible: true, isNumeric: true },
+  { id: "cod_moneda", header: "CÓD. MONEDA *", accessorKey: "cod_moneda", visible: true },
+  { id: "tipo_cambio", header: "TIPO DE CAMBIO", accessorKey: "tipo_cambio", visible: false, isNumeric: true },
+  { id: "fecha_emision_mod", header: "FECHA EMISIÓN DOC MODIFICADO", accessorKey: "fecha_emision_mod", visible: false },
+  { id: "tipo_cdp_mod", header: "TIPO CDP MODIFICADO", accessorKey: "tipo_cdp_mod", visible: false },
+  { id: "serie_cdp_mod", header: "SERIE CDP MODIFICADO", accessorKey: "serie_cdp_mod", visible: false },
+  { id: "cod_dam_dsi", header: "COD. DAM O DSI", accessorKey: "cod_dam_dsi", visible: false },
+  { id: "nro_cdp_mod", header: "NRO CDP MODIFICADO", accessorKey: "nro_cdp_mod", visible: false },
+  { id: "clasificacion_bienes_serv", header: "CLASIFICACION DE BIENES Y SERVICIOS", accessorKey: "clasificacion_bienes_serv", visible: false },
+  { id: "id_proyecto", header: "ID PROYECTO", accessorKey: "id_proyecto", visible: false },
+  { id: "operadores", header: "OPERADORES", accessorKey: "operadores", visible: false },
+  { id: "porcentaje_participacion", header: "% PARTICIPACION", accessorKey: "porcentaje_participacion", visible: false, isNumeric: true },
+  { id: "impuesto_materia_beneficio", header: "IMPUESTO MATERIA DE BENEFICIO", accessorKey: "impuesto_materia_beneficio", visible: false },
+  { id: "car_orig_indicador", header: "CAR ORIG/INDICADOR", accessorKey: "car_orig_indicador", visible: false },
 ];
 
 const empty = (): Reg => ({
+  id: undefined,
   tipo: "VENTA",
   ruc: "",
   razon_social: "",
@@ -104,53 +117,77 @@ const empty = (): Reg => ({
   tipo_doc_contraparte: "6",
   nro_doc_contraparte: "",
   nombre_contraparte: "",
-  bi_grav: 0, igv_grav: 0, bi_grav_y_no_grav: 0, igv_grav_y_no_grav: 0,
-  bi_no_grav: 0, igv_no_grav: 0, valor_no_grav: 0,
-  isc: 0, icbper: 0, otros_tributos: 0, importe_total: 0,
-  cod_moneda: "PEN", tipo_cambio: 1,
-  fecha_emision_mod: "", tipo_cdp_mod: "", serie_cdp_mod: "", cod_dam_dsi: "", nro_cdp_mod: "",
+  bi_adq_grav: 0,
+  igv_adq_grav: 0,
+  bi_adq_grav_y_no_grav: 0,
+  igv_adq_grav_y_no_grav: 0,
+  bi_adq_no_grav: 0,
+  igv_adq_no_grav: 0,
+  valor_adq_no_grav: 0,
+  isc: 0,
+  icbper: 0,
+  otros_tributos: 0,
+  importe_total: 0,
+  cod_moneda: "PEN",
+  tipo_cambio: 1,
+  fecha_emision_mod: "",
+  tipo_cdp_mod: "",
+  serie_cdp_mod: "",
+  cod_dam_dsi: "",
+  nro_cdp_mod: "",
   clasificacion_bienes_serv: "",
-  observaciones: "",
-  tipo_venta_config: [] as { tipo: string; descripcion: string }[],
+  id_proyecto: "",
+  operadores: "",
+  porcentaje_participacion: 0,
+  impuesto_materia_beneficio: "",
+  car_orig_indicador: "",
   campos_38_41: {},
   campos_libres: {},
 });
 
+function validateRequiredFields(reg: Reg): string[] {
+  const missing: string[] = [];
+  REQUIRED_FIELDS.forEach(field => {
+    const value = reg[field];
+    if (!value || (typeof value === 'string' && value.trim() === '')) {
+      missing.push(field);
+    }
+  });
+  return missing;
+}
+
 function sanitizeRegistro(reg: any): Reg {
   const vacio = empty();
-  return {
+  const sanitized = {
     ...vacio,
     ...reg,
-    fecha_vencimiento: reg.fecha_vencimiento ?? "",
-    fecha_emision_mod: reg.fecha_emision_mod ?? "",
-    tipo_cdp_mod: reg.tipo_cdp_mod ?? "",
-    serie_cdp_mod: reg.serie_cdp_mod ?? "",
-    cod_dam_dsi: reg.cod_dam_dsi ?? "",
-    nro_cdp_mod: reg.nro_cdp_mod ?? "",
-    clasificacion_bienes_serv: reg.clasificacion_bienes_serv ?? "",
-    observaciones: reg.observaciones ?? "",
-    tipo_doc_contraparte: reg.tipo_doc_contraparte ?? "6",
-    nro_doc_contraparte: reg.nro_doc_contraparte ?? "",
-    nombre_contraparte: reg.nombre_contraparte ?? "",
-    serie_cdp: reg.serie_cdp ?? "",
-    anio_dam_dsi: reg.anio_dam_dsi ?? "",
-    nro_cdp_final: reg.nro_cdp_final ?? "",
-    car_sunat: reg.car_sunat ?? "",
-    campos_libres: reg.campos_libres ?? {},
-    tipo_venta_config: Array.isArray(reg.tipo_venta_config) ? reg.tipo_venta_config : [],
   };
+  
+  Object.keys(vacio).forEach(key => {
+    if (sanitized[key] === undefined || sanitized[key] === null) {
+      sanitized[key] = vacio[key];
+    }
+  });
+  
+  return sanitized;
 }
 
 function SireRegistrosPage() {
   const qc = useQueryClient();
-  const [filters, setFilters] = useState({ tipo: "TODOS", periodo: "", ruc: "", contraparte: "", cod_tipo_cdp: "TODOS", q: "" });
+  const [filters, setFilters] = useState({ 
+    tipo: "TODOS", 
+    periodo: "", 
+    ruc: "", 
+    contraparte: "", 
+    cod_tipo_cdp: "TODOS", 
+    q: "" 
+  });
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Reg | null>(null);
   
-  // ✅ CORREGIDO: Verificar si window existe antes de usar localStorage
   const [columns, setColumns] = useState<ColumnConfig[]>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("sire_columns");
+      const saved = localStorage.getItem("sire_columns_v2");
       if (saved) {
         try {
           return JSON.parse(saved);
@@ -164,7 +201,7 @@ function SireRegistrosPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("sire_columns", JSON.stringify(columns));
+      localStorage.setItem("sire_columns_v2", JSON.stringify(columns));
     }
   }, [columns]);
 
@@ -201,19 +238,37 @@ function SireRegistrosPage() {
     const f = (k: string) => rows.reduce((s, r: any) => s + Number(r[k] ?? 0), 0);
     return {
       count: rows.length,
-      bi: f("bi_grav") + f("bi_grav_y_no_grav") + f("bi_no_grav"),
-      igv: f("igv_grav") + f("igv_grav_y_no_grav") + f("igv_no_grav"),
+      bi: f("bi_adq_grav") + f("bi_adq_grav_y_no_grav") + f("bi_adq_no_grav"),
+      igv: f("igv_adq_grav") + f("igv_adq_grav_y_no_grav") + f("igv_adq_no_grav"),
       total: f("importe_total"),
     };
   }, [query.data]);
 
   const upsert = useMutation({
     mutationFn: async (r: Reg) => {
+      // Validar campos obligatorios
+      const missingFields = validateRequiredFields(r);
+      if (missingFields.length > 0) {
+        const fieldNames = missingFields.map(f => {
+          const col = ALL_COLUMNS.find(c => c.accessorKey === f);
+          return col ? col.header : f;
+        }).join(", ");
+        throw new Error(`Campos obligatorios faltantes: ${fieldNames}`);
+      }
+
       const payload = { ...r };
-      ["fecha_vencimiento", "fecha_emision_mod"].forEach((k) => { if (!payload[k]) payload[k] = null; });
-      ["nro_cdp_final","serie_cdp","tipo_cdp_mod","serie_cdp_mod","cod_dam_dsi","nro_cdp_mod","anio_dam_dsi","car_sunat","clasificacion_bienes_serv","observaciones","tipo_doc_contraparte","nro_doc_contraparte","nombre_contraparte"].forEach((k) => { if (payload[k] === "") payload[k] = null; });
-      if (payload.id) {
-        const { error } = await supabase.from("registros_sire").update(payload).eq("id", payload.id);
+      if (payload.id === undefined) {
+        delete payload.id;
+      }
+      
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === "") {
+          payload[key] = null;
+        }
+      });
+      
+      if (r.id) {
+        const { error } = await supabase.from("registros_sire").update(payload).eq("id", r.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("registros_sire").insert(payload);
@@ -222,10 +277,14 @@ function SireRegistrosPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["registros_sire"] });
-      setOpenForm(false); setEditing(null);
+      setOpenForm(false);
+      setEditing(null);
       toast.success("Registro guardado");
     },
-    onError: (e: any) => toast.error(e.message ?? "Error al guardar"),
+    onError: (e: any) => {
+      console.error("Error al guardar:", e);
+      toast.error(e.message ?? "Error al guardar");
+    },
   });
 
   const del = useMutation({
@@ -233,7 +292,10 @@ function SireRegistrosPage() {
       const { error } = await supabase.from("registros_sire").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["registros_sire"] }); toast.success("Eliminado"); },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ["registros_sire"] }); 
+      toast.success("Eliminado"); 
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -245,18 +307,31 @@ function SireRegistrosPage() {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto">
-      <header className="mb-6 flex items-center justify-between gap-4">
+      <header className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-3xl font-semibold">Registros SIRE</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Formato extendido SUNAT — 35 columnas + campos libres 41-57.</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Formato SUNAT completo - Los campos marcados con * son obligatorios
+          </p>
         </div>
-        <Dialog open={openForm} onOpenChange={(o) => { setOpenForm(o); if (!o) setEditing(null); }}>
+        <Dialog open={openForm} onOpenChange={(o) => { 
+          setOpenForm(o); 
+          if (!o) setEditing(null);
+        }}>
           <DialogTrigger asChild>
             <Button onClick={() => setEditing(sanitizeRegistro(empty()))}>
               <Plus className="size-4 mr-2" />Nuevo registro
             </Button>
           </DialogTrigger>
-          {editing && <RegistroForm value={editing} onChange={setEditing} onSubmit={() => upsert.mutate(editing)} saving={upsert.isPending} />}
+          {editing && (
+            <RegistroForm 
+              key={editing.id || "new"} 
+              value={editing} 
+              onChange={setEditing} 
+              onSubmit={() => upsert.mutate(editing)} 
+              saving={upsert.isPending} 
+            />
+          )}
         </Dialog>
       </header>
 
@@ -282,7 +357,7 @@ function SireRegistrosPage() {
           <Input value={filters.ruc} onChange={(e) => setFilters({ ...filters, ruc: e.target.value })} className="font-mono" />
         </div>
         <div>
-          <Label className="text-xs">RUC contraparte</Label>
+          <Label className="text-xs">RUC/DNI contraparte</Label>
           <Input value={filters.contraparte} onChange={(e) => setFilters({ ...filters, contraparte: e.target.value })} className="font-mono" />
         </div>
         <div>
@@ -342,7 +417,7 @@ function SireRegistrosPage() {
               Restablecer
             </Button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-60 overflow-y-auto">
             {columns.map(col => (
               <label key={col.id} className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox
@@ -436,148 +511,407 @@ function SireRegistrosPage() {
 }
 
 function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onChange: (r: Reg) => void; onSubmit: () => void; saving: boolean }) {
+  const [errors, setErrors] = useState<string[]>([]);
+  
   const set = (k: string, v: any) => onChange({ ...value, [k]: v });
-  const setNum = (k: string, v: string) => set(k, v === "" ? 0 : Number(v));
-
-  // Tipo de venta (multi-select)
-  const tv: { tipo: string; descripcion: string }[] = Array.isArray(value.tipo_venta_config) ? value.tipo_venta_config : [];
-  const toggleTV = (t: string) => {
-    const exists = tv.find((x) => x.tipo === t);
-    set("tipo_venta_config", exists ? tv.filter((x) => x.tipo !== t) : [...tv, { tipo: t, descripcion: "" }]);
+  const setNum = (k: string, v: string) => {
+    const num = v === "" ? 0 : parseFloat(v);
+    set(k, isNaN(num) ? 0 : num);
   };
-  const setTVDesc = (t: string, d: string) => set("tipo_venta_config", tv.map((x) => x.tipo === t ? { ...x, descripcion: d } : x));
+
+  const handleSubmit = () => {
+    const missingFields = validateRequiredFields(value);
+    if (missingFields.length > 0) {
+      const fieldNames = missingFields.map(f => {
+        const col = ALL_COLUMNS.find(c => c.accessorKey === f);
+        return col ? col.header.replace(' *', '') : f;
+      });
+      setErrors(fieldNames);
+      toast.error(`Complete los campos obligatorios: ${fieldNames.join(", ")}`);
+      return;
+    }
+    setErrors([]);
+    onSubmit();
+  };
+
+  const isRequired = (fieldName: string) => {
+    return REQUIRED_FIELDS.includes(fieldName);
+  };
+
+  const getFieldClass = (fieldName: string) => {
+    return errors.includes(fieldName) ? "border-red-500 focus:ring-red-500" : "";
+  };
 
   return (
     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{value.id ? "Editar" : "Nuevo"} registro SIRE</DialogTitle>
+        <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
+          <AlertCircle className="size-4" />
+          Los campos marcados con <span className="text-red-500 font-bold">*</span> son obligatorios
+        </div>
       </DialogHeader>
       
       <div className="space-y-4">
-        {/* Datos básicos */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div>
-            <Label className="text-xs">Tipo</Label>
-            <Select value={value.tipo} onValueChange={(v) => set("tipo", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="VENTA">VENTA</SelectItem>
-                <SelectItem value="COMPRA">COMPRA</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">RUC</Label>
-            <Input value={value.ruc} onChange={(e) => set("ruc", e.target.value)} maxLength={11} className="font-mono" />
-          </div>
-          <div className="md:col-span-2">
-            <Label className="text-xs">Razón Social</Label>
-            <Input value={value.razon_social} onChange={(e) => set("razon_social", e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs">Periodo</Label>
-            <Input value={value.periodo} onChange={(e) => set("periodo", e.target.value)} placeholder="YYYYMM" className="font-mono" />
-          </div>
-          <div>
-            <Label className="text-xs">Fecha Emisión</Label>
-            <Input type="date" value={value.fecha_emision} onChange={(e) => set("fecha_emision", e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs">Cód. Tipo CDP</Label>
-            <Select value={value.cod_tipo_cdp} onValueChange={(v) => set("cod_tipo_cdp", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TIPOS_CDP.map((t) => <SelectItem key={t.c} value={t.c}>{t.l}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">Serie</Label>
-            <Input value={value.serie_cdp} onChange={(e) => set("serie_cdp", e.target.value)} className="font-mono" />
-          </div>
-          <div>
-            <Label className="text-xs">N° Inicial</Label>
-            <Input value={value.nro_cdp_inicial} onChange={(e) => set("nro_cdp_inicial", e.target.value)} className="font-mono" />
-          </div>
-          <div>
-            <Label className="text-xs">Doc. Proveedor</Label>
-            <Input value={value.nro_doc_contraparte} onChange={(e) => set("nro_doc_contraparte", e.target.value)} className="font-mono" />
-          </div>
-          <div className="md:col-span-2">
-            <Label className="text-xs">Nombre Proveedor</Label>
-            <Input value={value.nombre_contraparte} onChange={(e) => set("nombre_contraparte", e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs">BI Gravada</Label>
-            <Input type="number" step="0.01" value={value.bi_grav} onChange={(e) => setNum("bi_grav", e.target.value)} className="font-mono" />
-          </div>
-          <div>
-            <Label className="text-xs">IGV</Label>
-            <Input type="number" step="0.01" value={value.igv_grav} onChange={(e) => setNum("igv_grav", e.target.value)} className="font-mono" />
-          </div>
-          <div>
-            <Label className="text-xs">Importe Total</Label>
-            <Input type="number" step="0.01" value={value.importe_total} onChange={(e) => setNum("importe_total", e.target.value)} className="font-mono" />
-          </div>
-          <div>
-            <Label className="text-xs">Moneda</Label>
-            <Select value={value.cod_moneda} onValueChange={(v) => set("cod_moneda", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {MONEDAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        {/* Datos del contribuyente */}
+        <div className="bg-muted/20 p-4 rounded-lg">
+          <h3 className="text-sm font-semibold mb-3">Datos del Contribuyente</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs flex items-center gap-1">
+                RUC <span className="text-red-500">*</span>
+              </Label>
+              <Input 
+                value={value.ruc || ""} 
+                onChange={(e) => set("ruc", e.target.value)} 
+                maxLength={11} 
+                className={`font-mono ${getFieldClass("ruc")}`}
+                placeholder="20XXXXXXXXX"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label className="text-xs flex items-center gap-1">
+                Razón Social <span className="text-red-500">*</span>
+              </Label>
+              <Input 
+                value={value.razon_social || ""} 
+                onChange={(e) => set("razon_social", e.target.value)} 
+                className={getFieldClass("razon_social")}
+                placeholder="Nombre o razón social del contribuyente"
+              />
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1">
+                Periodo <span className="text-red-500">*</span>
+              </Label>
+              <Input 
+                value={value.periodo || ""} 
+                onChange={(e) => set("periodo", e.target.value)} 
+                placeholder="AAAAMM" 
+                className={`font-mono ${getFieldClass("periodo")}`}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">CAR SUNAT</Label>
+              <Input 
+                value={value.car_sunat || ""} 
+                onChange={(e) => set("car_sunat", e.target.value)} 
+                className="font-mono"
+                placeholder="Opcional"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Campos Adicionales */}
-        <div className="border-t pt-3">
-          <h3 className="text-sm font-semibold mb-2">Campos Adicionales</h3>
-          <div className="space-y-3">
+        {/* Documento */}
+        <div className="bg-muted/20 p-4 rounded-lg">
+          <h3 className="text-sm font-semibold mb-3">Documento</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <Label className="text-xs">Clasificación de Bienes y Servicios</Label>
-              <Input value={value.clasificacion_bienes_serv ?? ""} onChange={(e) => set("clasificacion_bienes_serv", e.target.value)} />
+              <Label className="text-xs flex items-center gap-1">
+                Cód. Tipo CDP <span className="text-red-500">*</span>
+              </Label>
+              <Select value={value.cod_tipo_cdp || "01"} onValueChange={(v) => set("cod_tipo_cdp", v)}>
+                <SelectTrigger className={getFieldClass("cod_tipo_cdp")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPOS_CDP.map((t) => <SelectItem key={t.c} value={t.c}>{t.l}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
-
             <div>
-              <Label className="text-xs mb-2 block">Tipo de Venta (Multi-select)</Label>
-              <div className="flex flex-wrap gap-3 mb-2">
-                {TIPOS_VENTA.map((t) => {
-                  const checked = !!tv.find((x) => x.tipo === t);
-                  return (
-                    <label key={t} className="flex items-center gap-2 text-sm">
-                      <Checkbox checked={checked} onCheckedChange={() => toggleTV(t)} />
-                      {t}
-                    </label>
-                  );
-                })}
-              </div>
-              {tv.length > 0 && (
-                <div className="grid md:grid-cols-2 gap-2 pt-2">
-                  {tv.map((x) => (
-                    <div key={x.tipo} className="flex gap-2 items-center">
-                      <Badge variant="secondary" className="min-w-[100px] justify-center">{x.tipo}</Badge>
-                      <Input 
-                        placeholder="Descripción" 
-                        value={x.descripcion} 
-                        onChange={(e) => setTVDesc(x.tipo, e.target.value)} 
-                      />
-                    </div>
-                  ))}
+              <Label className="text-xs flex items-center gap-1">
+                Serie CDP <span className="text-red-500">*</span>
+              </Label>
+              <Input 
+                value={value.serie_cdp || ""} 
+                onChange={(e) => set("serie_cdp", e.target.value)} 
+                className={`font-mono ${getFieldClass("serie_cdp")}`}
+                placeholder="Ej: F001"
+              />
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1">
+                N° Inicial <span className="text-red-500">*</span>
+              </Label>
+              <Input 
+                value={value.nro_cdp_inicial || ""} 
+                onChange={(e) => set("nro_cdp_inicial", e.target.value)} 
+                className={`font-mono ${getFieldClass("nro_cdp_inicial")}`}
+                placeholder="Número inicial"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">N° Final</Label>
+              <Input 
+                value={value.nro_cdp_final || ""} 
+                onChange={(e) => set("nro_cdp_final", e.target.value)} 
+                className="font-mono"
+                placeholder="Opcional"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Año DAM/DSI</Label>
+              <Input 
+                value={value.anio_dam_dsi || ""} 
+                onChange={(e) => set("anio_dam_dsi", e.target.value)} 
+                placeholder="AAAA" 
+                className="font-mono"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Fecha Emisión</Label>
+              <Input 
+                type="date" 
+                value={value.fecha_emision || ""} 
+                onChange={(e) => set("fecha_emision", e.target.value)} 
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Fecha Vencimiento</Label>
+              <Input 
+                type="date" 
+                value={value.fecha_vencimiento || ""} 
+                onChange={(e) => set("fecha_vencimiento", e.target.value)} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Contraparte */}
+        <div className="bg-muted/20 p-4 rounded-lg">
+          <h3 className="text-sm font-semibold mb-3">Contraparte (Proveedor/Cliente)</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs flex items-center gap-1">
+                Tipo Doc. <span className="text-red-500">*</span>
+              </Label>
+              <Select value={value.tipo_doc_contraparte || "6"} onValueChange={(v) => set("tipo_doc_contraparte", v)}>
+                <SelectTrigger className={getFieldClass("tipo_doc_contraparte")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPOS_DOC.map((t) => <SelectItem key={t.c} value={t.c}>{t.l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1">
+                N° Documento <span className="text-red-500">*</span>
+              </Label>
+              <Input 
+                value={value.nro_doc_contraparte || ""} 
+                onChange={(e) => set("nro_doc_contraparte", e.target.value)} 
+                className={`font-mono ${getFieldClass("nro_doc_contraparte")}`}
+                placeholder="RUC, DNI o documento"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label className="text-xs flex items-center gap-1">
+                Nombres/Razón Social <span className="text-red-500">*</span>
+              </Label>
+              <Input 
+                value={value.nombre_contraparte || ""} 
+                onChange={(e) => set("nombre_contraparte", e.target.value)} 
+                className={getFieldClass("nombre_contraparte")}
+                placeholder="Nombre o razón social de la contraparte"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Valores Monetarios */}
+        <div className="bg-muted/20 p-4 rounded-lg">
+          <h3 className="text-sm font-semibold mb-3">Valores Monetarios</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">BI Adq. Grav.</Label>
+              <Input 
+                type="number" 
+                step="0.01" 
+                value={value.bi_adq_grav ?? 0} 
+                onChange={(e) => setNum("bi_adq_grav", e.target.value)} 
+                className="font-mono"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">IGV Adq. Grav.</Label>
+              <Input 
+                type="number" 
+                step="0.01" 
+                value={value.igv_adq_grav ?? 0} 
+                onChange={(e) => setNum("igv_adq_grav", e.target.value)} 
+                className="font-mono"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1">
+                Importe Total <span className="text-red-500">*</span>
+              </Label>
+              <Input 
+                type="number" 
+                step="0.01" 
+                value={value.importe_total ?? 0} 
+                onChange={(e) => setNum("importe_total", e.target.value)} 
+                className={`font-mono ${getFieldClass("importe_total")}`}
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <Label className="text-xs flex items-center gap-1">
+                Moneda <span className="text-red-500">*</span>
+              </Label>
+              <Select value={value.cod_moneda || "PEN"} onValueChange={(v) => set("cod_moneda", v)}>
+                <SelectTrigger className={getFieldClass("cod_moneda")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONEDAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Tipo Cambio</Label>
+              <Input 
+                type="number" 
+                step="0.001" 
+                value={value.tipo_cambio ?? 1} 
+                onChange={(e) => setNum("tipo_cambio", e.target.value)} 
+                className="font-mono"
+                placeholder="1.000"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Campos Opcionales */}
+        <details className="bg-muted/20 p-4 rounded-lg">
+          <summary className="text-sm font-semibold cursor-pointer">Campos Opcionales (Click para expandir)</summary>
+          <div className="mt-3 space-y-4">
+            {/* BI y IGV adicionales */}
+            <div>
+              <h4 className="text-xs font-semibold mb-2">Base Imponible e IGV Adicionales</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs">BI Grav. y No Grav.</Label>
+                  <Input type="number" step="0.01" value={value.bi_adq_grav_y_no_grav ?? 0} onChange={(e) => setNum("bi_adq_grav_y_no_grav", e.target.value)} className="font-mono" />
                 </div>
-              )}
+                <div>
+                  <Label className="text-xs">IGV Grav. y No Grav.</Label>
+                  <Input type="number" step="0.01" value={value.igv_adq_grav_y_no_grav ?? 0} onChange={(e) => setNum("igv_adq_grav_y_no_grav", e.target.value)} className="font-mono" />
+                </div>
+                <div>
+                  <Label className="text-xs">BI No Grav.</Label>
+                  <Input type="number" step="0.01" value={value.bi_adq_no_grav ?? 0} onChange={(e) => setNum("bi_adq_no_grav", e.target.value)} className="font-mono" />
+                </div>
+                <div>
+                  <Label className="text-xs">IGV No Grav.</Label>
+                  <Input type="number" step="0.01" value={value.igv_adq_no_grav ?? 0} onChange={(e) => setNum("igv_adq_no_grav", e.target.value)} className="font-mono" />
+                </div>
+                <div>
+                  <Label className="text-xs">Valor No Grav.</Label>
+                  <Input type="number" step="0.01" value={value.valor_adq_no_grav ?? 0} onChange={(e) => setNum("valor_adq_no_grav", e.target.value)} className="font-mono" />
+                </div>
+              </div>
             </div>
 
+            {/* ISC, ICBPER y otros tributos */}
             <div>
-              <Label className="text-xs">Observaciones</Label>
-              <Input value={value.observaciones ?? ""} onChange={(e) => set("observaciones", e.target.value)} />
+              <h4 className="text-xs font-semibold mb-2">Otros Tributos</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs">ISC</Label>
+                  <Input type="number" step="0.01" value={value.isc ?? 0} onChange={(e) => setNum("isc", e.target.value)} className="font-mono" />
+                </div>
+                <div>
+                  <Label className="text-xs">ICBPER</Label>
+                  <Input type="number" step="0.01" value={value.icbper ?? 0} onChange={(e) => setNum("icbper", e.target.value)} className="font-mono" />
+                </div>
+                <div>
+                  <Label className="text-xs">Otros Tributos</Label>
+                  <Input type="number" step="0.01" value={value.otros_tributos ?? 0} onChange={(e) => setNum("otros_tributos", e.target.value)} className="font-mono" />
+                </div>
+              </div>
+            </div>
+
+            {/* Documento Modificado */}
+            <div>
+              <h4 className="text-xs font-semibold mb-2">Documento Modificado</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <Label className="text-xs">F. Emisión Mod.</Label>
+                  <Input type="date" value={value.fecha_emision_mod || ""} onChange={(e) => set("fecha_emision_mod", e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Tipo CDP Mod.</Label>
+                  <Select value={value.tipo_cdp_mod || "01"} onValueChange={(v) => set("tipo_cdp_mod", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TIPOS_CDP.map((t) => <SelectItem key={t.c} value={t.c}>{t.l}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Serie CDP Mod.</Label>
+                  <Input value={value.serie_cdp_mod || ""} onChange={(e) => set("serie_cdp_mod", e.target.value)} className="font-mono" />
+                </div>
+                <div>
+                  <Label className="text-xs">N° CDP Mod.</Label>
+                  <Input value={value.nro_cdp_mod || ""} onChange={(e) => set("nro_cdp_mod", e.target.value)} className="font-mono" />
+                </div>
+                <div>
+                  <Label className="text-xs">COD DAM/DSI</Label>
+                  <Input value={value.cod_dam_dsi || ""} onChange={(e) => set("cod_dam_dsi", e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Clasificación y Proyecto */}
+            <div>
+              <h4 className="text-xs font-semibold mb-2">Clasificación y Proyecto</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Clasificación de Bienes</Label>
+                  <Input value={value.clasificacion_bienes_serv || ""} onChange={(e) => set("clasificacion_bienes_serv", e.target.value)} placeholder="BIEN" />
+                </div>
+                <div>
+                  <Label className="text-xs">ID Proyecto</Label>
+                  <Input value={value.id_proyecto || ""} onChange={(e) => set("id_proyecto", e.target.value)} placeholder="123456789" />
+                </div>
+              </div>
+            </div>
+
+            {/* Operadores e Impuestos */}
+            <div>
+              <h4 className="text-xs font-semibold mb-2">Operadores e Impuestos</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Operadores</Label>
+                  <Input value={value.operadores || ""} onChange={(e) => set("operadores", e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">% Participación</Label>
+                  <Input type="number" step="0.01" value={value.porcentaje_participacion ?? 0} onChange={(e) => setNum("porcentaje_participacion", e.target.value)} className="font-mono" />
+                </div>
+                <div>
+                  <Label className="text-xs">Impuesto Materia Beneficio</Label>
+                  <Input value={value.impuesto_materia_beneficio || ""} onChange={(e) => set("impuesto_materia_beneficio", e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">CAR ORIG/Indicador</Label>
+                  <Input value={value.car_orig_indicador || ""} onChange={(e) => set("car_orig_indicador", e.target.value)} />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </details>
       </div>
 
       <DialogFooter className="mt-4">
-        <Button onClick={onSubmit} disabled={saving}>
+        <Button onClick={handleSubmit} disabled={saving}>
           {saving ? "Guardando..." : "Guardar registro"}
         </Button>
       </DialogFooter>

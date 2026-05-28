@@ -1,13 +1,7 @@
-// src/hooks/use-session.tsx - VERSIÓN FINAL CON SUPABASE REAL
-import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from "react";
+// src/hooks/use-session.tsx - VERSIÓN CORREGIDA
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-
-// 🔧 [DEBUG] Variables de entorno - fuera del componente
-console.log("🔧 [DEBUG] === VERIFICANDO VARIABLES DE ENTORNO ===");
-console.log("🔧 [DEBUG] VITE_SUPABASE_URL:", import.meta.env.VITE_SUPABASE_URL || "❌ NO DEFINIDA");
-console.log("🔧 [DEBUG] VITE_SUPABASE_ANON_KEY:", import.meta.env.VITE_SUPABASE_ANON_KEY ? "✅ Existe" : "❌ FALTA");
-console.log("🔧 [DEBUG] ======================================");
 
 type Ctx = { 
   session: Session | null; 
@@ -19,31 +13,32 @@ type Ctx = {
 const SessionContext = createContext<Ctx>({ 
   session: null, 
   user: null, 
-  loading: false,
+  loading: false,  // ← Cambiado: iniciar en true
   error: null
 });
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  // 🔥 CRÍTICO: false = usar Supabase real, true = modo demo
-  const DEMO_MODE = true;  // ← ¡CAMBIADO A false!
+  // 🔥 MODO DEMO FORZADO Y SIN BLOQUEOS
+  const DEMO_MODE = false;
   
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const initialized = useRef(false);
+  const [state, setState] = useState<Ctx>({
+    session: null,
+    user: null,
+    loading: true,
+    error: null
+  });
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-
     console.log("🚀 [SessionProvider] Iniciando, DEMO_MODE:", DEMO_MODE);
 
     if (DEMO_MODE) {
-      console.log("🎭 [DEMO] MODO DEMO ACTIVADO - Usando sesión falsa");
+      console.log("🎭 [DEMO] Creando sesión de prueba...");
+      
+      // Crear sesión mock
       const mockUser = {
         id: "demo-user-id",
-        email: "admin@contam.pe",
-        user_metadata: { nombre: "Administrador" },
+        email: "demo@contam.pe",
+        user_metadata: { nombre: "Usuario Demo" },
         app_metadata: {},
         aud: "authenticated",
         created_at: new Date().toISOString(),
@@ -51,52 +46,67 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       
       const mockSession = {
         user: mockUser,
-        access_token: "demo_token",
+        access_token: "demo_token_" + Date.now(),
         refresh_token: "demo_refresh",
         expires_at: Date.now() + 3600000,
       } as Session;
       
-      setSession(mockSession);
-      setLoading(false);
-      setError(null);
+      // Establecer la sesión inmediatamente
+      setState({
+        session: mockSession,
+        user: mockUser,
+        loading: false,
+        error: null
+      });
+      
+      console.log("✅ [DEMO] Sesión creada:", mockUser.email);
       return;
     }
 
-    // ============================================
-    // MODO REAL - SUPABASE
-    // ============================================
+    // ===== MODO REAL =====
     let mounted = true;
 
     const getSession = async () => {
       try {
-        console.log("🔵 [REAL] Obteniendo sesión de Supabase...");
-        
+        console.log("🔵 [REAL] Obteniendo sesión...");
         const { data, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) throw sessionError;
         
         if (mounted) {
-          console.log("✅ [REAL] Sesión obtenida:", data.session?.user?.email || "sin sesión");
-          setSession(data.session);
+          console.log("✅ [REAL] Sesión:", data.session?.user?.email || "null");
+          setState({
+            session: data.session,
+            user: data.session?.user ?? null,
+            loading: false,
+            error: null
+          });
         }
       } catch (err) {
         console.error("❌ [REAL] Error:", err);
-        if (mounted) setError(err instanceof Error ? err : new Error("Error de autenticación"));
-      } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            error: err instanceof Error ? err : new Error("Error de autenticación")
+          }));
+        }
       }
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-      console.log("🔄 [REAL] Evento auth:", event, newSession?.user?.email || "sin sesión");
+      console.log("🔄 [REAL] Evento:", event);
       if (mounted) {
-        setSession(newSession);
-        setLoading(false);
+        setState({
+          session: newSession,
+          user: newSession?.user ?? null,
+          loading: false,
+          error: null
+        });
       }
     });
 
     getSession();
-
     return () => {
       mounted = false;
       subscription.unsubscribe();
@@ -104,12 +114,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SessionContext.Provider value={{ session, user: session?.user ?? null, loading, error }}>
+    <SessionContext.Provider value={state}>
       {children}
     </SessionContext.Provider>
   );
 }
 
 export const useSession = () => {
-  return useContext(SessionContext);
+  const context = useContext(SessionContext);
+  if (!context) {
+    throw new Error("useSession debe usarse dentro de SessionProvider");
+  }
+  return context;
 };
