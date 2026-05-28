@@ -25,6 +25,7 @@ export type Database = {
           moneda: Database["public"]["Enums"]["moneda_iso"]
           origen: Database["public"]["Enums"]["origen_libro"]
           periodo: string
+          registro_sire_id: string | null
           tipo_cambio: number
           total_debe: number
           total_haber: number
@@ -39,6 +40,7 @@ export type Database = {
           moneda?: Database["public"]["Enums"]["moneda_iso"]
           origen: Database["public"]["Enums"]["origen_libro"]
           periodo: string
+          registro_sire_id?: string | null
           tipo_cambio?: number
           total_debe?: number
           total_haber?: number
@@ -53,6 +55,7 @@ export type Database = {
           moneda?: Database["public"]["Enums"]["moneda_iso"]
           origen?: Database["public"]["Enums"]["origen_libro"]
           periodo?: string
+          registro_sire_id?: string | null
           tipo_cambio?: number
           total_debe?: number
           total_haber?: number
@@ -70,6 +73,13 @@ export type Database = {
             columns: ["comprobante_venta_id"]
             isOneToOne: false
             referencedRelation: "comprobantes_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asientos_contables_registro_sire_id_fkey"
+            columns: ["registro_sire_id"]
+            isOneToOne: false
+            referencedRelation: "registros_sire"
             referencedColumns: ["id"]
           },
         ]
@@ -418,8 +428,12 @@ export type Database = {
           cod_dam_dsi: string | null
           cod_moneda: string
           cod_tipo_cdp: string
+          cuenta_pcge: string | null
           created_at: string
+          descripcion_items: string | null
+          estado_validacion: string | null
           fecha_emision: string
+          finalidad_operativa: string | null
           fecha_emision_mod: string | null
           fecha_vencimiento: string | null
           icbper: number | null
@@ -465,10 +479,14 @@ export type Database = {
           cod_dam_dsi?: string | null
           cod_moneda?: string
           cod_tipo_cdp: string
+          cuenta_pcge?: string | null
           created_at?: string
+          descripcion_items?: string | null
+          estado_validacion?: string | null
           fecha_emision: string
           fecha_emision_mod?: string | null
           fecha_vencimiento?: string | null
+          finalidad_operativa?: string | null
           icbper?: number | null
           id?: string
           id_proyecto_operadores?: string | null
@@ -512,10 +530,14 @@ export type Database = {
           cod_dam_dsi?: string | null
           cod_moneda?: string
           cod_tipo_cdp?: string
+          cuenta_pcge?: string | null
           created_at?: string
+          descripcion_items?: string | null
+          estado_validacion?: string | null
           fecha_emision?: string
           fecha_emision_mod?: string | null
           fecha_vencimiento?: string | null
+          finalidad_operativa?: string | null
           icbper?: number | null
           id?: string
           id_proyecto_operadores?: string | null
@@ -601,7 +623,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_libro_diario: {
+        Row: {
+          cod_tipo_cdp: string | null
+          cuenta_contable: string | null
+          debe: number | null
+          fecha_asiento: string | null
+          glosa: string | null
+          haber: number | null
+          id: string | null
+          naturaleza: string | null
+          nro_cdp_inicial: string | null
+          origen: string | null
+          periodo: string | null
+          razon_social: string | null
+          ruc: string | null
+          serie_cdp: string | null
+          sire_registro_id: string | null
+          tipo_registro: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

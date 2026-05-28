@@ -13,6 +13,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSireRegistrosRouteImport } from './routes/_app.sire-registros'
+import { Route as AppLibroDiarioRouteImport } from './routes/_app.libro-diario'
+import { Route as AppDashboardEstadisticasRouteImport } from './routes/_app.dashboard-estadisticas'
+import { Route as ApiStatsKpisRouteImport } from './routes/api/stats/kpis'
+import { Route as ApiStatsChartsRouteImport } from './routes/api/stats/charts'
+import { Route as ApiSireValidateRouteImport } from './routes/api/sire/validate'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -33,36 +38,106 @@ const AppSireRegistrosRoute = AppSireRegistrosRouteImport.update({
   path: '/sire-registros',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLibroDiarioRoute = AppLibroDiarioRouteImport.update({
+  id: '/libro-diario',
+  path: '/libro-diario',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardEstadisticasRoute =
+  AppDashboardEstadisticasRouteImport.update({
+    id: '/dashboard-estadisticas',
+    path: '/dashboard-estadisticas',
+    getParentRoute: () => AppRoute,
+  } as any)
+const ApiStatsKpisRoute = ApiStatsKpisRouteImport.update({
+  id: '/api/stats/kpis',
+  path: '/api/stats/kpis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStatsChartsRoute = ApiStatsChartsRouteImport.update({
+  id: '/api/stats/charts',
+  path: '/api/stats/charts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSireValidateRoute = ApiSireValidateRouteImport.update({
+  id: '/api/sire/validate',
+  path: '/api/sire/validate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
+  '/libro-diario': typeof AppLibroDiarioRoute
   '/sire-registros': typeof AppSireRegistrosRoute
+  '/api/sire/validate': typeof ApiSireValidateRoute
+  '/api/stats/charts': typeof ApiStatsChartsRoute
+  '/api/stats/kpis': typeof ApiStatsKpisRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
+  '/libro-diario': typeof AppLibroDiarioRoute
   '/sire-registros': typeof AppSireRegistrosRoute
+  '/api/sire/validate': typeof ApiSireValidateRoute
+  '/api/stats/charts': typeof ApiStatsChartsRoute
+  '/api/stats/kpis': typeof ApiStatsKpisRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
+  '/_app/libro-diario': typeof AppLibroDiarioRoute
   '/_app/sire-registros': typeof AppSireRegistrosRoute
+  '/api/sire/validate': typeof ApiSireValidateRoute
+  '/api/stats/charts': typeof ApiStatsChartsRoute
+  '/api/stats/kpis': typeof ApiStatsKpisRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/sire-registros'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/dashboard-estadisticas'
+    | '/libro-diario'
+    | '/sire-registros'
+    | '/api/sire/validate'
+    | '/api/stats/charts'
+    | '/api/stats/kpis'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/sire-registros'
-  id: '__root__' | '/' | '/_app' | '/login' | '/_app/sire-registros'
+  to:
+    | '/'
+    | '/login'
+    | '/dashboard-estadisticas'
+    | '/libro-diario'
+    | '/sire-registros'
+    | '/api/sire/validate'
+    | '/api/stats/charts'
+    | '/api/stats/kpis'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/dashboard-estadisticas'
+    | '/_app/libro-diario'
+    | '/_app/sire-registros'
+    | '/api/sire/validate'
+    | '/api/stats/charts'
+    | '/api/stats/kpis'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ApiSireValidateRoute: typeof ApiSireValidateRoute
+  ApiStatsChartsRoute: typeof ApiStatsChartsRoute
+  ApiStatsKpisRoute: typeof ApiStatsKpisRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -95,14 +170,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSireRegistrosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/libro-diario': {
+      id: '/_app/libro-diario'
+      path: '/libro-diario'
+      fullPath: '/libro-diario'
+      preLoaderRoute: typeof AppLibroDiarioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard-estadisticas': {
+      id: '/_app/dashboard-estadisticas'
+      path: '/dashboard-estadisticas'
+      fullPath: '/dashboard-estadisticas'
+      preLoaderRoute: typeof AppDashboardEstadisticasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/api/stats/kpis': {
+      id: '/api/stats/kpis'
+      path: '/api/stats/kpis'
+      fullPath: '/api/stats/kpis'
+      preLoaderRoute: typeof ApiStatsKpisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stats/charts': {
+      id: '/api/stats/charts'
+      path: '/api/stats/charts'
+      fullPath: '/api/stats/charts'
+      preLoaderRoute: typeof ApiStatsChartsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sire/validate': {
+      id: '/api/sire/validate'
+      path: '/api/sire/validate'
+      fullPath: '/api/sire/validate'
+      preLoaderRoute: typeof ApiSireValidateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppDashboardEstadisticasRoute: typeof AppDashboardEstadisticasRoute
+  AppLibroDiarioRoute: typeof AppLibroDiarioRoute
   AppSireRegistrosRoute: typeof AppSireRegistrosRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppDashboardEstadisticasRoute: AppDashboardEstadisticasRoute,
+  AppLibroDiarioRoute: AppLibroDiarioRoute,
   AppSireRegistrosRoute: AppSireRegistrosRoute,
 }
 
@@ -112,6 +226,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  ApiSireValidateRoute: ApiSireValidateRoute,
+  ApiStatsChartsRoute: ApiStatsChartsRoute,
+  ApiStatsKpisRoute: ApiStatsKpisRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

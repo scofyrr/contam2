@@ -2,7 +2,7 @@
 import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
 import { useSession } from "@/hooks/use-session";
 import { supabase } from "@/integrations/supabase/client";
-import { FileSpreadsheet, LogOut, AlertCircle, RefreshCw } from "lucide-react";
+import { FileSpreadsheet, LogOut, AlertCircle, RefreshCw, BookOpen, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_app")({
@@ -11,6 +11,8 @@ export const Route = createFileRoute("/_app")({
 
 const nav = [
   { to: "/sire-registros", label: "Registros SIRE", icon: FileSpreadsheet },
+  { to: "/libro-diario", label: "Libro Diario", icon: BookOpen },
+  { to: "/dashboard-estadisticas", label: "Estadísticas", icon: BarChart3 },
 ] as const;
 
 // 🔥 VARIABLE PARA CONTROLAR MODO DEMO DESDE UN SOLO LUGAR
