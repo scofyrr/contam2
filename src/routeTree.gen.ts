@@ -14,7 +14,9 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSireRegistrosRouteImport } from './routes/_app.sire-registros'
 import { Route as AppLibroDiarioRouteImport } from './routes/_app.libro-diario'
+import { Route as AppFichaRucRouteImport } from './routes/_app.ficha-ruc'
 import { Route as AppDashboardEstadisticasRouteImport } from './routes/_app.dashboard-estadisticas'
+import { Route as AppContribuyentesRouteImport } from './routes/_app.contribuyentes'
 import { Route as ApiStatsKpisRouteImport } from './routes/api/stats/kpis'
 import { Route as ApiStatsChartsRouteImport } from './routes/api/stats/charts'
 import { Route as ApiSireValidateRouteImport } from './routes/api/sire/validate'
@@ -43,12 +45,22 @@ const AppLibroDiarioRoute = AppLibroDiarioRouteImport.update({
   path: '/libro-diario',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFichaRucRoute = AppFichaRucRouteImport.update({
+  id: '/ficha-ruc',
+  path: '/ficha-ruc',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardEstadisticasRoute =
   AppDashboardEstadisticasRouteImport.update({
     id: '/dashboard-estadisticas',
     path: '/dashboard-estadisticas',
     getParentRoute: () => AppRoute,
   } as any)
+const AppContribuyentesRoute = AppContribuyentesRouteImport.update({
+  id: '/contribuyentes',
+  path: '/contribuyentes',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiStatsKpisRoute = ApiStatsKpisRouteImport.update({
   id: '/api/stats/kpis',
   path: '/api/stats/kpis',
@@ -68,7 +80,9 @@ const ApiSireValidateRoute = ApiSireValidateRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/contribuyentes': typeof AppContribuyentesRoute
   '/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
+  '/ficha-ruc': typeof AppFichaRucRoute
   '/libro-diario': typeof AppLibroDiarioRoute
   '/sire-registros': typeof AppSireRegistrosRoute
   '/api/sire/validate': typeof ApiSireValidateRoute
@@ -78,7 +92,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/contribuyentes': typeof AppContribuyentesRoute
   '/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
+  '/ficha-ruc': typeof AppFichaRucRoute
   '/libro-diario': typeof AppLibroDiarioRoute
   '/sire-registros': typeof AppSireRegistrosRoute
   '/api/sire/validate': typeof ApiSireValidateRoute
@@ -90,7 +106,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/contribuyentes': typeof AppContribuyentesRoute
   '/_app/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
+  '/_app/ficha-ruc': typeof AppFichaRucRoute
   '/_app/libro-diario': typeof AppLibroDiarioRoute
   '/_app/sire-registros': typeof AppSireRegistrosRoute
   '/api/sire/validate': typeof ApiSireValidateRoute
@@ -102,7 +120,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/contribuyentes'
     | '/dashboard-estadisticas'
+    | '/ficha-ruc'
     | '/libro-diario'
     | '/sire-registros'
     | '/api/sire/validate'
@@ -112,7 +132,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/contribuyentes'
     | '/dashboard-estadisticas'
+    | '/ficha-ruc'
     | '/libro-diario'
     | '/sire-registros'
     | '/api/sire/validate'
@@ -123,7 +145,9 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
+    | '/_app/contribuyentes'
     | '/_app/dashboard-estadisticas'
+    | '/_app/ficha-ruc'
     | '/_app/libro-diario'
     | '/_app/sire-registros'
     | '/api/sire/validate'
@@ -177,11 +201,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLibroDiarioRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/ficha-ruc': {
+      id: '/_app/ficha-ruc'
+      path: '/ficha-ruc'
+      fullPath: '/ficha-ruc'
+      preLoaderRoute: typeof AppFichaRucRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard-estadisticas': {
       id: '/_app/dashboard-estadisticas'
       path: '/dashboard-estadisticas'
       fullPath: '/dashboard-estadisticas'
       preLoaderRoute: typeof AppDashboardEstadisticasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/contribuyentes': {
+      id: '/_app/contribuyentes'
+      path: '/contribuyentes'
+      fullPath: '/contribuyentes'
+      preLoaderRoute: typeof AppContribuyentesRouteImport
       parentRoute: typeof AppRoute
     }
     '/api/stats/kpis': {
@@ -209,13 +247,17 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppContribuyentesRoute: typeof AppContribuyentesRoute
   AppDashboardEstadisticasRoute: typeof AppDashboardEstadisticasRoute
+  AppFichaRucRoute: typeof AppFichaRucRoute
   AppLibroDiarioRoute: typeof AppLibroDiarioRoute
   AppSireRegistrosRoute: typeof AppSireRegistrosRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppContribuyentesRoute: AppContribuyentesRoute,
   AppDashboardEstadisticasRoute: AppDashboardEstadisticasRoute,
+  AppFichaRucRoute: AppFichaRucRoute,
   AppLibroDiarioRoute: AppLibroDiarioRoute,
   AppSireRegistrosRoute: AppSireRegistrosRoute,
 }

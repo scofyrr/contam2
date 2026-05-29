@@ -2,14 +2,17 @@
 import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
 import { useSession } from "@/hooks/use-session";
 import { supabase } from "@/integrations/supabase/client";
-import { FileSpreadsheet, LogOut, AlertCircle, RefreshCw, BookOpen, BarChart3 } from "lucide-react";
+import { FileSpreadsheet, LogOut, AlertCircle, RefreshCw, BookOpen, BarChart3, Building2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ContribuyentesProvider } from "@/hooks/use-contribuyentes";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
 
 const nav = [
+  { to: "/contribuyentes", label: "Contribuyentes", icon: Building2 },
+  { to: "/ficha-ruc", label: "Ficha RUC", icon: FileText },
   { to: "/sire-registros", label: "Registros SIRE", icon: FileSpreadsheet },
   { to: "/libro-diario", label: "Libro Diario", icon: BookOpen },
   { to: "/dashboard-estadisticas", label: "Estadísticas", icon: BarChart3 },
@@ -172,7 +175,9 @@ function renderDashboard(session: any, location: any) {
       </aside>
       
       <main className="flex-1 overflow-x-hidden">
-        <Outlet />
+        <ContribuyentesProvider>
+          <Outlet />
+        </ContribuyentesProvider>
       </main>
     </div>
   );
