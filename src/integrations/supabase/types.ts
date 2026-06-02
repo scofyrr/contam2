@@ -26,6 +26,7 @@ export type Database = {
           origen: Database["public"]["Enums"]["origen_libro"]
           periodo: string
           registro_sire_id: string | null
+          tipo_asiento: string
           tipo_cambio: number
           total_debe: number
           total_haber: number
@@ -41,6 +42,7 @@ export type Database = {
           origen: Database["public"]["Enums"]["origen_libro"]
           periodo: string
           registro_sire_id?: string | null
+          tipo_asiento?: string
           tipo_cambio?: number
           total_debe?: number
           total_haber?: number
@@ -56,6 +58,7 @@ export type Database = {
           origen?: Database["public"]["Enums"]["origen_libro"]
           periodo?: string
           registro_sire_id?: string | null
+          tipo_asiento?: string
           tipo_cambio?: number
           total_debe?: number
           total_haber?: number
@@ -322,6 +325,33 @@ export type Database = {
           },
         ]
       }
+      config_contable: {
+        Row: {
+          cuenta_caja_default: string
+          cuenta_cxc_default: string
+          cuenta_cxp_default: string
+          created_at: string
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          cuenta_caja_default?: string
+          cuenta_cxc_default?: string
+          cuenta_cxp_default?: string
+          created_at?: string
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          cuenta_caja_default?: string
+          cuenta_cxc_default?: string
+          cuenta_cxp_default?: string
+          created_at?: string
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       entidades: {
         Row: {
           activo: boolean
@@ -381,6 +411,9 @@ export type Database = {
           asiento_id: string
           cuenta: string
           debe: number
+          editado_el: string | null
+          editado_motivo: string | null
+          editado_por: string | null
           glosa: string | null
           haber: number
           id: string
@@ -390,6 +423,9 @@ export type Database = {
           asiento_id: string
           cuenta: string
           debe?: number
+          editado_el?: string | null
+          editado_motivo?: string | null
+          editado_por?: string | null
           glosa?: string | null
           haber?: number
           id?: string
@@ -399,6 +435,9 @@ export type Database = {
           asiento_id?: string
           cuenta?: string
           debe?: number
+          editado_el?: string | null
+          editado_motivo?: string | null
+          editado_por?: string | null
           glosa?: string | null
           haber?: number
           id?: string
@@ -410,6 +449,88 @@ export type Database = {
             columns: ["asiento_id"]
             isOneToOne: false
             referencedRelation: "asientos_contables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimientos_caja: {
+        Row: {
+          asiento_id: string | null
+          correlativo: number | null
+          cuenta_pcge: string
+          created_at: string
+          debe: number
+          editado_el: string | null
+          editado_motivo: string | null
+          editado_por: string | null
+          fecha_operacion: string
+          glosa: string
+          haber: number
+          id: string
+          origen: string
+          periodo: string | null
+          registro_sire_id: string | null
+          ruc: string | null
+          updated_at: string
+        }
+        Insert: {
+          asiento_id?: string | null
+          correlativo?: number | null
+          cuenta_pcge: string
+          created_at?: string
+          debe?: number
+          editado_el?: string | null
+          editado_motivo?: string | null
+          editado_por?: string | null
+          fecha_operacion: string
+          glosa: string
+          haber?: number
+          id?: string
+          origen?: string
+          periodo?: string | null
+          registro_sire_id?: string | null
+          ruc?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asiento_id?: string | null
+          correlativo?: number | null
+          cuenta_pcge?: string
+          created_at?: string
+          debe?: number
+          editado_el?: string | null
+          editado_motivo?: string | null
+          editado_por?: string | null
+          fecha_operacion?: string
+          glosa?: string
+          haber?: number
+          id?: string
+          origen?: string
+          periodo?: string | null
+          registro_sire_id?: string | null
+          ruc?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_caja_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos_contables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_caja_cuenta_pcge_fkey"
+            columns: ["cuenta_pcge"]
+            isOneToOne: false
+            referencedRelation: "tabla_pcge"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "movimientos_caja_registro_sire_id_fkey"
+            columns: ["registro_sire_id"]
+            isOneToOne: false
+            referencedRelation: "registros_sire"
             referencedColumns: ["id"]
           },
         ]
@@ -431,6 +552,8 @@ export type Database = {
           cuenta_pcge: string | null
           created_at: string
           descripcion_items: string | null
+          estado_cobro: string
+          estado_pago: string
           estado_validacion: string | null
           fecha_emision: string
           finalidad_operativa: string | null
@@ -465,6 +588,9 @@ export type Database = {
           tipo_venta_config: Json | null
           updated_at: string
           valor_no_grav: number | null
+          cancelacion_asiento_id: string | null
+          cancelacion_generada_at: string | null
+          cancelacion_mov_caja_id: string | null
         }
         Insert: {
           anio_dam_dsi?: string | null
@@ -482,6 +608,8 @@ export type Database = {
           cuenta_pcge?: string | null
           created_at?: string
           descripcion_items?: string | null
+          estado_cobro?: string
+          estado_pago?: string
           estado_validacion?: string | null
           fecha_emision: string
           fecha_emision_mod?: string | null
@@ -516,6 +644,9 @@ export type Database = {
           tipo_venta_config?: Json | null
           updated_at?: string
           valor_no_grav?: number | null
+          cancelacion_asiento_id?: string | null
+          cancelacion_generada_at?: string | null
+          cancelacion_mov_caja_id?: string | null
         }
         Update: {
           anio_dam_dsi?: string | null
@@ -572,19 +703,34 @@ export type Database = {
       }
       tabla_pcge: {
         Row: {
+          activo: boolean
           codigo: string
+          created_at: string
           descripcion: string
           nivel: number
+          naturaleza: string | null
+          padre_codigo: string | null
+          updated_at: string
         }
         Insert: {
+          activo?: boolean
           codigo: string
+          created_at?: string
           descripcion: string
           nivel?: number
+          naturaleza?: string | null
+          padre_codigo?: string | null
+          updated_at?: string
         }
         Update: {
+          activo?: boolean
           codigo?: string
+          created_at?: string
           descripcion?: string
           nivel?: number
+          naturaleza?: string | null
+          padre_codigo?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

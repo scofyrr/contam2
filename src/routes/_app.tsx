@@ -2,7 +2,7 @@
 import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
 import { useSession } from "@/hooks/use-session";
 import { supabase } from "@/integrations/supabase/client";
-import { FileSpreadsheet, LogOut, AlertCircle, RefreshCw, BookOpen, BarChart3, Building2, FileText } from "lucide-react";
+import { FileSpreadsheet, LogOut, AlertCircle, RefreshCw, BookOpen, BarChart3, Building2, FileText, Landmark, Wallet, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContribuyentesProvider } from "@/hooks/use-contribuyentes";
 
@@ -13,6 +13,9 @@ export const Route = createFileRoute("/_app")({
 const nav = [
   { to: "/contribuyentes", label: "Contribuyentes", icon: Building2 },
   { to: "/ficha-ruc", label: "Ficha RUC", icon: FileText },
+  { to: "/pcge", label: "Plan de Cuentas", icon: Landmark },
+  { to: "/libro-caja", label: "Libro Caja", icon: Wallet },
+  { to: "/cancelaciones", label: "Cancelaciones", icon: Link2 },
   { to: "/sire-registros", label: "Registros SIRE", icon: FileSpreadsheet },
   { to: "/libro-diario", label: "Libro Diario", icon: BookOpen },
   { to: "/dashboard-estadisticas", label: "Estadísticas", icon: BarChart3 },

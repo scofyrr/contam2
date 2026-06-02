@@ -85,9 +85,9 @@ function LoginPage() {
         toast.error("Error: No se pudo establecer la sesión");
         setLoading(false);
       }
-    } catch (err) {
-      console.error("❌ Error:", err);
-      toast.error(err.message);
+    } catch (error) {
+      console.error("❌ Error:", error);
+      toast.error( error.message);
       setLoading(false);
     }
   }

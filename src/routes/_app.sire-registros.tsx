@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Trash2, Search, RotateCcw, Settings2, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, RotateCcw, Settings2, AlertCircle, Circle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { generarCancelacionCaja } from "@/lib/asiento-cancelacion";
 
 export const Route = createFileRoute("/_app/sire-registros")({
   component: SireRegistrosPage,
@@ -299,6 +300,15 @@ function SireRegistrosPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const marcarCobroPago = useMutation({
+    mutationFn: async (registroId: string) => {
+      await generarCancelacionCaja({ registroSireId: registroId });
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["registros_sire"] });
+    },
+  });
+
   const formatValue = (value: any, isNumeric?: boolean) => {
     if (value === null || value === undefined) return "-";
     if (isNumeric && typeof value === "number") return value.toFixed(2);
@@ -479,6 +489,42 @@ function SireRegistrosPage() {
                       </td>
                     ))}
                     <td className="px-3 py-2 text-center whitespace-nowrap">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title={
+                          r.tipo === "VENTA"
+                            ? r.estado_cobro === "cobrado"
+                              ? "Cobrado"
+                              : "Marcar como cobrado"
+                            : r.estado_pago === "pagado"
+                              ? "Pagado"
+                              : "Marcar como pagado"
+                        }
+                        onClick={async () => {
+                          try {
+                            await marcarCobroPago.mutateAsync(r.id);
+                            toast.success(
+                              r.tipo === "VENTA" ? "Cobro registrado en caja" : "Pago registrado en caja",
+                            );
+                          } catch (e: any) {
+                            toast.error(e?.message ?? "No se pudo generar la cancelación");
+                          }
+                        }}
+                        disabled={marcarCobroPago.isPending}
+                      >
+                        {r.tipo === "VENTA" ? (
+                          r.estado_cobro === "cobrado" ? (
+                            <CheckCircle2 className="size-4 text-emerald-600" />
+                          ) : (
+                            <Circle className="size-4 text-muted-foreground" />
+                          )
+                        ) : r.estado_pago === "pagado" ? (
+                          <CheckCircle2 className="size-4 text-emerald-600" />
+                        ) : (
+                          <Circle className="size-4 text-muted-foreground" />
+                        )}
+                      </Button>
                       <Button
                         size="icon"
                         variant="ghost"
