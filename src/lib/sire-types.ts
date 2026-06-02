@@ -11,6 +11,9 @@ export type RegistroSire = {
   nombre_contraparte: string | null;
   bi_grav: number | null;
   igv_grav: number | null;
+  mto_bi_gravada?: number | null;
+  mto_igv_ipe?: number | null;
+  mto_total_cp?: number | null;
   importe_total: number;
   cod_moneda: string;
   estado_validacion?: EstadoValidacion | null;
@@ -58,7 +61,6 @@ export type KpisResponse = {
   igvCompras: number;
   countVentas: number;
   countCompras: number;
-  demo?: boolean;
 };
 
 export type ChartsResponse = {
@@ -79,7 +81,6 @@ export type ChartsResponse = {
     igvVentas: number;
     igvCompras: number;
   }[];
-  demo?: boolean;
 };
 
 /** Paleta: ganancia verde, pérdida rojo, neutro/referencia azul, periodo actual azul intenso */

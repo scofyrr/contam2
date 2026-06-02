@@ -5,28 +5,26 @@ export type CredencialesPortal = {
   clave: string;
 };
 
-export type CategoriasTributarias = {
+/** Maestro `contribuyentes` — 18 columnas físicas (camelCase en UI) */
+export type Contribuyente = {
+  id?: string;
+  ruc: string;
+  razonSocial: string;
+  estado: EstadoCliente;
+  otros?: string;
+  fechaVencimientoDeclaracion?: string | null;
   cat1ra: boolean;
   cat2da: boolean;
   cat3ra: boolean;
   cat4taRetenciones: boolean;
   cat4taCtaPropia: boolean;
   cat5ta: boolean;
-};
-
-export type Contribuyente = {
-  ruc: string;
-  razonSocial: string;
-  otros: string;
-  categorias: CategoriasTributarias;
-  fechaVencimientoDeclaracion: string;
-  estado: EstadoCliente;
   claveSol: CredencialesPortal;
   afpNet: CredencialesPortal;
   validezCpe: CredencialesPortal;
   clavesSire: CredencialesPortal;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type TributoAfecto = {

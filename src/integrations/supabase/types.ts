@@ -471,6 +471,7 @@ export type Database = {
           periodo: string | null
           registro_sire_id: string | null
           ruc: string | null
+          ruc_contribuyente: string | null
           updated_at: string
         }
         Insert: {
@@ -490,6 +491,7 @@ export type Database = {
           periodo?: string | null
           registro_sire_id?: string | null
           ruc?: string | null
+          ruc_contribuyente?: string | null
           updated_at?: string
         }
         Update: {
@@ -523,8 +525,8 @@ export type Database = {
             foreignKeyName: "movimientos_caja_cuenta_pcge_fkey"
             columns: ["cuenta_pcge"]
             isOneToOne: false
-            referencedRelation: "tabla_pcge"
-            referencedColumns: ["codigo"]
+            referencedRelation: "plan_contable_pcge"
+            referencedColumns: ["codigo_cuenta"]
           },
           {
             foreignKeyName: "movimientos_caja_registro_sire_id_fkey"
@@ -566,6 +568,9 @@ export type Database = {
           igv_grav_y_no_grav: number | null
           igv_no_grav: number | null
           importe_total: number
+          mto_bi_gravada: number | null
+          mto_igv_ipe: number | null
+          mto_total_cp: number | null
           impuesto_beneficio: number | null
           isc: number | null
           nombre_contraparte: string | null
@@ -622,6 +627,9 @@ export type Database = {
           igv_grav_y_no_grav?: number | null
           igv_no_grav?: number | null
           importe_total?: number
+          mto_bi_gravada?: number | null
+          mto_igv_ipe?: number | null
+          mto_total_cp?: number | null
           impuesto_beneficio?: number | null
           isc?: number | null
           nombre_contraparte?: string | null
@@ -676,6 +684,9 @@ export type Database = {
           igv_grav_y_no_grav?: number | null
           igv_no_grav?: number | null
           importe_total?: number
+          mto_bi_gravada?: number | null
+          mto_igv_ipe?: number | null
+          mto_total_cp?: number | null
           impuesto_beneficio?: number | null
           isc?: number | null
           nombre_contraparte?: string | null
@@ -698,6 +709,111 @@ export type Database = {
           tipo_venta_config?: Json | null
           updated_at?: string
           valor_no_grav?: number | null
+        }
+        Relationships: []
+      }
+      plan_contable_pcge: {
+        Row: {
+          id: string
+          activo: boolean
+          codigo_cuenta: string
+          created_at: string
+          nombre_cuenta: string
+          tipo_cuenta: string | null
+          nivel: number
+          naturaleza: string | null
+          aplica_para: string | null
+          palabras_clave: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          activo?: boolean
+          codigo_cuenta: string
+          created_at?: string
+          nombre_cuenta: string
+          tipo_cuenta?: string | null
+          nivel?: number
+          naturaleza?: string | null
+          aplica_para?: string | null
+          palabras_clave?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          activo?: boolean
+          codigo_cuenta?: string
+          created_at?: string
+          nombre_cuenta?: string
+          tipo_cuenta?: string | null
+          nivel?: number
+          naturaleza?: string | null
+          aplica_para?: string | null
+          palabras_clave?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contribuyentes: {
+        Row: {
+          id: string
+          ruc: string
+          razon_social: string
+          estado: string
+          otros: string
+          fecha_vencimiento_declaracion: string | null
+          cat1ra: boolean
+          cat2da: boolean
+          cat3ra: boolean
+          cat4ta_retenciones: boolean
+          cat4ta_cta_propia: boolean
+          cat5ta: boolean
+          clave_sol: Json
+          afp_net: Json
+          validez_cpe: Json
+          claves_sire: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          ruc: string
+          razon_social: string
+          estado?: string
+          otros?: string
+          fecha_vencimiento_declaracion?: string | null
+          cat1ra?: boolean
+          cat2da?: boolean
+          cat3ra?: boolean
+          cat4ta_retenciones?: boolean
+          cat4ta_cta_propia?: boolean
+          cat5ta?: boolean
+          clave_sol?: Json
+          afp_net?: Json
+          validez_cpe?: Json
+          claves_sire?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          ruc?: string
+          razon_social?: string
+          estado?: string
+          otros?: string
+          fecha_vencimiento_declaracion?: string | null
+          cat1ra?: boolean
+          cat2da?: boolean
+          cat3ra?: boolean
+          cat4ta_retenciones?: boolean
+          cat4ta_cta_propia?: boolean
+          cat5ta?: boolean
+          clave_sol?: Json
+          afp_net?: Json
+          validez_cpe?: Json
+          claves_sire?: Json
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -792,7 +908,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      rpc_liquidacion_caja: {
+        Args: { p_registro_sire_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       estado_cpe:

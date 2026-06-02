@@ -3,12 +3,14 @@ import { useMemo, useState } from "react";
 import { useContribuyentes, useContribuyentesKpis } from "@/hooks/use-contribuyentes";
 import type { Contribuyente, EstadoCliente } from "@/lib/contribuyentes-types";
 import { emptyContribuyente, validateRuc } from "@/lib/contribuyentes-factory";
+import { rucExists } from "@/lib/contribuyentes-service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -32,8 +34,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Building2, Loader2, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
+
 export const Route = createFileRoute("/_app/contribuyentes")({
   component: ContribuyentesPage,
 });
@@ -70,11 +73,7 @@ function CredPair({
         </div>
         <div>
           <Label className="text-xs">Clave</Label>
-          <Input
-            type="password"
-            value={clave}
-            onChange={(e) => onClave(e.target.value)}
-          />
+          <Input type="password" value={clave} onChange={(e) => onClave(e.target.value)} />
         </div>
       </div>
     </div>
@@ -90,20 +89,21 @@ function estadoBadge(estado: EstadoCliente) {
 }
 
 function ContribuyentesPage() {
-  const { contribuyentes, upsertContribuyente, removeContribuyente } = useContribuyentes();
+  const { loading, error, contribuyentes, upsertContribuyente, removeContribuyente, refresh } =
+    useContribuyentes();
   const kpis = useContribuyentesKpis(contribuyentes);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Contribuyente>(emptyContribuyente());
   const [isEdit, setIsEdit] = useState(false);
   const [q, setQ] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deletingRuc, setDeletingRuc] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return contribuyentes;
     return contribuyentes.filter(
-      (c) =>
-        c.ruc.includes(term) ||
-        c.razonSocial.toLowerCase().includes(term),
+      (c) => c.ruc.includes(term) || c.razonSocial.toLowerCase().includes(term),
     );
   }, [contribuyentes, q]);
 
@@ -114,13 +114,14 @@ function ContribuyentesPage() {
   };
 
   const openEdit = (c: Contribuyente) => {
-    setForm({ ...c, categorias: { ...c.categorias } });
+    setForm({ ...c });
     setIsEdit(true);
     setOpen(true);
   };
 
-  const save = () => {
-    const rucErr = validateRuc(form.ruc);
+  const save = async () => {
+    const cleanRuc = form.ruc.replace(/\D/g, "").slice(0, 11);
+    const rucErr = validateRuc(cleanRuc);
     if (rucErr) {
       toast.error(rucErr);
       return;
@@ -129,10 +130,53 @@ function ContribuyentesPage() {
       toast.error("Razón Social es obligatoria");
       return;
     }
-    upsertContribuyente({ ...form, ruc: form.ruc.replace(/\D/g, "") });
-    toast.success(isEdit ? "Contribuyente actualizado" : "Contribuyente registrado");
-    setOpen(false);
+
+    setSaving(true);
+    try {
+      if (!isEdit) {
+        const exists = await rucExists(cleanRuc);
+        if (exists) {
+          toast.error(`El RUC ${cleanRuc} ya está registrado`);
+          return;
+        }
+      }
+
+      await upsertContribuyente({ ...form, ruc: cleanRuc });
+      toast.success(isEdit ? "Contribuyente actualizado" : "Contribuyente registrado");
+      setOpen(false);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "No se pudo guardar";
+      if (msg.includes("duplicate") || msg.includes("23505")) {
+        toast.error("El RUC ya existe en la base de datos");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const handleDelete = async (ruc: string) => {
+    if (!confirm(`¿Eliminar contribuyente ${ruc}?`)) return;
+    setDeletingRuc(ruc);
+    try {
+      await removeContribuyente(ruc);
+      toast.success("Contribuyente eliminado");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "No se pudo eliminar");
+    } finally {
+      setDeletingRuc(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[50vh] gap-3">
+        <Loader2 className="size-10 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Cargando contribuyentes desde Supabase…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto">
@@ -143,8 +187,8 @@ function ContribuyentesPage() {
             Contribuyentes
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Maestro de clientes, categorías tributarias y credenciales de portales (modo demo ·
-            localStorage)
+            Maestro de clientes sincronizado con Supabase · tabla{" "}
+            <code className="text-xs">contribuyentes</code>
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -172,6 +216,11 @@ function ContribuyentesPage() {
                       setForm({ ...form, ruc: e.target.value.replace(/\D/g, "").slice(0, 11) })
                     }
                   />
+                  {!isEdit && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Debe ser único en el sistema.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label>Estado del cliente</Label>
@@ -198,10 +247,7 @@ function ContribuyentesPage() {
                 </div>
                 <div className="md:col-span-2">
                   <Label>Otros</Label>
-                  <Input
-                    value={form.otros}
-                    onChange={(e) => setForm({ ...form, otros: e.target.value })}
-                  />
+                  <Input value={form.otros} onChange={(e) => setForm({ ...form, otros: e.target.value })} />
                 </div>
                 <div>
                   <Label>Fecha V. Declaración</Label>
@@ -221,11 +267,11 @@ function ContribuyentesPage() {
                   {CATEGORIAS.map(({ key, label }) => (
                     <label key={key} className="flex items-center gap-2 text-sm">
                       <Checkbox
-                        checked={form.categorias[key]}
+                        checked={form[key]}
                         onCheckedChange={(v) =>
                           setForm({
                             ...form,
-                            categorias: { ...form.categorias, [key]: !!v },
+                            [key]: !!v,
                           })
                         }
                       />
@@ -241,23 +287,15 @@ function ContribuyentesPage() {
                   label="CLAVE SOL"
                   usuario={form.claveSol.usuario}
                   clave={form.claveSol.clave}
-                  onUsuario={(v) =>
-                    setForm({ ...form, claveSol: { ...form.claveSol, usuario: v } })
-                  }
-                  onClave={(v) =>
-                    setForm({ ...form, claveSol: { ...form.claveSol, clave: v } })
-                  }
+                  onUsuario={(v) => setForm({ ...form, claveSol: { ...form.claveSol, usuario: v } })}
+                  onClave={(v) => setForm({ ...form, claveSol: { ...form.claveSol, clave: v } })}
                 />
                 <CredPair
                   label="AFP NET"
                   usuario={form.afpNet.usuario}
                   clave={form.afpNet.clave}
-                  onUsuario={(v) =>
-                    setForm({ ...form, afpNet: { ...form.afpNet, usuario: v } })
-                  }
-                  onClave={(v) =>
-                    setForm({ ...form, afpNet: { ...form.afpNet, clave: v } })
-                  }
+                  onUsuario={(v) => setForm({ ...form, afpNet: { ...form.afpNet, usuario: v } })}
+                  onClave={(v) => setForm({ ...form, afpNet: { ...form.afpNet, clave: v } })}
                 />
                 <CredPair
                   label="VALIDEZ CPE"
@@ -284,14 +322,35 @@ function ContribuyentesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
                 Cancelar
               </Button>
-              <Button onClick={save}>Guardar</Button>
+              <Button onClick={() => void save()} disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                    Guardando…
+                  </>
+                ) : (
+                  "Guardar"
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </header>
+
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Error de conexión</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-3">
+            <span>{error}</span>
+            <Button size="sm" variant="outline" onClick={() => void refresh()}>
+              Reintentar
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="border-2 border-blue-200/60 bg-blue-50/40">
@@ -364,7 +423,7 @@ function ContribuyentesPage() {
                   <TableCell className="text-sm">{c.fechaVencimientoDeclaracion || "—"}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {CATEGORIAS.filter((cat) => c.categorias[cat.key]).map((cat) => (
+                      {CATEGORIAS.filter((cat) => c[cat.key]).map((cat) => (
                         <Badge key={cat.key} variant="outline" className="text-[10px]">
                           {cat.label.split(" ")[0]}
                         </Badge>
@@ -379,14 +438,14 @@ function ContribuyentesPage() {
                       variant="ghost"
                       size="icon"
                       className="text-red-600"
-                      onClick={() => {
-                        if (confirm(`¿Eliminar contribuyente ${c.ruc}?`)) {
-                          removeContribuyente(c.ruc);
-                          toast.success("Eliminado");
-                        }
-                      }}
+                      disabled={deletingRuc === c.ruc}
+                      onClick={() => void handleDelete(c.ruc)}
                     >
-                      <Trash2 className="size-4" />
+                      {deletingRuc === c.ruc ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-4" />
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>

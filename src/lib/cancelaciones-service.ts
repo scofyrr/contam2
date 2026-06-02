@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { resolverMontosSunat } from "@/lib/sire-montos";
 
 export type CancelacionRow = {
   registro_id: string;
@@ -65,7 +66,7 @@ export async function fetchCancelaciones(params: {
     razon_social: r.razon_social,
     periodo: r.periodo,
     fecha_emision: r.fecha_emision,
-    importe_total: Number(r.importe_total ?? 0),
+    importe_total: resolverMontosSunat(r).mto_total_cp,
     estado_cobro: r.estado_cobro,
     estado_pago: r.estado_pago,
     asiento_id: r.cancelacion_asiento_id,

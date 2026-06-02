@@ -171,9 +171,8 @@ function DashboardEstadisticasPage() {
     queryFn: () => fetchLibroDiario(periodo || undefined),
   });
 
-  const registros = registrosQuery.data?.rows ?? [];
-  const libro = libroQuery.data?.rows ?? [];
-  const demo = registrosQuery.data?.demo || libroQuery.data?.demo;
+  const registros = registrosQuery.data ?? [];
+  const libro = libroQuery.data ?? [];
 
   const kpis: KpisResponse = useMemo(
     () => computeKpis(registros, periodo || null),
@@ -221,7 +220,6 @@ function DashboardEstadisticasPage() {
             )}
           </p>
           <div className="flex flex-wrap gap-2 mt-2">
-            {demo && <Badge variant="secondary">Modo demo / vista no migrada</Badge>}
             <Badge variant="outline" className="border-emerald-500/50">
               {registros.length} registros
             </Badge>

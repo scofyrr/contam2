@@ -74,8 +74,8 @@ function FichaRucPage() {
           <p className="text-muted-foreground mt-1 text-sm">
             Visualizador y editor indexado por RUC · Solo 3 campos obligatorios al guardar
           </p>
-          <Badge variant="secondary" className="mt-2">
-            Modo demo · sincronizado con módulo Contribuyentes
+          <Badge variant="outline" className="mt-2 border-blue-500/50">
+            Sincronizado con módulo Contribuyentes (Supabase)
           </Badge>
         </div>
         <Button

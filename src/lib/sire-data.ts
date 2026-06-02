@@ -1,12 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { LibroDiarioLinea, RegistroSire } from "@/lib/sire-types";
-import { DEMO_LIBRO_DIARIO, DEMO_REGISTROS } from "@/lib/stats-service";
+import { mapRegistroFromDb, resolverMontosSunat } from "@/lib/sire-montos";
 
 /** Misma tabla que usa `_app.sire-registros` */
-export async function fetchRegistrosSire(periodo?: string): Promise<{
-  rows: RegistroSire[];
-  demo: boolean;
-}> {
+export async function fetchRegistrosSire(periodo?: string): Promise<RegistroSire[]> {
   let q = supabase
     .from("registros_sire")
     .select("*")
@@ -16,24 +13,13 @@ export async function fetchRegistrosSire(periodo?: string): Promise<{
   if (periodo) q = q.eq("periodo", periodo);
 
   const { data, error } = await q;
-  if (error) {
-    const rows = periodo
-      ? DEMO_REGISTROS.filter((r) => r.periodo === periodo)
-      : DEMO_REGISTROS;
-    return { rows, demo: true };
-  }
+  if (error) throw error;
 
-  return {
-    rows: (data ?? []).map((row) => normalizeRegistroSire(row as Record<string, unknown>)),
-    demo: false,
-  };
+  return (data ?? []).map((row) => normalizeRegistroSire(row as Record<string, unknown>));
 }
 
-/** Vista v_libro_diario o, si no existe (404), join lineas_asiento + asientos + registros_sire */
-export async function fetchLibroDiario(periodo?: string): Promise<{
-  rows: LibroDiarioLinea[];
-  demo: boolean;
-}> {
+/** Vista v_libro_diario o join lineas_asiento + asientos + registros_sire */
+export async function fetchLibroDiario(periodo?: string): Promise<LibroDiarioLinea[]> {
   let q = supabase.from("v_libro_diario").select("*");
   if (periodo) q = q.eq("periodo", periodo);
 
@@ -41,22 +27,11 @@ export async function fetchLibroDiario(periodo?: string): Promise<{
     .order("fecha_asiento", { ascending: false })
     .limit(5000);
 
-  if (!error && data) {
-    return {
-      rows: (data ?? []).map((row) => normalizeLibroLinea(row as Record<string, unknown>)),
-      demo: false,
-    };
+  if (!error && data?.length) {
+    return (data ?? []).map((row) => normalizeLibroLinea(row as Record<string, unknown>));
   }
 
-  const fallback = await fetchLibroDiarioFromTables(periodo);
-  if (fallback.length > 0) {
-    return { rows: fallback, demo: false };
-  }
-
-  const rows = (periodo
-    ? DEMO_LIBRO_DIARIO.filter((r) => r.periodo === periodo)
-    : DEMO_LIBRO_DIARIO) as LibroDiarioLinea[];
-  return { rows, demo: true };
+  return fetchLibroDiarioFromTables(periodo);
 }
 
 async function fetchLibroDiarioFromTables(periodo?: string): Promise<LibroDiarioLinea[]> {
@@ -129,29 +104,35 @@ async function fetchLibroDiarioFromTables(periodo?: string): Promise<LibroDiario
 }
 
 export function normalizeRegistroSire(row: Record<string, unknown>): RegistroSire {
+  const mapped = mapRegistroFromDb(row);
+  const montos = resolverMontosSunat(mapped);
+
   return {
-    id: String(row.id ?? ""),
-    tipo: (row.tipo === "COMPRA" ? "COMPRA" : "VENTA") as RegistroSire["tipo"],
-    periodo: String(row.periodo ?? ""),
-    fecha_emision: String(row.fecha_emision ?? ""),
-    cod_tipo_cdp: String(row.cod_tipo_cdp ?? ""),
-    serie_cdp: row.serie_cdp != null ? String(row.serie_cdp) : null,
-    nro_cdp_inicial: String(row.nro_cdp_inicial ?? ""),
+    id: String(mapped.id ?? ""),
+    tipo: (mapped.tipo === "COMPRA" ? "COMPRA" : "VENTA") as RegistroSire["tipo"],
+    periodo: String(mapped.periodo ?? ""),
+    fecha_emision: String(mapped.fecha_emision ?? ""),
+    cod_tipo_cdp: String(mapped.cod_tipo_cdp ?? ""),
+    serie_cdp: mapped.serie_cdp != null ? String(mapped.serie_cdp) : null,
+    nro_cdp_inicial: String(mapped.nro_cdp_inicial ?? ""),
     nombre_contraparte:
-      row.nombre_contraparte != null ? String(row.nombre_contraparte) : null,
-    bi_grav: Number(row.bi_grav ?? row.bi_adq_grav ?? 0),
-    igv_grav: Number(row.igv_grav ?? row.igv_adq_grav ?? 0),
-    importe_total: Number(row.importe_total ?? 0),
-    cod_moneda: String(row.cod_moneda ?? "PEN"),
+      mapped.nombre_contraparte != null ? String(mapped.nombre_contraparte) : null,
+    bi_grav: montos.mto_bi_gravada,
+    igv_grav: montos.mto_igv_ipe,
+    mto_bi_gravada: montos.mto_bi_gravada,
+    mto_igv_ipe: montos.mto_igv_ipe,
+    mto_total_cp: montos.mto_total_cp,
+    importe_total: montos.mto_total_cp,
+    cod_moneda: String(mapped.cod_moneda ?? "PEN"),
     estado_validacion:
-      (row.estado_validacion as RegistroSire["estado_validacion"]) ?? "pendiente",
-    cuenta_pcge: row.cuenta_pcge != null ? String(row.cuenta_pcge) : null,
+      (mapped.estado_validacion as RegistroSire["estado_validacion"]) ?? "pendiente",
+    cuenta_pcge: mapped.cuenta_pcge != null ? String(mapped.cuenta_pcge) : null,
     finalidad_operativa:
-      row.finalidad_operativa != null ? String(row.finalidad_operativa) : null,
+      mapped.finalidad_operativa != null ? String(mapped.finalidad_operativa) : null,
     descripcion_items:
-      row.descripcion_items != null ? String(row.descripcion_items) : null,
-    ruc: row.ruc != null ? String(row.ruc) : undefined,
-    razon_social: row.razon_social != null ? String(row.razon_social) : undefined,
+      mapped.descripcion_items != null ? String(mapped.descripcion_items) : null,
+    ruc: mapped.ruc != null ? String(mapped.ruc) : undefined,
+    razon_social: mapped.razon_social != null ? String(mapped.razon_social) : undefined,
   };
 }
 

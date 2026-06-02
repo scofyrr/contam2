@@ -31,6 +31,7 @@ export async function validarRegistroSire(
     .from("asientos_contables")
     .select("id")
     .eq("registro_sire_id", registroId)
+    .eq("tipo_asiento", "principal")
     .maybeSingle();
 
   if (asientoExistente?.id) {
@@ -64,6 +65,7 @@ export async function validarRegistroSire(
       fecha: r.fecha_emision,
       origen: origenAsiento(r.tipo),
       registro_sire_id: registroId,
+      tipo_asiento: "principal",
       glosa: glosaAsiento(r),
       moneda: (r.cod_moneda === "USD" || r.cod_moneda === "EUR" ? r.cod_moneda : "PEN") as
         | "PEN"

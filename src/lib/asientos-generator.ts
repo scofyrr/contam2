@@ -1,17 +1,24 @@
 import type { LineaAsientoInput, RegistroSire } from "@/lib/sire-types";
+import { resolverMontosSunat } from "@/lib/sire-montos";
 
 /** Cuentas PCGE por defecto (subcuentas frecuentes en Perú) */
-const CUENTAS = {
+export const CUENTAS_DEFAULT: CuentasAsientoDefaults = {
+  caja: "101",
   cliente: "121201",
   proveedor: "421201",
-  igv: "401111",
+  igv: "40111",
   gastoCompra: "601101",
   ingresoVenta: "701111",
-} as const;
+};
 
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
-}
+export type CuentasAsientoDefaults = {
+  caja: string;
+  cliente: string;
+  proveedor: string;
+  igv: string;
+  gastoCompra: string;
+  ingresoVenta: string;
+};
 
 function comprobanteLabel(r: RegistroSire): string {
   const serie = r.serie_cdp ?? "";
@@ -19,27 +26,40 @@ function comprobanteLabel(r: RegistroSire): string {
   return `${r.cod_tipo_cdp}-${serie}-${numero}`.replace(/^-|-$/g, "");
 }
 
-function baseImponible(r: RegistroSire): number {
-  return round2(Number(r.bi_grav ?? 0));
-}
-
-function igv(r: RegistroSire): number {
-  return round2(Number(r.igv_grav ?? 0));
-}
-
-function total(r: RegistroSire): number {
-  return round2(Number(r.importe_total ?? 0));
+/** Resuelve montos SUNAT estrictos (mto_bi_gravada, mto_igv_ipe, mto_total_cp) */
+export function resolverMontosComprobante(r: RegistroSire): {
+  base: number;
+  igv: number;
+  total: number;
+  mto_bi_gravada: number;
+  mto_igv_ipe: number;
+  mto_total_cp: number;
+} {
+  const { mto_bi_gravada, mto_igv_ipe, mto_total_cp } = resolverMontosSunat(r);
+  return {
+    base: mto_bi_gravada,
+    igv: mto_igv_ipe,
+    total: mto_total_cp,
+    mto_bi_gravada,
+    mto_igv_ipe,
+    mto_total_cp,
+  };
 }
 
 /**
- * Genera las líneas de partida doble para un registro SIRE validado.
+ * Genera líneas de partida doble desde columnas SUNAT:
+ * - mto_total_cp → Debe cliente (121201) en venta
+ * - mto_bi_gravada → Haber ingreso (701111)
+ * - mto_igv_ipe → Haber IGV (40111)
  */
-export function generarLineasAsiento(registro: RegistroSire): LineaAsientoInput[] {
-  const base = baseImponible(registro);
-  const tax = igv(registro);
-  const importe = total(registro);
+export function generarLineasAsiento(
+  registro: RegistroSire,
+  cuentas: Partial<CuentasAsientoDefaults> = {},
+): LineaAsientoInput[] {
+  const c = { ...CUENTAS_DEFAULT, ...cuentas };
+  const { mto_bi_gravada, mto_igv_ipe, mto_total_cp } = resolverMontosComprobante(registro);
   const label = comprobanteLabel(registro);
-  const cuentaGasto = registro.cuenta_pcge?.trim() || CUENTAS.gastoCompra;
+  const cuentaGasto = registro.cuenta_pcge?.trim() || c.gastoCompra;
 
   if (registro.tipo === "COMPRA") {
     return [
@@ -47,22 +67,22 @@ export function generarLineasAsiento(registro: RegistroSire): LineaAsientoInput[
         orden: 1,
         cuenta: cuentaGasto,
         glosa: `Por compra según comprobante ${label}`,
-        debe: base,
+        debe: mto_bi_gravada,
         haber: 0,
       },
       {
         orden: 2,
-        cuenta: CUENTAS.igv,
-        glosa: `IGV según comprobante ${label}`,
-        debe: tax,
+        cuenta: c.igv,
+        glosa: `IGV crédito fiscal ${label}`,
+        debe: mto_igv_ipe,
         haber: 0,
       },
       {
         orden: 3,
-        cuenta: CUENTAS.proveedor,
+        cuenta: c.proveedor,
         glosa: `Obligación con proveedor ${registro.nombre_contraparte ?? ""}`.trim(),
         debe: 0,
-        haber: importe,
+        haber: mto_total_cp,
       },
     ];
   }
@@ -70,24 +90,24 @@ export function generarLineasAsiento(registro: RegistroSire): LineaAsientoInput[
   return [
     {
       orden: 1,
-      cuenta: CUENTAS.cliente,
-      glosa: `Factura pendiente de cobro ${label}`,
-      debe: importe,
+      cuenta: c.cliente,
+      glosa: `Factura por cobrar ${label}`,
+      debe: mto_total_cp,
       haber: 0,
     },
     {
       orden: 2,
-      cuenta: CUENTAS.ingresoVenta,
+      cuenta: c.ingresoVenta,
       glosa: `Ingreso por venta ${label}`,
       debe: 0,
-      haber: base,
+      haber: mto_bi_gravada,
     },
     {
       orden: 3,
-      cuenta: CUENTAS.igv,
+      cuenta: c.igv,
       glosa: `IGV por pagar ${label}`,
       debe: 0,
-      haber: tax,
+      haber: mto_igv_ipe,
     },
   ];
 }
@@ -102,3 +122,6 @@ export function glosaAsiento(registro: RegistroSire): string {
 export function origenAsiento(tipo: RegistroSire["tipo"]): "VENTAS" | "COMPRAS" {
   return tipo === "VENTA" ? "VENTAS" : "COMPRAS";
 }
+
+/** @deprecated use CUENTAS_DEFAULT */
+export const CUENTAS = CUENTAS_DEFAULT;

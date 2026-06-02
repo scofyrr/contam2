@@ -17,7 +17,8 @@ export function usePcge() {
   });
 
   const setActivo = useMutation({
-    mutationFn: ({ codigo, activo }: { codigo: string; activo: boolean }) => setPcgeActivo(codigo, activo),
+    mutationFn: ({ codigo_cuenta, activo }: { codigo_cuenta: string; activo: boolean }) =>
+      setPcgeActivo(codigo_cuenta, activo),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["pcge", "cuentas"] });
     },

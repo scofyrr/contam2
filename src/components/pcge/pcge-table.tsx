@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-import type { PcgeCuenta } from "@/lib/pcge-service";
+import { formatCuentaPcge, type PcgeCuenta } from "@/lib/pcge-service";
 import { usePcge } from "@/hooks/use-pcge";
 
 function PcgeForm({
@@ -22,39 +22,48 @@ function PcgeForm({
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial?: Partial<PcgeCuenta> | null;
-  onSubmit: (v: { codigo: string; descripcion: string; activo: boolean; padre_codigo: string | null }) => void;
+  onSubmit: (v: {
+    id?: string;
+    codigo_cuenta: string;
+    nombre_cuenta: string;
+    activo: boolean;
+  }) => void;
   loading: boolean;
 }) {
-  const [codigo, setCodigo] = useState(initial?.codigo ?? "");
-  const [descripcion, setDescripcion] = useState(initial?.descripcion ?? "");
-  const [padre, setPadre] = useState(initial?.padre_codigo ?? "");
+  const [codigoCuenta, setCodigoCuenta] = useState(initial?.codigo_cuenta ?? "");
+  const [nombreCuenta, setNombreCuenta] = useState(initial?.nombre_cuenta ?? "");
   const [activo, setActivo] = useState(initial?.activo ?? true);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{initial?.codigo ? "Editar cuenta" : "Nueva cuenta"}</DialogTitle>
+          <DialogTitle>{initial?.codigo_cuenta ? "Editar cuenta" : "Nueva cuenta"}</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-3">
           <div className="grid gap-1.5">
-            <Label className="text-xs">Código</Label>
-            <Input value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Ej: 101, 1212, 40111" />
+            <Label className="text-xs">Código de cuenta (PK)</Label>
+            <Input
+              value={codigoCuenta}
+              onChange={(e) => setCodigoCuenta(e.target.value)}
+              placeholder="Ej: 101, 121201, 40111"
+              disabled={!!initial?.codigo_cuenta}
+            />
           </div>
           <div className="grid gap-1.5">
-            <Label className="text-xs">Descripción</Label>
-            <Input value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Ej: Caja, IGV por pagar" />
-          </div>
-          <div className="grid gap-1.5">
-            <Label className="text-xs">Cuenta padre (opcional)</Label>
-            <Input value={padre} onChange={(e) => setPadre(e.target.value)} placeholder="Ej: 10, 12, 40" />
+            <Label className="text-xs">Nombre de cuenta</Label>
+            <Input
+              value={nombreCuenta}
+              onChange={(e) => setNombreCuenta(e.target.value)}
+              placeholder="Ej: Caja, IGV por pagar"
+            />
           </div>
           <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/20">
             <div className="text-sm">
               <div className="font-medium">Estado</div>
               <div className="text-xs text-muted-foreground">
-                Si se desactiva, ya no se sugiere en asientos automáticos.
+                Si se desactiva, ya no aparece en selectores del Libro Diario.
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={() => setActivo((v) => !v)}>
@@ -76,10 +85,10 @@ function PcgeForm({
             disabled={loading}
             onClick={() =>
               onSubmit({
-                codigo,
-                descripcion,
+                id: initial?.id,
+                codigo_cuenta: codigoCuenta,
+                nombre_cuenta: nombreCuenta,
                 activo,
-                padre_codigo: padre.trim() ? padre.trim() : null,
               })
             }
           >
@@ -101,7 +110,9 @@ export function PcgeTable() {
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return cuentas;
-    return cuentas.filter((c) => `${c.codigo} ${c.descripcion}`.toLowerCase().includes(needle));
+    return cuentas.filter((c) =>
+      `${c.codigo_cuenta} ${c.nombre_cuenta}`.toLowerCase().includes(needle),
+    );
   }, [cuentas, q]);
 
   return (
@@ -110,18 +121,21 @@ export function PcgeTable() {
         <div>
           <div className="font-semibold">Plan de Cuentas (PCGE)</div>
           <div className="text-xs text-muted-foreground">
-            Agrega, edita o desactiva cuentas. Esto alimenta los asientos automáticos del sistema.
+            Tabla oficial <code className="text-xs">plan_contable_pcge</code> · clave{" "}
+            <code className="text-xs">codigo_cuenta</code>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Input className="w-64" placeholder="Buscar por código o descripción…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <DialogTrigger asChild>
-            <Button onClick={() => setOpenNew(true)}>
-              <Plus className="size-4 mr-2" /> Nueva
-            </Button>
-          </DialogTrigger>
-          {/* DialogTrigger se renderiza en el PcgeForm */}
+          <Input
+            className="w-64"
+            placeholder="Buscar por código o nombre…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <Button onClick={() => setOpenNew(true)}>
+            <Plus className="size-4 mr-2" /> Nueva
+          </Button>
         </div>
       </div>
 
@@ -133,7 +147,7 @@ export function PcgeTable() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-32">Código</TableHead>
-                <TableHead>Descripción</TableHead>
+                <TableHead>Nombre</TableHead>
                 <TableHead className="w-24 text-center">Nivel</TableHead>
                 <TableHead className="w-28 text-center">Estado</TableHead>
                 <TableHead className="w-40 text-right">Acciones</TableHead>
@@ -148,9 +162,9 @@ export function PcgeTable() {
                 </TableRow>
               ) : (
                 filtered.map((c) => (
-                  <TableRow key={c.codigo}>
-                    <TableCell className="font-mono">{c.codigo}</TableCell>
-                    <TableCell>{c.descripcion}</TableCell>
+                  <TableRow key={c.id ?? c.codigo_cuenta}>
+                    <TableCell className="font-mono">{c.codigo_cuenta}</TableCell>
+                    <TableCell>{c.nombre_cuenta}</TableCell>
                     <TableCell className="text-center">{c.nivel}</TableCell>
                     <TableCell className="text-center">
                       {c.activo ? (
@@ -173,10 +187,14 @@ export function PcgeTable() {
                           size="sm"
                           onClick={async () => {
                             try {
-                              await setActivo.mutateAsync({ codigo: c.codigo, activo: !c.activo });
+                              await setActivo.mutateAsync({
+                                codigo_cuenta: c.codigo_cuenta,
+                                activo: !c.activo,
+                              });
                               toast.success(c.activo ? "Cuenta desactivada" : "Cuenta activada");
-                            } catch (e: any) {
-                              toast.error(e?.message ?? "No se pudo actualizar");
+                            } catch (e: unknown) {
+                              const msg = e instanceof Error ? e.message : "No se pudo actualizar";
+                              toast.error(msg);
                             }
                           }}
                         >
@@ -193,6 +211,7 @@ export function PcgeTable() {
       </div>
 
       <PcgeForm
+        key="new"
         open={openNew}
         onOpenChange={setOpenNew}
         initial={null}
@@ -202,13 +221,15 @@ export function PcgeTable() {
             await upsert.mutateAsync(v);
             toast.success("Cuenta guardada");
             setOpenNew(false);
-          } catch (e: any) {
-            toast.error(e?.message ?? "No se pudo guardar");
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : "No se pudo guardar";
+            toast.error(msg);
           }
         }}
       />
 
       <PcgeForm
+        key={editing?.codigo_cuenta ?? "edit"}
         open={!!editing}
         onOpenChange={(v) => !v && setEditing(null)}
         initial={editing}
@@ -218,12 +239,12 @@ export function PcgeTable() {
             await upsert.mutateAsync(v);
             toast.success("Cuenta actualizada");
             setEditing(null);
-          } catch (e: any) {
-            toast.error(e?.message ?? "No se pudo guardar");
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : "No se pudo guardar";
+            toast.error(msg);
           }
         }}
       />
     </div>
   );
 }
-

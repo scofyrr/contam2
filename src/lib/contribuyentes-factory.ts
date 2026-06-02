@@ -1,6 +1,5 @@
 import type {
   Contribuyente,
-  CategoriasTributarias,
   EstablecimientoAnexo,
   FichaRuc,
   PersonaVinculada,
@@ -12,24 +11,18 @@ export function uid(): string {
   return crypto.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-export function emptyCategorias(): CategoriasTributarias {
-  return {
-    cat1ra: false,
-    cat2da: false,
-    cat3ra: false,
-    cat4taRetenciones: false,
-    cat4taCtaPropia: false,
-    cat5ta: false,
-  };
-}
-
 export function emptyContribuyente(): Contribuyente {
   const now = new Date().toISOString();
   return {
     ruc: "",
     razonSocial: "",
     otros: "",
-    categorias: emptyCategorias(),
+    cat1ra: false,
+    cat2da: false,
+    cat3ra: false,
+    cat4taRetenciones: false,
+    cat4taCtaPropia: false,
+    cat5ta: false,
     fechaVencimientoDeclaracion: "",
     estado: "ACTIVO",
     claveSol: { usuario: "", clave: "" },

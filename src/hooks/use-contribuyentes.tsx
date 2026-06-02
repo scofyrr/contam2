@@ -8,68 +8,78 @@ import {
   type ReactNode,
 } from "react";
 import type { Contribuyente, FichaRuc } from "@/lib/contribuyentes-types";
-import { emptyContribuyente, emptyFichaRuc } from "@/lib/contribuyentes-factory";
+import { emptyFichaRuc } from "@/lib/contribuyentes-factory";
 import {
-  loadContribuyentes,
-  loadFichas,
-  saveContribuyentes,
-  saveFichas,
-  seedIfEmpty,
-} from "@/lib/contribuyentes-storage";
+  deleteContribuyente as deleteContribuyenteRemote,
+  fetchContribuyentes,
+  upsertContribuyente as upsertContribuyenteRemote,
+} from "@/lib/contribuyentes-service";
+import { hydrateContribuyentesOnce } from "@/lib/hydrateContribuyentes";
+import { loadFichas, saveFichas } from "@/lib/contribuyentes-storage";
 
 type Ctx = {
   loading: boolean;
+  error: string | null;
   contribuyentes: Contribuyente[];
   fichas: Record<string, FichaRuc>;
-  upsertContribuyente: (c: Contribuyente) => void;
-  removeContribuyente: (ruc: string) => void;
+  upsertContribuyente: (c: Contribuyente) => Promise<Contribuyente>;
+  removeContribuyente: (ruc: string) => Promise<void>;
   getFicha: (ruc: string) => FichaRuc | undefined;
   saveFicha: (ficha: FichaRuc) => void;
-  refresh: () => void;
+  refresh: () => Promise<void>;
 };
 
 const ContribuyentesContext = createContext<Ctx | null>(null);
 
 export function ContribuyentesProvider({ children }: { children: ReactNode }) {
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [contribuyentes, setContribuyentes] = useState<Contribuyente[]>([]);
   const [fichas, setFichas] = useState<Record<string, FichaRuc>>({});
 
-  const hydrate = useCallback(() => {
-    const { contribuyentes: c, fichas: f } = seedIfEmpty();
-    setContribuyentes(c);
-    setFichas(f);
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await hydrateContribuyentesOnce();
+      const list = await fetchContribuyentes();
+      setContribuyentes(list);
+      setFichas(loadFichas());
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Error al cargar contribuyentes";
+      setError(message);
+      setContribuyentes([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    hydrate();
-  }, [hydrate]);
+    void refresh();
+  }, [refresh]);
 
-  const upsertContribuyente = useCallback((c: Contribuyente) => {
-    const now = new Date().toISOString();
-    const item = { ...c, updatedAt: now, createdAt: c.createdAt || now };
+  const upsertContribuyente = useCallback(async (c: Contribuyente) => {
+    const saved = await upsertContribuyenteRemote(c);
     setContribuyentes((prev) => {
-      const idx = prev.findIndex((x) => x.ruc === item.ruc);
-      const next =
-        idx >= 0 ? prev.map((x, i) => (i === idx ? item : x)) : [...prev, item];
-      saveContribuyentes(next);
-      return next;
+      const idx = prev.findIndex((x) => x.ruc === saved.ruc);
+      if (idx >= 0) {
+        return prev.map((x, i) => (i === idx ? saved : x));
+      }
+      return [...prev, saved].sort((a, b) => a.razonSocial.localeCompare(b.razonSocial));
     });
     setFichas((prev) => {
-      if (prev[item.ruc]) return prev;
-      const ficha = emptyFichaRuc(item.ruc, item.razonSocial);
-      const next = { ...prev, [item.ruc]: ficha };
+      if (prev[saved.ruc]) return prev;
+      const ficha = emptyFichaRuc(saved.ruc, saved.razonSocial);
+      const next = { ...prev, [saved.ruc]: ficha };
       saveFichas(next);
       return next;
     });
+    return saved;
   }, []);
 
-  const removeContribuyente = useCallback((ruc: string) => {
-    setContribuyentes((prev) => {
-      const next = prev.filter((x) => x.ruc !== ruc);
-      saveContribuyentes(next);
-      return next;
-    });
+  const removeContribuyente = useCallback(async (ruc: string) => {
+    await deleteContribuyenteRemote(ruc);
+    setContribuyentes((prev) => prev.filter((x) => x.ruc !== ruc));
     setFichas((prev) => {
       const next = { ...prev };
       delete next[ruc];
@@ -78,10 +88,7 @@ export function ContribuyentesProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const getFicha = useCallback(
-    (ruc: string) => fichas[ruc],
-    [fichas],
-  );
+  const getFicha = useCallback((ruc: string) => fichas[ruc], [fichas]);
 
   const saveFicha = useCallback((ficha: FichaRuc) => {
     const updated = { ...ficha, updatedAt: new Date().toISOString() };
@@ -97,9 +104,7 @@ export function ContribuyentesProvider({ children }: { children: ReactNode }) {
       next[idx] = {
         ...next[idx],
         razonSocial: ficha.general.razonSocial,
-        updatedAt: updated.updatedAt,
       };
-      saveContribuyentes(next);
       return next;
     });
   }, []);
@@ -107,30 +112,30 @@ export function ContribuyentesProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       loading,
+      error,
       contribuyentes,
       fichas,
       upsertContribuyente,
       removeContribuyente,
       getFicha,
       saveFicha,
-      refresh: hydrate,
+      refresh,
     }),
     [
       loading,
+      error,
       contribuyentes,
       fichas,
       upsertContribuyente,
       removeContribuyente,
       getFicha,
       saveFicha,
-      hydrate,
+      refresh,
     ],
   );
 
   return (
-    <ContribuyentesContext.Provider value={value}>
-      {children}
-    </ContribuyentesContext.Provider>
+    <ContribuyentesContext.Provider value={value}>{children}</ContribuyentesContext.Provider>
   );
 }
 

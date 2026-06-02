@@ -42,6 +42,7 @@ export async function createMovimientoCaja(input: Omit<MovimientoCaja, "id" | "c
     .from("movimientos_caja")
     .insert({
       ruc: input.ruc ?? null,
+      ruc_contribuyente: input.ruc ?? null,
       periodo: input.periodo ?? null,
       fecha_operacion: input.fecha_operacion,
       glosa: input.glosa,
