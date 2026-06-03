@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useContribuyentes } from "@/hooks/use-contribuyentes";
 import { FichaRucForm } from "@/components/ficha-ruc/ficha-ruc-form";
+import { ExportButtons } from "@/components/export-buttons";
 import { emptyFichaRuc, validateFichaRequired } from "@/lib/contribuyentes-factory";
 import type { FichaRuc } from "@/lib/contribuyentes-types";
+import { formatSupabaseError } from "@/lib/supabase-error";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,17 +16,42 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Save } from "lucide-react";
+import { FileText, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/ficha-ruc")({
   component: FichaRucPage,
 });
 
+async function exportFichaPdf(ficha: FichaRuc) {
+  const { jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
+  const doc = new jsPDF();
+  doc.setFontSize(14);
+  doc.text(`Ficha RUC — ${ficha.ruc}`, 14, 16);
+  autoTable(doc, {
+    startY: 24,
+    head: [["Campo", "Valor"]],
+    body: [
+      ["Razón social", ficha.general.razonSocial],
+      ["Tipo contribuyente", ficha.general.tipoContribuyente],
+      ["Fecha inscripción", ficha.general.fechaInscripcion],
+      ["Estado", ficha.general.estadoContribuyente],
+      ["Departamento", ficha.domicilioFiscal.departamento],
+      ["Provincia", ficha.domicilioFiscal.provincia],
+      ["Distrito", ficha.domicilioFiscal.distrito],
+      ["Domicilio", ficha.domicilioFiscal.tipoNombreVia],
+    ],
+    styles: { fontSize: 9 },
+  });
+  doc.save(`CONTAM_Ficha_RUC_${ficha.ruc}.pdf`);
+}
+
 function FichaRucPage() {
   const { contribuyentes, getFicha, saveFicha } = useContribuyentes();
   const [selectedRuc, setSelectedRuc] = useState<string>("");
   const [draft, setDraft] = useState<FichaRuc | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const options = useMemo(
     () =>
@@ -52,15 +79,22 @@ function FichaRucPage() {
     }
   }, [selectedRuc, getFicha, contribuyentes]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!draft) return;
     const err = validateFichaRequired(draft);
     if (err) {
       toast.error(err);
       return;
     }
-    saveFicha(draft);
-    toast.success("Ficha RUC guardada (localStorage)");
+    setSaving(true);
+    try {
+      await saveFicha(draft);
+      toast.success("Ficha RUC guardada en Supabase");
+    } catch (e) {
+      toast.error(formatSupabaseError(e));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -72,21 +106,34 @@ function FichaRucPage() {
             Ficha RUC
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Visualizador y editor indexado por RUC · Solo 3 campos obligatorios al guardar
+            Visualizador y editor indexado por RUC · Persistencia en tabla{" "}
+            <code className="text-xs">fichas_ruc</code>
           </p>
           <Badge variant="outline" className="mt-2 border-blue-500/50">
-            Sincronizado con módulo Contribuyentes (Supabase)
+            Sincronizado con Supabase
           </Badge>
         </div>
-        <Button
-          size="lg"
-          className="bg-blue-700 hover:bg-blue-800"
-          disabled={!draft}
-          onClick={handleSave}
-        >
-          <Save className="size-4 mr-2" />
-          Guardar ficha
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {draft && (
+            <ExportButtons
+              compact
+              onExportPdf={async () => exportFichaPdf(draft)}
+            />
+          )}
+          <Button
+            size="lg"
+            className="bg-blue-700 hover:bg-blue-800"
+            disabled={!draft || saving}
+            onClick={() => void handleSave()}
+          >
+            {saving ? (
+              <Loader2 className="size-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="size-4 mr-2" />
+            )}
+            Guardar ficha
+          </Button>
+        </div>
       </header>
 
       <div className="rounded-xl border bg-card p-4 mb-6 shadow-sm">

@@ -4,6 +4,7 @@ import { useContribuyentes, useContribuyentesKpis } from "@/hooks/use-contribuye
 import type { Contribuyente, EstadoCliente } from "@/lib/contribuyentes-types";
 import { emptyContribuyente, validateRuc } from "@/lib/contribuyentes-factory";
 import { rucExists } from "@/lib/contribuyentes-service";
+import { formatSupabaseError } from "@/lib/supabase-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,14 @@ import {
 } from "@/components/ui/table";
 import { Building2, Loader2, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
+import { ExportButtons } from "@/components/export-buttons";
+import { exportContribuyentesExcel } from "@/lib/export-service";
+import {
+  CONTRIBUYENTES_IMPORT_COLUMNS,
+  readImportFile,
+  validateImportColumns,
+} from "@/lib/import-service";
+import { bulkUpsertContribuyentes } from "@/lib/contribuyentes-service";
 
 export const Route = createFileRoute("/_app/contribuyentes")({
   component: ContribuyentesPage,
@@ -145,7 +154,7 @@ function ContribuyentesPage() {
       toast.success(isEdit ? "Contribuyente actualizado" : "Contribuyente registrado");
       setOpen(false);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "No se pudo guardar";
+      const msg = formatSupabaseError(e);
       if (msg.includes("duplicate") || msg.includes("23505")) {
         toast.error("El RUC ya existe en la base de datos");
       } else {
@@ -191,7 +200,36 @@ function ContribuyentesPage() {
             <code className="text-xs">contribuyentes</code>
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex flex-wrap gap-2">
+          <ExportButtons
+            compact
+            disabled={contribuyentes.length === 0}
+            onExportExcel={async () => exportContribuyentesExcel(contribuyentes)}
+            onImportExcel={async (file) => {
+              const rows = await readImportFile(file);
+              const validation = validateImportColumns(rows, CONTRIBUYENTES_IMPORT_COLUMNS);
+              if (!validation.ok) {
+                throw new Error(
+                  `Columnas faltantes: ${validation.missing.join(", ")}. Use la plantilla de exportación CONTAM.`,
+                );
+              }
+              const mapped: Contribuyente[] = rows.map((row) => ({
+                ...emptyContribuyente(),
+                ruc: String(row.ruc ?? "").replace(/\D/g, "").slice(0, 11),
+                razonSocial: String(row.razon_social ?? ""),
+                estado: (String(row.estado ?? "ACTIVO") as Contribuyente["estado"]),
+                cat1ra: Boolean(row.cat1ra),
+                cat2da: Boolean(row.cat2da),
+                cat3ra: Boolean(row.cat3ra),
+                cat4taRetenciones: Boolean(row.cat4ta_retenciones),
+                cat4taCtaPropia: Boolean(row.cat4ta_cta_propia),
+                cat5ta: Boolean(row.cat5ta),
+              }));
+              await bulkUpsertContribuyentes(mapped);
+              await refresh();
+            }}
+          />
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={openNew}>
               <Plus className="size-4 mr-2" />
@@ -338,6 +376,7 @@ function ContribuyentesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </header>
 
       {error && (

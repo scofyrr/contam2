@@ -5,6 +5,7 @@ import type {
   CredencialesPortal,
   EstadoCliente,
 } from "@/lib/contribuyentes-types";
+import { sanitizePayload, throwIfSupabaseError } from "@/lib/supabase-error";
 
 type ContribuyenteRow = Database["public"]["Tables"]["contribuyentes"]["Row"];
 type ContribuyenteInsert = Database["public"]["Tables"]["contribuyentes"]["Insert"];
@@ -23,7 +24,7 @@ function toJsonCredenciales(c: CredencialesPortal): Json {
 
 /** Payload limpio: solo las 18 columnas físicas (sin timestamps en alta). */
 export function toContribuyenteInsert(c: Contribuyente): ContribuyenteInsert {
-  const payload: ContribuyenteInsert = {
+  return sanitizePayload({
     ruc: c.ruc.replace(/\D/g, "").slice(0, 11),
     razon_social: c.razonSocial.trim(),
     estado: c.estado ?? "ACTIVO",
@@ -41,13 +42,8 @@ export function toContribuyenteInsert(c: Contribuyente): ContribuyenteInsert {
     afp_net: toJsonCredenciales(c.afpNet),
     validez_cpe: toJsonCredenciales(c.validezCpe),
     claves_sire: toJsonCredenciales(c.clavesSire),
-  };
-
-  if (c.id) {
-    payload.id = c.id;
-  }
-
-  return payload;
+    ...(c.id ? { id: c.id } : {}),
+  }) as ContribuyenteInsert;
 }
 
 export function mapContribuyenteFromRow(row: ContribuyenteRow): Contribuyente {
@@ -114,11 +110,28 @@ export async function rucExists(ruc: string, excludeRuc?: string): Promise<boole
 
 export async function upsertContribuyente(contribuyente: Contribuyente): Promise<Contribuyente> {
   const payload = toContribuyenteInsert(contribuyente);
+  const ruc = payload.ruc;
 
-  const { error } = await supabase.from("contribuyentes").upsert(payload);
-  if (error) throw error;
+  const existing = await fetchContribuyenteByRuc(ruc);
 
-  const saved = await fetchContribuyenteByRuc(payload.ruc);
+  if (existing) {
+    const { ruc: _pk, ...updateBody } = payload;
+    const { data, error } = await supabase
+      .from("contribuyentes")
+      .update(sanitizePayload(updateBody))
+      .eq("ruc", ruc)
+      .select("*")
+      .single();
+
+    throwIfSupabaseError(error, "Error al actualizar contribuyente");
+    if (!data) throw new Error("No se recibió respuesta al actualizar contribuyente");
+    return mapContribuyenteFromRow(data);
+  }
+
+  const { error } = await supabase.from("contribuyentes").insert(payload);
+  throwIfSupabaseError(error, "Error al registrar contribuyente");
+
+  const saved = await fetchContribuyenteByRuc(ruc);
   if (!saved) {
     throw new Error("No se pudo recuperar el contribuyente guardado");
   }
@@ -135,8 +148,10 @@ export async function bulkUpsertContribuyentes(list: Contribuyente[]): Promise<n
 
   const rows: ContribuyenteInsert[] = list.map((c) => toContribuyenteInsert(c));
 
-  const { error } = await supabase.from("contribuyentes").upsert(rows);
-  if (error) throw error;
+  const { error } = await supabase
+    .from("contribuyentes")
+    .upsert(rows, { onConflict: "ruc" });
+  throwIfSupabaseError(error, "Error en carga masiva de contribuyentes");
   return rows.length;
 }
 

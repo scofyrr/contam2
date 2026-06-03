@@ -817,6 +817,35 @@ export type Database = {
         }
         Relationships: []
       }
+      fichas_ruc: {
+        Row: {
+          ruc: string
+          payload: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          ruc: string
+          payload?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          ruc?: string
+          payload?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fichas_ruc_ruc_contribuyente_fkey"
+            columns: ["ruc"]
+            isOneToOne: true
+            referencedRelation: "contribuyentes"
+            referencedColumns: ["ruc"]
+          },
+        ]
+      }
       tabla_pcge: {
         Row: {
           activo: boolean

@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 import { formatCuentaPcge, type PcgeCuenta } from "@/lib/pcge-service";
 import { usePcge } from "@/hooks/use-pcge";
+import { formatSupabaseError } from "@/lib/supabase-error";
 
 function PcgeForm({
   open,
@@ -27,11 +28,21 @@ function PcgeForm({
     codigo_cuenta: string;
     nombre_cuenta: string;
     activo: boolean;
+    tipo_cuenta?: string | null;
+    nivel?: number | null;
+    naturaleza?: string | null;
+    aplica_para?: string | null;
+    palabras_clave?: string | null;
   }) => void;
   loading: boolean;
 }) {
   const [codigoCuenta, setCodigoCuenta] = useState(initial?.codigo_cuenta ?? "");
   const [nombreCuenta, setNombreCuenta] = useState(initial?.nombre_cuenta ?? "");
+  const [tipoCuenta, setTipoCuenta] = useState(initial?.tipo_cuenta ?? "");
+  const [nivel, setNivel] = useState(initial?.nivel != null ? String(initial.nivel) : "");
+  const [naturaleza, setNaturaleza] = useState(initial?.naturaleza ?? "");
+  const [aplicaPara, setAplicaPara] = useState(initial?.aplica_para ?? "");
+  const [palabrasClave, setPalabrasClave] = useState(initial?.palabras_clave ?? "");
   const [activo, setActivo] = useState(initial?.activo ?? true);
 
   return (
@@ -59,6 +70,33 @@ function PcgeForm({
               placeholder="Ej: Caja, IGV por pagar"
             />
           </div>
+          <details className="rounded-lg border p-3 bg-muted/10">
+            <summary className="text-sm font-medium cursor-pointer">Campos opcionales (estructura SUNAT)</summary>
+            <div className="grid gap-3 mt-3">
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Tipo de cuenta</Label>
+                <Input value={tipoCuenta} onChange={(e) => setTipoCuenta(e.target.value)} placeholder="Activo, Pasivo, etc." />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label className="text-xs">Nivel (opcional)</Label>
+                  <Input value={nivel} onChange={(e) => setNivel(e.target.value.replace(/\D/g, ""))} placeholder="Auto si vacío" />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label className="text-xs">Naturaleza</Label>
+                  <Input value={naturaleza} onChange={(e) => setNaturaleza(e.target.value)} placeholder="Deudora / Acreedora" />
+                </div>
+              </div>
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Aplica para</Label>
+                <Input value={aplicaPara} onChange={(e) => setAplicaPara(e.target.value)} placeholder="Ventas, Compras, Caja…" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Palabras clave</Label>
+                <Input value={palabrasClave} onChange={(e) => setPalabrasClave(e.target.value)} placeholder="Separadas por coma" />
+              </div>
+            </div>
+          </details>
           <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/20">
             <div className="text-sm">
               <div className="font-medium">Estado</div>
@@ -89,6 +127,11 @@ function PcgeForm({
                 codigo_cuenta: codigoCuenta,
                 nombre_cuenta: nombreCuenta,
                 activo,
+                tipo_cuenta: tipoCuenta.trim() || null,
+                nivel: nivel.trim() ? Number(nivel) : null,
+                naturaleza: naturaleza.trim() || null,
+                aplica_para: aplicaPara.trim() || null,
+                palabras_clave: palabrasClave.trim() || null,
               })
             }
           >
@@ -222,8 +265,7 @@ export function PcgeTable() {
             toast.success("Cuenta guardada");
             setOpenNew(false);
           } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : "No se pudo guardar";
-            toast.error(msg);
+            toast.error(formatSupabaseError(e));
           }
         }}
       />
@@ -240,8 +282,7 @@ export function PcgeTable() {
             toast.success("Cuenta actualizada");
             setEditing(null);
           } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : "No se pudo guardar";
-            toast.error(msg);
+            toast.error(formatSupabaseError(e));
           }
         }}
       />

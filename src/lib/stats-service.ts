@@ -173,3 +173,43 @@ export function computeCharts(
     composicionMensual,
   };
 }
+
+export function filterRegistrosByPeriodRange(
+  rows: RegistroSire[],
+  periodoDesde?: string,
+  periodoHasta?: string,
+): RegistroSire[] {
+  if (!periodoDesde && !periodoHasta) return rows;
+  return rows.filter((r) => {
+    if (periodoDesde && r.periodo < periodoDesde) return false;
+    if (periodoHasta && r.periodo > periodoHasta) return false;
+    return true;
+  });
+}
+
+export type KpisPorEntidad = {
+  ruc: string;
+  razonSocial: string;
+  kpis: KpisResponse;
+};
+
+/** Segmentación individual por RUC contribuyente */
+export function computeKpisByRuc(rows: RegistroSire[], periodo: string | null): KpisPorEntidad[] {
+  const byRuc = new Map<string, { razonSocial: string; rows: RegistroSire[] }>();
+
+  for (const r of rows) {
+    const ruc = (r.ruc ?? "").trim() || "SIN_RUC";
+    const label = r.razon_social?.trim() || r.nombre_contraparte?.trim() || ruc;
+    const bucket = byRuc.get(ruc) ?? { razonSocial: label, rows: [] };
+    bucket.rows.push(r);
+    byRuc.set(ruc, bucket);
+  }
+
+  return [...byRuc.entries()]
+    .map(([ruc, { razonSocial, rows: entityRows }]) => ({
+      ruc,
+      razonSocial,
+      kpis: computeKpis(entityRows, periodo),
+    }))
+    .sort((a, b) => b.kpis.ventasTotales + b.kpis.comprasTotales - (a.kpis.ventasTotales + a.kpis.comprasTotales));
+}

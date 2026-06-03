@@ -1,27 +1,54 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { LibroDiarioLinea, RegistroSire } from "@/lib/sire-types";
 import { mapRegistroFromDb, resolverMontosSunat } from "@/lib/sire-montos";
+import { throwIfSupabaseError } from "@/lib/supabase-error";
+
+export type SireDataFilters = {
+  periodo?: string;
+  periodoDesde?: string;
+  periodoHasta?: string;
+  ruc?: string;
+};
+
+function applyPeriodFilters(q: ReturnType<typeof supabase.from>, filters?: SireDataFilters | string) {
+  if (!filters) return q;
+  if (typeof filters === "string") {
+    return filters ? q.eq("periodo", filters) : q;
+  }
+  if (filters.periodo) return q.eq("periodo", filters.periodo);
+  if (filters.periodoDesde) q = q.gte("periodo", filters.periodoDesde);
+  if (filters.periodoHasta) q = q.lte("periodo", filters.periodoHasta);
+  return q;
+}
 
 /** Misma tabla que usa `_app.sire-registros` */
-export async function fetchRegistrosSire(periodo?: string): Promise<RegistroSire[]> {
+export async function fetchRegistrosSire(
+  filters?: SireDataFilters | string,
+): Promise<RegistroSire[]> {
   let q = supabase
     .from("registros_sire")
     .select("*")
     .order("fecha_emision", { ascending: false })
-    .limit(2000);
+    .limit(5000);
 
-  if (periodo) q = q.eq("periodo", periodo);
+  q = applyPeriodFilters(q, filters);
+
+  if (filters && typeof filters !== "string" && filters.ruc?.trim()) {
+    q = q.ilike("ruc", `%${filters.ruc.trim()}%`);
+  }
 
   const { data, error } = await q;
-  if (error) throw error;
+  throwIfSupabaseError(error, "Error al cargar registros SIRE");
 
   return (data ?? []).map((row) => normalizeRegistroSire(row as Record<string, unknown>));
 }
 
 /** Vista v_libro_diario o join lineas_asiento + asientos + registros_sire */
-export async function fetchLibroDiario(periodo?: string): Promise<LibroDiarioLinea[]> {
+export async function fetchLibroDiario(
+  filters?: SireDataFilters | string,
+): Promise<LibroDiarioLinea[]> {
   let q = supabase.from("v_libro_diario").select("*");
-  if (periodo) q = q.eq("periodo", periodo);
+  q = applyPeriodFilters(q, filters);
 
   const { data, error } = await q
     .order("fecha_asiento", { ascending: false })
@@ -31,10 +58,10 @@ export async function fetchLibroDiario(periodo?: string): Promise<LibroDiarioLin
     return (data ?? []).map((row) => normalizeLibroLinea(row as Record<string, unknown>));
   }
 
-  return fetchLibroDiarioFromTables(periodo);
+  return fetchLibroDiarioFromTables(filters);
 }
 
-async function fetchLibroDiarioFromTables(periodo?: string): Promise<LibroDiarioLinea[]> {
+async function fetchLibroDiarioFromTables(filters?: SireDataFilters | string): Promise<LibroDiarioLinea[]> {
   let q = supabase
     .from("lineas_asiento")
     .select(
@@ -64,8 +91,18 @@ async function fetchLibroDiarioFromTables(periodo?: string): Promise<LibroDiario
     .not("asientos_contables.registro_sire_id", "is", null)
     .limit(5000);
 
-  if (periodo) {
-    q = q.eq("asientos_contables.periodo", periodo);
+  if (filters && typeof filters !== "string") {
+    if (filters.periodoDesde) {
+      q = q.gte("asientos_contables.periodo", filters.periodoDesde);
+    }
+    if (filters.periodoHasta) {
+      q = q.lte("asientos_contables.periodo", filters.periodoHasta);
+    }
+    if (filters.periodo) {
+      q = q.eq("asientos_contables.periodo", filters.periodo);
+    }
+  } else if (typeof filters === "string" && filters) {
+    q = q.eq("asientos_contables.periodo", filters);
   }
 
   const { data, error } = await q;

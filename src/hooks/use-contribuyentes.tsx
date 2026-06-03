@@ -12,10 +12,13 @@ import { emptyFichaRuc } from "@/lib/contribuyentes-factory";
 import {
   deleteContribuyente as deleteContribuyenteRemote,
   fetchContribuyentes,
+  fetchContribuyenteByRuc,
   upsertContribuyente as upsertContribuyenteRemote,
 } from "@/lib/contribuyentes-service";
+import { fetchAllFichas, upsertFichaRuc } from "@/lib/fichas-ruc-service";
 import { hydrateContribuyentesOnce } from "@/lib/hydrateContribuyentes";
 import { loadFichas, saveFichas } from "@/lib/contribuyentes-storage";
+import { formatSupabaseError } from "@/lib/supabase-error";
 
 type Ctx = {
   loading: boolean;
@@ -25,7 +28,7 @@ type Ctx = {
   upsertContribuyente: (c: Contribuyente) => Promise<Contribuyente>;
   removeContribuyente: (ruc: string) => Promise<void>;
   getFicha: (ruc: string) => FichaRuc | undefined;
-  saveFicha: (ficha: FichaRuc) => void;
+  saveFicha: (ficha: FichaRuc) => Promise<FichaRuc>;
   refresh: () => Promise<void>;
 };
 
@@ -44,9 +47,20 @@ export function ContribuyentesProvider({ children }: { children: ReactNode }) {
       await hydrateContribuyentesOnce();
       const list = await fetchContribuyentes();
       setContribuyentes(list);
-      setFichas(loadFichas());
+
+      try {
+        const remoteFichas = await fetchAllFichas();
+        if (Object.keys(remoteFichas).length > 0) {
+          setFichas(remoteFichas);
+          saveFichas(remoteFichas);
+        } else {
+          setFichas(loadFichas());
+        }
+      } catch {
+        setFichas(loadFichas());
+      }
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Error al cargar contribuyentes";
+      const message = formatSupabaseError(e);
       setError(message);
       setContribuyentes([]);
     } finally {
@@ -90,23 +104,26 @@ export function ContribuyentesProvider({ children }: { children: ReactNode }) {
 
   const getFicha = useCallback((ruc: string) => fichas[ruc], [fichas]);
 
-  const saveFicha = useCallback((ficha: FichaRuc) => {
-    const updated = { ...ficha, updatedAt: new Date().toISOString() };
+  const saveFicha = useCallback(async (ficha: FichaRuc) => {
+    const saved = await upsertFichaRuc(ficha);
     setFichas((prev) => {
-      const next = { ...prev, [ficha.ruc]: updated };
+      const next = { ...prev, [saved.ruc]: saved };
       saveFichas(next);
       return next;
     });
-    setContribuyentes((prev) => {
-      const idx = prev.findIndex((c) => c.ruc === ficha.ruc);
-      if (idx < 0) return prev;
-      const next = [...prev];
-      next[idx] = {
-        ...next[idx],
-        razonSocial: ficha.general.razonSocial,
-      };
-      return next;
-    });
+
+    const contrib = await fetchContribuyenteByRuc(saved.ruc);
+    if (contrib && saved.general.razonSocial.trim()) {
+      const updated = await upsertContribuyenteRemote({
+        ...contrib,
+        razonSocial: saved.general.razonSocial.trim(),
+      });
+      setContribuyentes((prev) =>
+        prev.map((c) => (c.ruc === updated.ruc ? updated : c)),
+      );
+    }
+
+    return saved;
   }, []);
 
   const value = useMemo(

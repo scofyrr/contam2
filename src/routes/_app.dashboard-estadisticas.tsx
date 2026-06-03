@@ -13,11 +13,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BarChart3, Database, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { BarChart3, Database, TrendingDown, TrendingUp, Wallet, Users } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DashboardCharts } from "@/components/dashboard-charts";
 import { ChartExportPanel } from "@/components/chart-export-panel";
 import { fetchLibroDiario, fetchRegistrosSire } from "@/lib/sire-data";
-import { computeCharts, computeKpis } from "@/lib/stats-service";
+import { computeCharts, computeKpis, computeKpisByRuc } from "@/lib/stats-service";
 import type { KpisResponse, RegistroSire } from "@/lib/sire-types";
 import { cn } from "@/lib/utils";
 
@@ -159,29 +166,51 @@ function RegistrosPreviewTable({ rows }: { rows: RegistroSire[] }) {
 }
 
 function DashboardEstadisticasPage() {
-  const [periodo, setPeriodo] = useState("");
+  const [periodoDesde, setPeriodoDesde] = useState("");
+  const [periodoHasta, setPeriodoHasta] = useState("");
+  const [rucFiltro, setRucFiltro] = useState("");
+  const [modo, setModo] = useState<"total" | "individual">("total");
+
+  const filters = useMemo(
+    () => ({
+      periodoDesde: periodoDesde || undefined,
+      periodoHasta: periodoHasta || undefined,
+      ruc: rucFiltro.trim() || undefined,
+    }),
+    [periodoDesde, periodoHasta, rucFiltro],
+  );
 
   const registrosQuery = useQuery({
-    queryKey: ["dashboard_registros_sire", periodo],
-    queryFn: () => fetchRegistrosSire(periodo || undefined),
+    queryKey: ["dashboard_registros_sire", filters],
+    queryFn: () => fetchRegistrosSire(filters),
   });
 
   const libroQuery = useQuery({
-    queryKey: ["dashboard_libro_diario", periodo],
-    queryFn: () => fetchLibroDiario(periodo || undefined),
+    queryKey: ["dashboard_libro_diario", filters],
+    queryFn: () => fetchLibroDiario(filters),
   });
 
   const registros = registrosQuery.data ?? [];
   const libro = libroQuery.data ?? [];
 
+  const periodoLabel =
+    periodoDesde && periodoHasta
+      ? `${periodoDesde}–${periodoHasta}`
+      : periodoDesde || periodoHasta || null;
+
   const kpis: KpisResponse = useMemo(
-    () => computeKpis(registros, periodo || null),
-    [registros, periodo],
+    () => computeKpis(registros, periodoLabel),
+    [registros, periodoLabel],
   );
 
   const charts = useMemo(
-    () => computeCharts(registros, periodo || null),
-    [registros, periodo],
+    () => computeCharts(registros, periodoLabel),
+    [registros, periodoLabel],
+  );
+
+  const kpisPorEntidad = useMemo(
+    () => (modo === "individual" ? computeKpisByRuc(registros, periodoLabel) : []),
+    [modo, registros, periodoLabel],
   );
 
   const loading = registrosQuery.isLoading || libroQuery.isLoading;
@@ -189,13 +218,13 @@ function DashboardEstadisticasPage() {
   const exportPack = useMemo(
     () => ({
       titulo: "CONTAM_Dashboard",
-      periodo: periodo || undefined,
+      periodo: periodoLabel ?? undefined,
       registros,
       libro,
       kpis,
       charts,
     }),
-    [periodo, registros, libro, kpis, charts],
+    [periodoLabel, registros, libro, kpis, charts],
   );
 
   const ratioTone =
@@ -229,13 +258,44 @@ function DashboardEstadisticasPage() {
           </div>
         </div>
 
-        <div className="w-44">
-          <Label className="text-xs">Periodo (AAAAMM)</Label>
-          <Input
-            placeholder="Todos"
-            value={periodo}
-            onChange={(e) => setPeriodo(formatPeriodoInput(e.target.value))}
-          />
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="w-36">
+            <Label className="text-xs">Periodo desde (AAAAMM)</Label>
+            <Input
+              placeholder="202601"
+              value={periodoDesde}
+              onChange={(e) => setPeriodoDesde(formatPeriodoInput(e.target.value))}
+            />
+          </div>
+          <div className="w-36">
+            <Label className="text-xs">Periodo hasta (AAAAMM)</Label>
+            <Input
+              placeholder="202612"
+              value={periodoHasta}
+              onChange={(e) => setPeriodoHasta(formatPeriodoInput(e.target.value))}
+            />
+          </div>
+          <div className="w-44">
+            <Label className="text-xs">RUC contribuyente</Label>
+            <Input
+              placeholder="Todos"
+              value={rucFiltro}
+              onChange={(e) => setRucFiltro(e.target.value.replace(/\D/g, "").slice(0, 11))}
+              className="font-mono"
+            />
+          </div>
+          <div className="w-44">
+            <Label className="text-xs">Modo análisis</Label>
+            <Select value={modo} onValueChange={(v) => setModo(v as "total" | "individual")}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="total">Comparativo total</SelectItem>
+                <SelectItem value="individual">Individual por entidad</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </header>
 
@@ -274,7 +334,52 @@ function DashboardEstadisticasPage() {
 
       <RegistrosPreviewTable rows={registros} />
 
-      <DashboardCharts charts={charts} loading={loading} filtroPeriodo={periodo} />
+      {modo === "individual" && kpisPorEntidad.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="size-4" />
+              Reporte individual por entidad
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>RUC</TableHead>
+                  <TableHead>Razón social</TableHead>
+                  <TableHead className="text-right">Ventas</TableHead>
+                  <TableHead className="text-right">Compras</TableHead>
+                  <TableHead className="text-right">Utilidad</TableHead>
+                  <TableHead className="text-right">Ratio IGV</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {kpisPorEntidad.map((e) => (
+                  <TableRow key={e.ruc}>
+                    <TableCell className="font-mono text-xs">{e.ruc}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">{e.razonSocial}</TableCell>
+                    <TableCell className="text-right tabular-nums text-emerald-700">
+                      {formatMoney(e.kpis.ventasTotales)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-red-700">
+                      {formatMoney(e.kpis.comprasTotales)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">
+                      {formatMoney(e.kpis.utilidadNeta)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-blue-700">
+                      {formatMoney(e.kpis.ratioIgv)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      <DashboardCharts charts={charts} loading={loading} filtroPeriodo={periodoLabel ?? ""} />
     </div>
   );
 }

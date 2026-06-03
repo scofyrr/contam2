@@ -334,3 +334,41 @@ export async function exportLibroExcel(libro: LibroDiarioLinea[], periodo?: stri
     `CONTAM_Libro_Diario${suffix}.xlsx`,
   );
 }
+
+export async function exportContribuyentesExcel(
+  list: Array<{
+    ruc: string;
+    razonSocial: string;
+    estado: string;
+    cat1ra: boolean;
+    cat2da: boolean;
+    cat3ra: boolean;
+    cat4taRetenciones: boolean;
+    cat4taCtaPropia: boolean;
+    cat5ta: boolean;
+    fechaVencimientoDeclaracion?: string | null;
+  }>,
+) {
+  const XLSX = await import("xlsx");
+  const wb = XLSX.utils.book_new();
+  const rows = list.map((c) => ({
+    ruc: c.ruc,
+    razon_social: c.razonSocial,
+    estado: c.estado,
+    cat1ra: c.cat1ra,
+    cat2da: c.cat2da,
+    cat3ra: c.cat3ra,
+    cat4ta_retenciones: c.cat4taRetenciones,
+    cat4ta_cta_propia: c.cat4taCtaPropia,
+    cat5ta: c.cat5ta,
+    fecha_vencimiento_declaracion: c.fechaVencimientoDeclaracion ?? "",
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Contribuyentes");
+  const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  downloadBlob(
+    new Blob([buf], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+    `CONTAM_Contribuyentes_${stamp()}.xlsx`,
+  );
+}

@@ -9,8 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Search, RotateCcw, Settings2, AlertCircle, Circle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { ExportButtons } from "@/components/export-buttons";
+import { exportRegistrosExcel } from "@/lib/export-service";
 import { generarCancelacionCaja } from "@/lib/asiento-cancelacion";
 import { mapRegistroFromDb, mapRegistroToDb } from "@/lib/sire-montos";
+import { sanitizePayload, throwIfSupabaseError, formatSupabaseError } from "@/lib/supabase-error";
 
 const TIPOS_CDP = [
   { c: "01", l: "01 - Factura" },
@@ -253,23 +256,18 @@ export function SireRegistrosPage() {
         throw new Error(`Campos obligatorios faltantes: ${fieldNames}`);
       }
 
-      const payload = mapRegistroToDb({ ...r });
-      if (payload.id === undefined) {
-        delete payload.id;
-      }
-
-      Object.keys(payload).forEach((key) => {
-        if (payload[key] === "") {
-          payload[key] = null;
-        }
-      });
+      const raw = mapRegistroToDb({ ...r }) as Record<string, unknown>;
+      delete raw.id;
+      delete raw.created_at;
+      delete raw.updated_at;
+      const payload = sanitizePayload(raw);
 
       if (r.id) {
         const { error } = await supabase.from("registros_sire").update(payload).eq("id", r.id);
-        if (error) throw error;
+        throwIfSupabaseError(error, "Error al actualizar registro SIRE");
       } else {
         const { error } = await supabase.from("registros_sire").insert(payload);
-        if (error) throw error;
+        throwIfSupabaseError(error, "Error al registrar comprobante SIRE");
       }
     },
     onSuccess: () => {
@@ -278,9 +276,9 @@ export function SireRegistrosPage() {
       setEditing(null);
       toast.success("Registro guardado");
     },
-    onError: (e: any) => {
+    onError: (e: unknown) => {
       console.error("Error al guardar:", e);
-      toast.error(e.message ?? "Error al guardar");
+      toast.error(formatSupabaseError(e));
     },
   });
 
@@ -320,6 +318,12 @@ export function SireRegistrosPage() {
             Formato SUNAT completo - Los campos marcados con * son obligatorios
           </p>
         </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <ExportButtons
+            compact
+            disabled={query.isLoading || (query.data ?? []).length === 0}
+            onExportExcel={async () => exportRegistrosExcel(query.data ?? [], filters.periodo || undefined)}
+          />
         <Dialog open={openForm} onOpenChange={(o) => { 
           setOpenForm(o); 
           if (!o) setEditing(null);
@@ -339,6 +343,7 @@ export function SireRegistrosPage() {
             />
           )}
         </Dialog>
+        </div>
       </header>
 
       {/* Filtros */}

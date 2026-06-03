@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizePayload, throwIfSupabaseError } from "@/lib/supabase-error";
 
 const PCGE_COLUMNS =
   "id, codigo_cuenta, nombre_cuenta, tipo_cuenta, nivel, naturaleza, aplica_para, palabras_clave, activo, created_at, updated_at" as const;
@@ -18,10 +19,8 @@ export type PcgeCuenta = {
   updated_at?: string;
 };
 
-/** Alias de dominio solicitado en tipados globales */
 export type CuentaPCGE = PcgeCuenta;
 
-/** Formato visual obligatorio en selectores: "[codigo_cuenta] - [nombre_cuenta]" */
 export function formatCuentaPcge(cuenta: Pick<PcgeCuenta, "codigo_cuenta" | "nombre_cuenta">): string {
   return `[${cuenta.codigo_cuenta}] - ${cuenta.nombre_cuenta}`;
 }
@@ -61,11 +60,10 @@ export async function fetchPcgeCuentas(): Promise<PcgeCuenta[]> {
     .select(PCGE_COLUMNS)
     .order("codigo_cuenta", { ascending: true });
 
-  if (error) throw error;
+  throwIfSupabaseError(error, "Error al cargar plan de cuentas");
   return (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
 }
 
-/** Solo cuentas activas — para selectores del Libro Diario */
 export async function fetchPcgeCuentasActivas(): Promise<PcgeCuenta[]> {
   const { data, error } = await supabase
     .from("plan_contable_pcge")
@@ -73,7 +71,7 @@ export async function fetchPcgeCuentasActivas(): Promise<PcgeCuenta[]> {
     .eq("activo", true)
     .order("codigo_cuenta", { ascending: true });
 
-  if (error) throw error;
+  throwIfSupabaseError(error, "Error al cargar cuentas activas");
   return (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
 }
 
@@ -82,6 +80,7 @@ export async function upsertPcgeCuenta(input: {
   codigo_cuenta: string;
   nombre_cuenta: string;
   tipo_cuenta?: string | null;
+  nivel?: number | null;
   activo?: boolean;
   naturaleza?: string | null;
   aplica_para?: string | null;
@@ -92,23 +91,34 @@ export async function upsertPcgeCuenta(input: {
   if (!codigo_cuenta) throw new Error("Código de cuenta requerido");
   if (!nombre_cuenta) throw new Error("Nombre de cuenta requerido");
 
-  const payload: Record<string, unknown> = {
+  const payload = sanitizePayload({
     codigo_cuenta,
     nombre_cuenta,
-    nivel: computeNivelFromCodigo(codigo_cuenta),
+    nivel: input.nivel ?? computeNivelFromCodigo(codigo_cuenta),
     activo: input.activo ?? true,
-    naturaleza: input.naturaleza ?? null,
     tipo_cuenta: input.tipo_cuenta ?? null,
+    naturaleza: input.naturaleza ?? null,
     aplica_para: input.aplica_para ?? null,
     palabras_clave: input.palabras_clave ?? null,
-  };
+  });
 
-  if (input.id) {
-    payload.id = input.id;
+  const existing = await supabase
+    .from("plan_contable_pcge")
+    .select("codigo_cuenta")
+    .eq("codigo_cuenta", codigo_cuenta)
+    .maybeSingle();
+
+  if (existing.data) {
+    const { error } = await supabase
+      .from("plan_contable_pcge")
+      .update(payload)
+      .eq("codigo_cuenta", codigo_cuenta);
+    throwIfSupabaseError(error, "Error al actualizar cuenta PCGE");
+    return;
   }
 
-  const { error } = await supabase.from("plan_contable_pcge").upsert(payload);
-  if (error) throw error;
+  const { error } = await supabase.from("plan_contable_pcge").insert(payload);
+  throwIfSupabaseError(error, "Error al registrar cuenta PCGE");
 }
 
 export async function setPcgeActivo(codigo_cuenta: string, activo: boolean): Promise<void> {
@@ -116,5 +126,5 @@ export async function setPcgeActivo(codigo_cuenta: string, activo: boolean): Pro
     .from("plan_contable_pcge")
     .update({ activo })
     .eq("codigo_cuenta", codigo_cuenta);
-  if (error) throw error;
+  throwIfSupabaseError(error, "Error al cambiar estado de cuenta");
 }
