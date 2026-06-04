@@ -4,7 +4,8 @@ import { useContribuyentes, useContribuyentesKpis } from "@/hooks/use-contribuye
 import type { Contribuyente, EstadoCliente } from "@/lib/contribuyentes-types";
 import { emptyContribuyente, validateRuc } from "@/lib/contribuyentes-factory";
 import { rucExists } from "@/lib/contribuyentes-service";
-import { formatSupabaseError } from "@/lib/supabase-error";
+import { getDataSourceLabel } from "@/lib/api/config";
+import { formatRequestError } from "@/lib/request-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -154,8 +155,8 @@ function ContribuyentesPage() {
       toast.success(isEdit ? "Contribuyente actualizado" : "Contribuyente registrado");
       setOpen(false);
     } catch (e: unknown) {
-      const msg = formatSupabaseError(e);
-      if (msg.includes("duplicate") || msg.includes("23505")) {
+      const msg = formatRequestError(e, "No se pudo guardar el contribuyente");
+      if (msg.includes("duplicate") || msg.includes("23505") || msg.includes("409")) {
         toast.error("El RUC ya existe en la base de datos");
       } else {
         toast.error(msg);
@@ -182,7 +183,9 @@ function ContribuyentesPage() {
     return (
       <div className="p-6 max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[50vh] gap-3">
         <Loader2 className="size-10 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Cargando contribuyentes desde Supabase…</p>
+        <p className="text-sm text-muted-foreground">
+          Cargando contribuyentes ({getDataSourceLabel()})…
+        </p>
       </div>
     );
   }

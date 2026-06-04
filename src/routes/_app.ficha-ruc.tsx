@@ -5,7 +5,8 @@ import { FichaRucForm } from "@/components/ficha-ruc/ficha-ruc-form";
 import { ExportButtons } from "@/components/export-buttons";
 import { emptyFichaRuc, validateFichaRequired } from "@/lib/contribuyentes-factory";
 import type { FichaRuc } from "@/lib/contribuyentes-types";
-import { formatSupabaseError } from "@/lib/supabase-error";
+import { getDataSourceLabel } from "@/lib/api/config";
+import { formatRequestError } from "@/lib/request-error";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -89,9 +90,9 @@ function FichaRucPage() {
     setSaving(true);
     try {
       await saveFicha(draft);
-      toast.success("Ficha RUC guardada en Supabase");
+      toast.success(`Ficha RUC guardada (${getDataSourceLabel()})`);
     } catch (e) {
-      toast.error(formatSupabaseError(e));
+      toast.error(formatRequestError(e, "No se pudo guardar la ficha RUC"));
     } finally {
       setSaving(false);
     }

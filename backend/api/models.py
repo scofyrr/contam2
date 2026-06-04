@@ -1,0 +1,151 @@
+"""
+Modelos unmanaged: mapean tablas existentes en Supabase/PostgreSQL sin alterar el esquema.
+Django usa estos modelos solo para ORM y DRF; las migraciones no recrean tablas.
+"""
+
+import uuid
+
+from django.db import models
+
+
+class Contribuyente(models.Model):
+    ruc = models.CharField(max_length=11, primary_key=True)
+    id = models.UUIDField(default=uuid.uuid4, editable=False, null=True, blank=True)
+    razon_social = models.TextField()
+    estado = models.CharField(max_length=20, default="ACTIVO")
+    otros = models.TextField(blank=True, default="")
+    fecha_vencimiento_declaracion = models.DateField(null=True, blank=True)
+
+    cat1ra = models.BooleanField(default=False)
+    cat2da = models.BooleanField(default=False)
+    cat3ra = models.BooleanField(default=False)
+    cat4ta_retenciones = models.BooleanField(default=False)
+    cat4ta_cta_propia = models.BooleanField(default=False)
+    cat5ta = models.BooleanField(default=False)
+
+    clave_sol = models.JSONField(default=dict)
+    afp_net = models.JSONField(default=dict)
+    validez_cpe = models.JSONField(default=dict)
+    claves_sire = models.JSONField(default=dict)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = "contribuyentes"
+        verbose_name = "Contribuyente"
+        verbose_name_plural = "Contribuyentes"
+
+
+class FichaRuc(models.Model):
+    ruc = models.CharField(max_length=11, primary_key=True)
+    payload = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = "fichas_ruc"
+        verbose_name = "Ficha RUC"
+        verbose_name_plural = "Fichas RUC"
+
+
+class PlanContablePcge(models.Model):
+    codigo_cuenta = models.CharField(max_length=10, primary_key=True)
+    id = models.UUIDField(default=uuid.uuid4, editable=False, null=True, blank=True)
+    nombre_cuenta = models.TextField()
+    tipo_cuenta = models.CharField(max_length=50, null=True, blank=True)
+    nivel = models.SmallIntegerField(default=1)
+    naturaleza = models.CharField(max_length=20, null=True, blank=True)
+    aplica_para = models.CharField(max_length=100, null=True, blank=True)
+    palabras_clave = models.TextField(null=True, blank=True)
+    activo = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = "plan_contable_pcge"
+        verbose_name = "Cuenta PCGE"
+        verbose_name_plural = "Plan de Cuentas PCGE"
+
+
+class RegistroSire(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    tipo = models.CharField(max_length=10)
+    periodo = models.CharField(max_length=6, db_index=True)
+    ruc = models.CharField(max_length=11, db_index=True)
+    razon_social = models.TextField()
+
+    car_sunat = models.CharField(max_length=50, null=True, blank=True)
+    fecha_emision = models.DateField()
+    fecha_vencimiento = models.DateField(null=True, blank=True)
+    cod_tipo_cdp = models.CharField(max_length=2)
+    serie_cdp = models.CharField(max_length=20, null=True, blank=True)
+    anio_dam_dsi = models.CharField(max_length=4, null=True, blank=True)
+    nro_cdp_inicial = models.CharField(max_length=20)
+    nro_cdp_final = models.CharField(max_length=20, null=True, blank=True)
+
+    tipo_doc_contraparte = models.CharField(max_length=2, null=True, blank=True)
+    nro_doc_contraparte = models.CharField(max_length=20, null=True, blank=True)
+    nombre_contraparte = models.TextField(null=True, blank=True)
+
+    bi_grav = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    igv_grav = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    bi_grav_y_no_grav = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    igv_grav_y_no_grav = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    bi_no_grav = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    igv_no_grav = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    valor_no_grav = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+
+    mto_bi_gravada = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    mto_igv_ipe = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    mto_total_cp = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+
+    isc = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    icbper = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    otros_tributos = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    importe_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    cod_moneda = models.CharField(max_length=3, default="PEN")
+    tipo_cambio = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True)
+
+    fecha_emision_mod = models.DateField(null=True, blank=True)
+    tipo_cdp_mod = models.CharField(max_length=2, null=True, blank=True)
+    serie_cdp_mod = models.CharField(max_length=20, null=True, blank=True)
+    cod_dam_dsi = models.CharField(max_length=50, null=True, blank=True)
+    nro_cdp_mod = models.CharField(max_length=20, null=True, blank=True)
+
+    clasificacion_bienes_serv = models.CharField(max_length=100, null=True, blank=True)
+    id_proyecto_operadores = models.CharField(max_length=100, null=True, blank=True)
+    impuesto_beneficio = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    pct_participacion = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    car_orig_indicador = models.CharField(max_length=50, null=True, blank=True)
+
+    cuenta_pcge = models.CharField(max_length=10, null=True, blank=True)
+    descripcion_items = models.TextField(null=True, blank=True)
+    finalidad_operativa = models.CharField(max_length=100, null=True, blank=True)
+    observaciones = models.TextField(null=True, blank=True)
+
+    estado_validacion = models.CharField(max_length=20, null=True, blank=True, default="pendiente")
+    estado_cobro = models.CharField(max_length=20, default="pendiente")
+    estado_pago = models.CharField(max_length=20, default="pendiente")
+
+    campos_38_41 = models.JSONField(null=True, blank=True)
+    campos_libres = models.JSONField(null=True, blank=True)
+    tipo_venta_config = models.JSONField(null=True, blank=True)
+
+    cancelacion_asiento_id = models.UUIDField(null=True, blank=True)
+    cancelacion_generada_at = models.DateTimeField(null=True, blank=True)
+    cancelacion_mov_caja_id = models.UUIDField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = "registros_sire"
+        verbose_name = "Registro SIRE"
+        verbose_name_plural = "Registros SIRE"

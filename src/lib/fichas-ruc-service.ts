@@ -1,8 +1,18 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { FichaRuc } from "@/lib/contribuyentes-types";
+import { useDjangoApi } from "@/lib/api/config";
+import {
+  fetchAllFichasViaApi,
+  fetchFichaByRucViaApi,
+  upsertFichaRucViaApi,
+} from "@/lib/api/fichas-ruc-api";
 import { sanitizePayload, throwIfSupabaseError } from "@/lib/supabase-error";
 
 export async function fetchFichaByRuc(ruc: string): Promise<FichaRuc | null> {
+  if (useDjangoApi()) {
+    return fetchFichaByRucViaApi(ruc);
+  }
+
   const clean = ruc.replace(/\D/g, "").slice(0, 11);
   const { data, error } = await supabase
     .from("fichas_ruc")
@@ -22,6 +32,10 @@ export async function fetchFichaByRuc(ruc: string): Promise<FichaRuc | null> {
 }
 
 export async function fetchAllFichas(): Promise<Record<string, FichaRuc>> {
+  if (useDjangoApi()) {
+    return fetchAllFichasViaApi();
+  }
+
   const { data, error } = await supabase
     .from("fichas_ruc")
     .select("ruc, payload, updated_at");
@@ -41,6 +55,10 @@ export async function fetchAllFichas(): Promise<Record<string, FichaRuc>> {
 }
 
 export async function upsertFichaRuc(ficha: FichaRuc): Promise<FichaRuc> {
+  if (useDjangoApi()) {
+    return upsertFichaRucViaApi(ficha);
+  }
+
   const ruc = ficha.ruc.replace(/\D/g, "").slice(0, 11);
   if (ruc.length !== 11) {
     throw new Error("RUC inválido: debe tener 11 dígitos");

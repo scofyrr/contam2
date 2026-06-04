@@ -5,6 +5,15 @@ import type {
   CredencialesPortal,
   EstadoCliente,
 } from "@/lib/contribuyentes-types";
+import { useDjangoApi } from "@/lib/api/config";
+import {
+  bulkUpsertContribuyentesViaApi,
+  deleteContribuyenteViaApi,
+  fetchContribuyenteByRucViaApi,
+  fetchContribuyentesViaApi,
+  rucExistsViaApi,
+  upsertContribuyenteViaApi,
+} from "@/lib/api/contribuyentes-api";
 import { sanitizePayload, throwIfSupabaseError } from "@/lib/supabase-error";
 
 type ContribuyenteRow = Database["public"]["Tables"]["contribuyentes"]["Row"];
@@ -70,6 +79,10 @@ export function mapContribuyenteFromRow(row: ContribuyenteRow): Contribuyente {
 }
 
 export async function fetchContribuyentes(): Promise<Contribuyente[]> {
+  if (useDjangoApi()) {
+    return fetchContribuyentesViaApi();
+  }
+
   const { data, error } = await supabase
     .from("contribuyentes")
     .select("*")
@@ -80,6 +93,10 @@ export async function fetchContribuyentes(): Promise<Contribuyente[]> {
 }
 
 export async function fetchContribuyenteByRuc(ruc: string): Promise<Contribuyente | null> {
+  if (useDjangoApi()) {
+    return fetchContribuyenteByRucViaApi(ruc);
+  }
+
   const clean = ruc.replace(/\D/g, "").slice(0, 11);
   const { data, error } = await supabase
     .from("contribuyentes")
@@ -93,6 +110,10 @@ export async function fetchContribuyenteByRuc(ruc: string): Promise<Contribuyent
 }
 
 export async function rucExists(ruc: string, excludeRuc?: string): Promise<boolean> {
+  if (useDjangoApi()) {
+    return rucExistsViaApi(ruc, excludeRuc);
+  }
+
   const clean = ruc.replace(/\D/g, "");
   if (!clean) return false;
 
@@ -109,6 +130,10 @@ export async function rucExists(ruc: string, excludeRuc?: string): Promise<boole
 }
 
 export async function upsertContribuyente(contribuyente: Contribuyente): Promise<Contribuyente> {
+  if (useDjangoApi()) {
+    return upsertContribuyenteViaApi(contribuyente);
+  }
+
   const payload = toContribuyenteInsert(contribuyente);
   const ruc = payload.ruc;
 
@@ -139,12 +164,20 @@ export async function upsertContribuyente(contribuyente: Contribuyente): Promise
 }
 
 export async function deleteContribuyente(ruc: string): Promise<void> {
+  if (useDjangoApi()) {
+    return deleteContribuyenteViaApi(ruc);
+  }
+
   const { error } = await supabase.from("contribuyentes").delete().eq("ruc", ruc);
   if (error) throw error;
 }
 
 export async function bulkUpsertContribuyentes(list: Contribuyente[]): Promise<number> {
   if (list.length === 0) return 0;
+
+  if (useDjangoApi()) {
+    return bulkUpsertContribuyentesViaApi(list);
+  }
 
   const rows: ContribuyenteInsert[] = list.map((c) => toContribuyenteInsert(c));
 

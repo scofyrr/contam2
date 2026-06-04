@@ -18,7 +18,7 @@ import {
 import { fetchAllFichas, upsertFichaRuc } from "@/lib/fichas-ruc-service";
 import { hydrateContribuyentesOnce } from "@/lib/hydrateContribuyentes";
 import { loadFichas, saveFichas } from "@/lib/contribuyentes-storage";
-import { formatSupabaseError } from "@/lib/supabase-error";
+import { formatRequestError } from "@/lib/request-error";
 
 type Ctx = {
   loading: boolean;
@@ -60,7 +60,7 @@ export function ContribuyentesProvider({ children }: { children: ReactNode }) {
         setFichas(loadFichas());
       }
     } catch (e: unknown) {
-      const message = formatSupabaseError(e);
+      const message = formatRequestError(e);
       setError(message);
       setContribuyentes([]);
     } finally {
