@@ -1,12 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createMovimientoCaja, fetchMovimientosCaja, updateMovimientoCaja } from "@/lib/caja-service";
+import {
+  createMovimientoCaja,
+  ejecutarCentralizarPeriodo,
+  fetchMovimientosCaja,
+  fetchMovimientosSinCentralizar,
+  updateMovimientoCaja,
+} from "@/lib/caja-service";
 
-export function useCaja(params: { ruc?: string | null; periodo?: string | null }) {
+export function useCaja(params: { ruc: string | null; periodo?: string | null }) {
   const qc = useQueryClient();
+  const ruc = params.ruc?.trim() ?? "";
 
   const movimientosQuery = useQuery({
-    queryKey: ["caja", "movimientos", params.ruc ?? null, params.periodo ?? null],
-    queryFn: () => fetchMovimientosCaja(params),
+    queryKey: ["caja", "movimientos", ruc || null, params.periodo ?? null],
+    queryFn: () => fetchMovimientosCaja({ ruc, periodo: params.periodo }),
+    enabled: !!ruc,
+  });
+
+  const pendientesCentralizarQuery = useQuery({
+    queryKey: ["caja", "pendientes_centralizar", ruc || null, params.periodo ?? null],
+    queryFn: () =>
+      fetchMovimientosSinCentralizar({
+        ruc,
+        periodo: params.periodo?.trim() ?? "",
+      }),
+    enabled: !!ruc && !!params.periodo?.trim(),
   });
 
   const create = useMutation({
@@ -24,6 +42,18 @@ export function useCaja(params: { ruc?: string | null; periodo?: string | null }
     },
   });
 
-  return { movimientosQuery, create, update };
+  const centralizar = useMutation({
+    mutationFn: () =>
+      ejecutarCentralizarPeriodo({
+        ruc,
+        periodo: params.periodo?.trim() ?? "",
+      }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["caja"] });
+      await qc.invalidateQueries({ queryKey: ["libro_diario"] });
+    },
+  });
+
+  return { movimientosQuery, pendientesCentralizarQuery, create, update, centralizar };
 }
 

@@ -9,8 +9,10 @@ export type RegistroSire = {
   serie_cdp: string | null;
   nro_cdp_inicial: string;
   nombre_contraparte: string | null;
-  bi_grav: number | null;
-  igv_grav: number | null;
+  bi_adq_grav?: number | null;
+  igv_adq_grav?: number | null;
+  bi_grav?: number | null;
+  igv_grav?: number | null;
   mto_bi_gravada?: number | null;
   mto_igv_ipe?: number | null;
   mto_total_cp?: number | null;
@@ -43,6 +45,7 @@ export type LibroDiarioLinea = {
   glosa: string | null;
   naturaleza: "debe" | "haber";
   origen: string;
+  tipo_libro?: string | null;
   tipo_registro: string | null;
   ruc: string | null;
   razon_social: string | null;

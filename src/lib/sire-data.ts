@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { ASIENTOS_CONTABLES_SELECT } from "@/lib/asientos-contables-utils";
 import type { LibroDiarioLinea, RegistroSire } from "@/lib/sire-types";
 import { mapRegistroFromDb, resolverMontosSunat } from "@/lib/sire-montos";
 import { throwIfSupabaseError } from "@/lib/supabase-error";
@@ -10,18 +11,31 @@ export type SireDataFilters = {
   ruc?: string;
 };
 
-function applyPeriodFilters(q: ReturnType<typeof supabase.from>, filters?: SireDataFilters | string) {
+function applyPeriodFilters<T extends { eq: (col: string, val: string) => T; gte: (col: string, val: string) => T; lte: (col: string, val: string) => T }>(
+  q: T,
+  filters?: SireDataFilters | string,
+  column = "periodo",
+): T {
   if (!filters) return q;
   if (typeof filters === "string") {
-    return filters ? q.eq("periodo", filters) : q;
+    return filters ? q.eq(column, filters) : q;
   }
-  if (filters.periodo) return q.eq("periodo", filters.periodo);
-  if (filters.periodoDesde) q = q.gte("periodo", filters.periodoDesde);
-  if (filters.periodoHasta) q = q.lte("periodo", filters.periodoHasta);
+  if (filters.periodo) return q.eq(column, filters.periodo);
+  if (filters.periodoDesde) q = q.gte(column, filters.periodoDesde);
+  if (filters.periodoHasta) q = q.lte(column, filters.periodoHasta);
   return q;
 }
 
-/** Misma tabla que usa `_app.sire-registros` */
+function applyRucFilter<T extends { eq: (col: string, val: string) => T }>(
+  q: T,
+  filters?: SireDataFilters | string,
+  column = "ruc_contraparte",
+): T {
+  if (!filters || typeof filters === "string") return q;
+  const ruc = filters.ruc?.trim();
+  return ruc ? q.eq(column, ruc) : q;
+}
+
 export async function fetchRegistrosSire(
   filters?: SireDataFilters | string,
 ): Promise<RegistroSire[]> {
@@ -33,9 +47,7 @@ export async function fetchRegistrosSire(
 
   q = applyPeriodFilters(q, filters);
 
-  if (filters && typeof filters !== "string" && filters.ruc?.trim()) {
-    q = q.ilike("ruc", `%${filters.ruc.trim()}%`);
-  }
+  q = applyRucFilter(q, filters);
 
   const { data, error } = await q;
   throwIfSupabaseError(error, "Error al cargar registros SIRE");
@@ -43,12 +55,13 @@ export async function fetchRegistrosSire(
   return (data ?? []).map((row) => normalizeRegistroSire(row as Record<string, unknown>));
 }
 
-/** Vista v_libro_diario o join lineas_asiento + asientos + registros_sire */
+/** Libro diario: vista `v_libro_diario` o tabla plana `asientos_contables`. */
 export async function fetchLibroDiario(
   filters?: SireDataFilters | string,
 ): Promise<LibroDiarioLinea[]> {
   let q = supabase.from("v_libro_diario").select("*");
   q = applyPeriodFilters(q, filters);
+  q = applyRucFilter(q, filters, "ruc");
 
   const { data, error } = await q
     .order("fecha_asiento", { ascending: false })
@@ -58,86 +71,80 @@ export async function fetchLibroDiario(
     return (data ?? []).map((row) => normalizeLibroLinea(row as Record<string, unknown>));
   }
 
-  return fetchLibroDiarioFromTables(filters);
+  return fetchLibroDiarioFromAsientos(filters);
 }
 
-async function fetchLibroDiarioFromTables(filters?: SireDataFilters | string): Promise<LibroDiarioLinea[]> {
+async function fetchLibroDiarioFromAsientos(
+  filters?: SireDataFilters | string,
+): Promise<LibroDiarioLinea[]> {
   let q = supabase
-    .from("lineas_asiento")
+    .from("asientos_contables")
     .select(
       `
-      id,
-      cuenta,
-      glosa,
-      debe,
-      haber,
-      asientos_contables!inner (
-        fecha,
-        periodo,
-        origen,
-        glosa,
-        registro_sire_id,
-        registros_sire (
-          tipo,
-          ruc,
-          razon_social,
-          cod_tipo_cdp,
-          serie_cdp,
-          nro_cdp_inicial
-        )
+      ${ASIENTOS_CONTABLES_SELECT},
+      registros_sire (
+        ruc,
+        razon_social,
+        cod_tipo_cdp,
+        serie_cdp,
+        nro_cdp_inicial
       )
     `,
     )
-    .not("asientos_contables.registro_sire_id", "is", null)
     .limit(5000);
 
-  if (filters && typeof filters !== "string") {
-    if (filters.periodoDesde) {
-      q = q.gte("asientos_contables.periodo", filters.periodoDesde);
-    }
-    if (filters.periodoHasta) {
-      q = q.lte("asientos_contables.periodo", filters.periodoHasta);
-    }
-    if (filters.periodo) {
-      q = q.eq("asientos_contables.periodo", filters.periodo);
-    }
-  } else if (typeof filters === "string" && filters) {
-    q = q.eq("asientos_contables.periodo", filters);
-  }
+  q = applyPeriodFilters(q, filters);
+  q = applyRucFilter(q, filters);
 
-  const { data, error } = await q;
-  if (error || !data?.length) return [];
+  const { data, error } = await q.order("fecha_asiento", { ascending: false });
+  if (error) {
+    throwIfSupabaseError(error, "Error al cargar libro diario");
+    return [];
+  }
 
   const lineas: LibroDiarioLinea[] = [];
 
-  for (const row of data as Record<string, unknown>[]) {
-    const ac = row.asientos_contables as Record<string, unknown> | null;
-    if (!ac) continue;
-    const rs = ac.registros_sire as Record<string, unknown> | null;
-
+  for (const row of data ?? []) {
+    const flat = row as Record<string, unknown>;
+    const rs = flat.registros_sire as Record<string, unknown> | null;
     lineas.push({
-      id: String(row.id ?? ""),
+      id: String(flat.id ?? ""),
       sire_registro_id:
-        ac.registro_sire_id != null ? String(ac.registro_sire_id) : null,
-      fecha_asiento: String(ac.fecha ?? ""),
-      periodo: String(ac.periodo ?? ""),
-      cuenta_contable: String(row.cuenta ?? ""),
-      debe: Number(row.debe ?? 0),
-      haber: Number(row.haber ?? 0),
-      glosa: String(row.glosa ?? ac.glosa ?? ""),
-      naturaleza: Number(row.debe ?? 0) > 0 ? "debe" : "haber",
-      origen: String(ac.origen ?? ""),
-      tipo_registro: rs?.tipo != null ? String(rs.tipo) : null,
-      ruc: rs?.ruc != null ? String(rs.ruc) : null,
+        flat.sire_registro_id != null ? String(flat.sire_registro_id) : null,
+      fecha_asiento: String(flat.fecha_asiento ?? ""),
+      periodo: String(flat.periodo ?? ""),
+      cuenta_contable: String(flat.cuenta_contable ?? ""),
+      debe: Number(flat.debe ?? 0),
+      haber: Number(flat.haber ?? 0),
+      glosa: flat.glosa != null ? String(flat.glosa) : null,
+      naturaleza: flat.naturaleza === "haber" ? "haber" : "debe",
+      origen: String(flat.tipo_asiento ?? ""),
+      tipo_libro: flat.tipo_libro != null ? String(flat.tipo_libro) : null,
+      tipo_registro:
+        flat.tipo_registro != null
+          ? String(flat.tipo_registro)
+          : rs?.tipo != null
+            ? String(rs.tipo)
+            : null,
+      ruc:
+        flat.ruc_contraparte != null
+          ? String(flat.ruc_contraparte)
+          : rs?.ruc != null
+            ? String(rs.ruc)
+            : null,
       razon_social: rs?.razon_social != null ? String(rs.razon_social) : null,
       cod_tipo_cdp: rs?.cod_tipo_cdp != null ? String(rs.cod_tipo_cdp) : null,
-      serie_cdp: rs?.serie_cdp != null ? String(rs.serie_cdp) : null,
+      serie_cdp: rs?.serie_cdp != null ? String(rs.serie_cdp) : flat.serie_cdp != null ? String(flat.serie_cdp) : null,
       nro_cdp_inicial:
-        rs?.nro_cdp_inicial != null ? String(rs.nro_cdp_inicial) : null,
+        rs?.nro_cdp_inicial != null
+          ? String(rs.nro_cdp_inicial)
+          : flat.nro_cdp_inicial != null
+            ? String(flat.nro_cdp_inicial)
+            : null,
     });
   }
 
-  return lineas.sort((a, b) => b.fecha_asiento.localeCompare(a.fecha_asiento));
+  return lineas;
 }
 
 export function normalizeRegistroSire(row: Record<string, unknown>): RegistroSire {
@@ -163,11 +170,6 @@ export function normalizeRegistroSire(row: Record<string, unknown>): RegistroSir
     cod_moneda: String(mapped.cod_moneda ?? "PEN"),
     estado_validacion:
       (mapped.estado_validacion as RegistroSire["estado_validacion"]) ?? "pendiente",
-    cuenta_pcge: mapped.cuenta_pcge != null ? String(mapped.cuenta_pcge) : null,
-    finalidad_operativa:
-      mapped.finalidad_operativa != null ? String(mapped.finalidad_operativa) : null,
-    descripcion_items:
-      mapped.descripcion_items != null ? String(mapped.descripcion_items) : null,
     ruc: mapped.ruc != null ? String(mapped.ruc) : undefined,
     razon_social: mapped.razon_social != null ? String(mapped.razon_social) : undefined,
   };
@@ -185,7 +187,8 @@ function normalizeLibroLinea(row: Record<string, unknown>): LibroDiarioLinea {
     haber: Number(row.haber ?? 0),
     glosa: row.glosa != null ? String(row.glosa) : null,
     naturaleza: row.naturaleza === "haber" ? "haber" : "debe",
-    origen: String(row.origen ?? ""),
+    origen: String(row.origen ?? row.tipo_asiento ?? ""),
+    tipo_libro: row.tipo_libro != null ? String(row.tipo_libro) : null,
     tipo_registro: row.tipo_registro != null ? String(row.tipo_registro) : null,
     ruc: row.ruc != null ? String(row.ruc) : null,
     razon_social: row.razon_social != null ? String(row.razon_social) : null,
@@ -212,7 +215,6 @@ export function registroToExportRow(r: RegistroSire) {
     "Importe total": r.importe_total,
     Moneda: r.cod_moneda,
     "Estado validación": r.estado_validacion ?? "pendiente",
-    "Cuenta PCGE": r.cuenta_pcge ?? "",
   };
 }
 

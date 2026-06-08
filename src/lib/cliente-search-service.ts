@@ -8,14 +8,6 @@ export type ClienteOption = {
   source: "contribuyentes";
 };
 
-type FichaPayload = {
-  general?: {
-    razonSocial?: string;
-    direccion?: string;
-    estado?: string;
-  };
-};
-
 /**
  * Búsqueda async en tabla maestra contribuyentes.
  * LEFT JOIN opcional con fichas_ruc para dirección y estado complementarios.
@@ -31,7 +23,14 @@ export async function searchClientes(query: string): Promise<ClienteOption[]> {
       ruc,
       razon_social,
       estado,
-      fichas_ruc ( payload )
+      fichas_ruc (
+        estado_contribuyente,
+        departamento,
+        provincia,
+        distrito,
+        tipo_via,
+        numero
+      )
     `,
     )
     .or(`ruc.ilike.%${needle}%,razon_social.ilike.%${needle}%`)
@@ -58,15 +57,23 @@ export async function searchClientes(query: string): Promise<ClienteOption[]> {
   }
 
   return (data ?? []).map((row) => {
-    const fichaArr = row.fichas_ruc as { payload?: FichaPayload } | { payload?: FichaPayload }[] | null;
+    const fichaArr = row.fichas_ruc as Record<string, unknown> | Record<string, unknown>[] | null;
     const ficha = Array.isArray(fichaArr) ? fichaArr[0] : fichaArr;
-    const payload = ficha?.payload;
+    const parts = [
+      ficha?.tipo_via,
+      ficha?.numero,
+      ficha?.distrito,
+      ficha?.provincia,
+      ficha?.departamento,
+    ]
+      .filter(Boolean)
+      .map(String);
 
     return {
       ruc: row.ruc,
       razonSocial: row.razon_social,
-      estado: payload?.general?.estado ?? row.estado,
-      direccion: payload?.general?.direccion ?? null,
+      estado: (ficha?.estado_contribuyente as string | undefined) ?? row.estado,
+      direccion: parts.length ? parts.join(", ") : null,
       source: "contribuyentes" as const,
     };
   });

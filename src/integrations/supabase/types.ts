@@ -16,76 +16,110 @@ export type Database = {
     Tables: {
       asientos_contables: {
         Row: {
-          comprobante_compra_id: string | null
-          comprobante_venta_id: string | null
-          created_at: string
-          fecha: string
-          glosa: string
           id: string
-          moneda: Database["public"]["Enums"]["moneda_iso"]
-          origen: Database["public"]["Enums"]["origen_libro"]
+          sire_registro_id: string | null
+          fecha_asiento: string
           periodo: string
-          registro_sire_id: string | null
+          cuenta_contable: string
+          glosa: string | null
+          debe: number | null
+          haber: number | null
           tipo_asiento: string
-          tipo_cambio: number
-          total_debe: number
-          total_haber: number
+          tipo_libro: string | null
+          naturaleza: string | null
+          tipo_registro: string | null
+          serie_cdp: string | null
+          nro_cdp_inicial: string | null
+          ruc_contraparte: string | null
+          nombre_contraparte: string | null
+          created_at: string | null
         }
         Insert: {
-          comprobante_compra_id?: string | null
-          comprobante_venta_id?: string | null
-          created_at?: string
-          fecha: string
-          glosa: string
           id?: string
-          moneda?: Database["public"]["Enums"]["moneda_iso"]
-          origen: Database["public"]["Enums"]["origen_libro"]
+          sire_registro_id?: string | null
+          fecha_asiento: string
           periodo: string
-          registro_sire_id?: string | null
-          tipo_asiento?: string
-          tipo_cambio?: number
-          total_debe?: number
-          total_haber?: number
+          cuenta_contable: string
+          glosa?: string | null
+          debe?: number | null
+          haber?: number | null
+          tipo_asiento: string
+          tipo_libro?: string | null
+          naturaleza?: string | null
+          tipo_registro?: string | null
+          serie_cdp?: string | null
+          nro_cdp_inicial?: string | null
+          ruc_contraparte?: string | null
+          nombre_contraparte?: string | null
+          created_at?: string | null
         }
         Update: {
-          comprobante_compra_id?: string | null
-          comprobante_venta_id?: string | null
-          created_at?: string
-          fecha?: string
-          glosa?: string
           id?: string
-          moneda?: Database["public"]["Enums"]["moneda_iso"]
-          origen?: Database["public"]["Enums"]["origen_libro"]
+          sire_registro_id?: string | null
+          fecha_asiento?: string
           periodo?: string
-          registro_sire_id?: string | null
+          cuenta_contable?: string
+          glosa?: string | null
+          debe?: number | null
+          haber?: number | null
           tipo_asiento?: string
-          tipo_cambio?: number
-          total_debe?: number
-          total_haber?: number
+          tipo_libro?: string | null
+          naturaleza?: string | null
+          tipo_registro?: string | null
+          serie_cdp?: string | null
+          nro_cdp_inicial?: string | null
+          ruc_contraparte?: string | null
+          nombre_contraparte?: string | null
+          created_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "asientos_contables_comprobante_compra_id_fkey"
-            columns: ["comprobante_compra_id"]
-            isOneToOne: false
-            referencedRelation: "comprobantes_compras"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "asientos_contables_comprobante_venta_id_fkey"
-            columns: ["comprobante_venta_id"]
-            isOneToOne: false
-            referencedRelation: "comprobantes_ventas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "asientos_contables_registro_sire_id_fkey"
-            columns: ["registro_sire_id"]
+            foreignKeyName: "asientos_contables_sire_registro_id_fkey"
+            columns: ["sire_registro_id"]
             isOneToOne: false
             referencedRelation: "registros_sire"
             referencedColumns: ["id"]
           },
         ]
+      }
+      cuentas_financieras: {
+        Row: {
+          id: string
+          ruc: string
+          nombre: string
+          tipo: string
+          cuenta_contable: string
+          banco: string | null
+          numero_cuenta: string | null
+          activo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          ruc: string
+          nombre: string
+          tipo: string
+          cuenta_contable: string
+          banco?: string | null
+          numero_cuenta?: string | null
+          activo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          ruc?: string
+          nombre?: string
+          tipo?: string
+          cuenta_contable?: string
+          banco?: string | null
+          numero_cuenta?: string | null
+          activo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       comprobantes_compras: {
         Row: {
@@ -406,112 +440,54 @@ export type Database = {
         }
         Relationships: []
       }
-      lineas_asiento: {
-        Row: {
-          asiento_id: string
-          cuenta: string
-          debe: number
-          editado_el: string | null
-          editado_motivo: string | null
-          editado_por: string | null
-          glosa: string | null
-          haber: number
-          id: string
-          orden: number
-        }
-        Insert: {
-          asiento_id: string
-          cuenta: string
-          debe?: number
-          editado_el?: string | null
-          editado_motivo?: string | null
-          editado_por?: string | null
-          glosa?: string | null
-          haber?: number
-          id?: string
-          orden: number
-        }
-        Update: {
-          asiento_id?: string
-          cuenta?: string
-          debe?: number
-          editado_el?: string | null
-          editado_motivo?: string | null
-          editado_por?: string | null
-          glosa?: string | null
-          haber?: number
-          id?: string
-          orden?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lineas_asiento_asiento_id_fkey"
-            columns: ["asiento_id"]
-            isOneToOne: false
-            referencedRelation: "asientos_contables"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       movimientos_caja: {
         Row: {
-          asiento_id: string | null
-          correlativo: number | null
-          cuenta_pcge: string
-          created_at: string
-          debe: number
-          editado_el: string | null
-          editado_motivo: string | null
-          editado_por: string | null
-          fecha_operacion: string
-          glosa: string
-          haber: number
           id: string
-          origen: string
-          periodo: string | null
-          registro_sire_id: string | null
+          correlativo: string | null
           ruc: string | null
-          ruc_contribuyente: string | null
-          updated_at: string
+          periodo: string
+          fecha: string
+          fecha_operacion: string | null
+          glosa: string
+          cuenta_contable: string
+          debe: number
+          haber: number
+          origen: string
+          registro_sire_id: string | null
+          asiento_id: string | null
+          created_at: string
         }
         Insert: {
-          asiento_id?: string | null
-          correlativo?: number | null
-          cuenta_pcge: string
-          created_at?: string
-          debe?: number
-          editado_el?: string | null
-          editado_motivo?: string | null
-          editado_por?: string | null
-          fecha_operacion: string
-          glosa: string
-          haber?: number
           id?: string
-          origen?: string
-          periodo?: string | null
-          registro_sire_id?: string | null
+          correlativo?: string | null
           ruc?: string | null
-          ruc_contribuyente?: string | null
-          updated_at?: string
+          periodo: string
+          fecha: string
+          fecha_operacion?: string | null
+          glosa: string
+          cuenta_contable: string
+          debe?: number
+          haber?: number
+          origen?: string
+          registro_sire_id?: string | null
+          asiento_id?: string | null
+          created_at?: string
         }
         Update: {
-          asiento_id?: string | null
-          correlativo?: number | null
-          cuenta_pcge?: string
-          created_at?: string
-          debe?: number
-          editado_el?: string | null
-          editado_motivo?: string | null
-          editado_por?: string | null
-          fecha_operacion?: string
-          glosa?: string
-          haber?: number
           id?: string
-          origen?: string
-          periodo?: string | null
-          registro_sire_id?: string | null
+          correlativo?: string | null
           ruc?: string | null
-          updated_at?: string
+          periodo?: string
+          fecha?: string
+          fecha_operacion?: string | null
+          glosa?: string
+          cuenta_contable?: string
+          debe?: number
+          haber?: number
+          origen?: string
+          registro_sire_id?: string | null
+          asiento_id?: string | null
+          created_at?: string
         }
         Relationships: [
           {
@@ -520,13 +496,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "asientos_contables"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "movimientos_caja_cuenta_pcge_fkey"
-            columns: ["cuenta_pcge"]
-            isOneToOne: false
-            referencedRelation: "plan_contable_pcge"
-            referencedColumns: ["codigo_cuenta"]
           },
           {
             foreignKeyName: "movimientos_caja_registro_sire_id_fkey"
@@ -540,6 +509,9 @@ export type Database = {
       registros_sire: {
         Row: {
           anio_dam_dsi: string | null
+          bi_adq_grav: number | null
+          bi_adq_grav_y_no_grav: number | null
+          bi_adq_no_grav: number | null
           bi_grav: number | null
           bi_grav_y_no_grav: number | null
           bi_no_grav: number | null
@@ -564,14 +536,15 @@ export type Database = {
           icbper: number | null
           id: string
           id_proyecto_operadores: string | null
+          igv_adq_grav: number | null
+          igv_adq_grav_y_no_grav: number | null
+          igv_adq_no_grav: number | null
           igv_grav: number | null
           igv_grav_y_no_grav: number | null
           igv_no_grav: number | null
           importe_total: number
-          mto_bi_gravada: number | null
-          mto_igv_ipe: number | null
-          mto_total_cp: number | null
           impuesto_beneficio: number | null
+          porcentaje_participacion: number | null
           isc: number | null
           nombre_contraparte: string | null
           nro_cdp_final: string | null
@@ -580,7 +553,6 @@ export type Database = {
           nro_doc_contraparte: string | null
           observaciones: string | null
           otros_tributos: number | null
-          pct_participacion: number | null
           periodo: string
           razon_social: string
           ruc: string
@@ -592,6 +564,7 @@ export type Database = {
           tipo_doc_contraparte: string | null
           tipo_venta_config: Json | null
           updated_at: string
+          valor_adq_no_grav: number | null
           valor_no_grav: number | null
           cancelacion_asiento_id: string | null
           cancelacion_generada_at: string | null
@@ -599,6 +572,9 @@ export type Database = {
         }
         Insert: {
           anio_dam_dsi?: string | null
+          bi_adq_grav?: number | null
+          bi_adq_grav_y_no_grav?: number | null
+          bi_adq_no_grav?: number | null
           bi_grav?: number | null
           bi_grav_y_no_grav?: number | null
           bi_no_grav?: number | null
@@ -623,14 +599,15 @@ export type Database = {
           icbper?: number | null
           id?: string
           id_proyecto_operadores?: string | null
+          igv_adq_grav?: number | null
+          igv_adq_grav_y_no_grav?: number | null
+          igv_adq_no_grav?: number | null
           igv_grav?: number | null
           igv_grav_y_no_grav?: number | null
           igv_no_grav?: number | null
           importe_total?: number
-          mto_bi_gravada?: number | null
-          mto_igv_ipe?: number | null
-          mto_total_cp?: number | null
           impuesto_beneficio?: number | null
+          porcentaje_participacion?: number | null
           isc?: number | null
           nombre_contraparte?: string | null
           nro_cdp_final?: string | null
@@ -639,7 +616,6 @@ export type Database = {
           nro_doc_contraparte?: string | null
           observaciones?: string | null
           otros_tributos?: number | null
-          pct_participacion?: number | null
           periodo: string
           razon_social: string
           ruc: string
@@ -651,6 +627,7 @@ export type Database = {
           tipo_doc_contraparte?: string | null
           tipo_venta_config?: Json | null
           updated_at?: string
+          valor_adq_no_grav?: number | null
           valor_no_grav?: number | null
           cancelacion_asiento_id?: string | null
           cancelacion_generada_at?: string | null
@@ -658,6 +635,9 @@ export type Database = {
         }
         Update: {
           anio_dam_dsi?: string | null
+          bi_adq_grav?: number | null
+          bi_adq_grav_y_no_grav?: number | null
+          bi_adq_no_grav?: number | null
           bi_grav?: number | null
           bi_grav_y_no_grav?: number | null
           bi_no_grav?: number | null
@@ -680,14 +660,15 @@ export type Database = {
           icbper?: number | null
           id?: string
           id_proyecto_operadores?: string | null
+          igv_adq_grav?: number | null
+          igv_adq_grav_y_no_grav?: number | null
+          igv_adq_no_grav?: number | null
           igv_grav?: number | null
           igv_grav_y_no_grav?: number | null
           igv_no_grav?: number | null
           importe_total?: number
-          mto_bi_gravada?: number | null
-          mto_igv_ipe?: number | null
-          mto_total_cp?: number | null
           impuesto_beneficio?: number | null
+          porcentaje_participacion?: number | null
           isc?: number | null
           nombre_contraparte?: string | null
           nro_cdp_final?: string | null
@@ -696,7 +677,6 @@ export type Database = {
           nro_doc_contraparte?: string | null
           observaciones?: string | null
           otros_tributos?: number | null
-          pct_participacion?: number | null
           periodo?: string
           razon_social?: string
           ruc?: string
@@ -708,6 +688,7 @@ export type Database = {
           tipo_doc_contraparte?: string | null
           tipo_venta_config?: Json | null
           updated_at?: string
+          valor_adq_no_grav?: number | null
           valor_no_grav?: number | null
         }
         Relationships: []

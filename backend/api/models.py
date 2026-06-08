@@ -39,10 +39,72 @@ class Contribuyente(models.Model):
 
 
 class FichaRuc(models.Model):
+    """
+    public.fichas_ruc: Mapeo exacto de las columnas planas de la SUNAT en Supabase.
+    Sin campo 'payload'. Alineado al 100% con la estructura fisica del ERP.
+    """
+
     ruc = models.CharField(max_length=11, primary_key=True)
-    payload = models.JSONField(default=dict)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    razon_social = models.TextField()
+    nombre_comercial = models.TextField(null=True, blank=True)
+    tipo_contribuyente = models.CharField(max_length=100, null=True, blank=True)
+    fecha_inscripcion = models.DateField(null=True, blank=True)
+    fecha_inicio_actividades = models.DateField(null=True, blank=True)
+    estado_contribuyente = models.CharField(max_length=50, null=True, blank=True)
+    condicion_domicilio_fiscal = models.CharField(max_length=50, null=True, blank=True)
+    dependencia_sunat = models.CharField(max_length=100, null=True, blank=True)
+    emisor_electronico_desde = models.CharField(max_length=100, null=True, blank=True)
+    fecha_baja = models.DateField(null=True, blank=True)
+    comprobantes_electronicos = models.TextField(null=True, blank=True)
+    tipo_representacion = models.CharField(max_length=100, null=True, blank=True)
+    actividad_economica_principal = models.TextField(null=True, blank=True)
+    actividad_economica_secundaria1 = models.TextField(null=True, blank=True)
+    actividad_economica_secundaria2 = models.TextField(null=True, blank=True)
+    sistema_emision_comprobantes = models.CharField(max_length=100, null=True, blank=True)
+    sistema_contabilidad = models.CharField(max_length=100, null=True, blank=True)
+    codigo_profesion_oficio = models.CharField(max_length=50, null=True, blank=True)
+    actividad_comercio_exterior = models.CharField(max_length=100, null=True, blank=True)
+    numero_fax = models.CharField(max_length=50, null=True, blank=True)
+    telefono_fijo1 = models.CharField(max_length=50, null=True, blank=True)
+    telefono_fijo2 = models.CharField(max_length=50, null=True, blank=True)
+    telefono_movil1 = models.CharField(max_length=50, null=True, blank=True)
+    telefono_movil2 = models.CharField(max_length=50, null=True, blank=True)
+    correo_electronico1 = models.CharField(max_length=100, null=True, blank=True)
+    correo_electronico2 = models.CharField(max_length=100, null=True, blank=True)
+    actividad_economica = models.TextField(null=True, blank=True)
+    departamento = models.CharField(max_length=100, null=True, blank=True)
+    provincia = models.CharField(max_length=100, null=True, blank=True)
+    distrito = models.CharField(max_length=100, null=True, blank=True)
+    ubigeo = models.CharField(max_length=6, null=True, blank=True)
+    tipo_zona = models.CharField(max_length=50, null=True, blank=True)
+    nombre_zona = models.CharField(max_length=200, null=True, blank=True)
+    tipo_via = models.CharField(max_length=50, null=True, blank=True)
+    nombre_via = models.CharField(max_length=200, null=True, blank=True)
+    numero = models.CharField(max_length=20, null=True, blank=True)
+    km = models.CharField(max_length=20, null=True, blank=True)
+    manzana = models.CharField(max_length=20, null=True, blank=True)
+    lote = models.CharField(max_length=20, null=True, blank=True)
+    departamento_interno = models.CharField(max_length=50, null=True, blank=True)
+    interior = models.CharField(max_length=50, null=True, blank=True)
+    otras_referencias = models.TextField(null=True, blank=True)
+    condicion_inmueble = models.CharField(max_length=100, null=True, blank=True)
+    licencia_municipal = models.CharField(max_length=100, null=True, blank=True)
+    documento_identidad = models.CharField(max_length=20, null=True, blank=True)
+    sexo = models.CharField(max_length=20, null=True, blank=True)
+    nacionalidad = models.CharField(max_length=50, null=True, blank=True)
+    cond_domiciliado = models.CharField(max_length=50, null=True, blank=True)
+    fecha_nacimiento = models.DateField(null=True, blank=True)
+    pasaporte = models.CharField(max_length=50, null=True, blank=True)
+    pais_procedencia = models.CharField(max_length=100, null=True, blank=True)
+    fecha_inscripcion_rrpp = models.DateField(null=True, blank=True)
+    tomo_ficha_folio_asiento = models.CharField(max_length=100, null=True, blank=True)
+    pais_origen_capital = models.CharField(max_length=100, null=True, blank=True)
+    numero_partida_registral = models.CharField(max_length=100, null=True, blank=True)
+    origen_capital = models.CharField(max_length=100, null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+    last_sync_at = models.DateTimeField(null=True, blank=True)
+    sync_user_id = models.UUIDField(null=True, blank=True)
 
     class Meta:
         managed = False
@@ -149,3 +211,56 @@ class RegistroSire(models.Model):
         db_table = "registros_sire"
         verbose_name = "Registro SIRE"
         verbose_name_plural = "Registros SIRE"
+
+class AsientoContable(models.Model):
+    """
+    public.asientos_contables — modelo plano (una fila = una linea contable).
+    Columnas verificadas en Supabase.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    sire_registro_id = models.UUIDField(null=True, blank=True, db_column="sire_registro_id")
+    fecha_asiento = models.DateField()
+    periodo = models.CharField(max_length=6)
+    cuenta_contable = models.CharField(max_length=20)
+    glosa = models.TextField(null=True, blank=True)
+    debe = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    haber = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    tipo_asiento = models.TextField()
+    naturaleza = models.CharField(max_length=20, null=True, blank=True)
+    tipo_registro = models.CharField(max_length=50, null=True, blank=True)
+    serie_cdp = models.CharField(max_length=20, null=True, blank=True)
+    nro_cdp_inicial = models.CharField(max_length=20, null=True, blank=True)
+    ruc_contraparte = models.CharField(max_length=11, null=True, blank=True)
+    nombre_contraparte = models.CharField(max_length=500, null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "asientos_contables"
+
+
+class MovimientoCaja(models.Model):
+    """
+    public.movimientos_caja — libro auxiliar.
+    asiento_id referencia el UUID de lote centralizado en asientos_contables.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    periodo = models.CharField(max_length=6)
+    fecha = models.DateField()
+    correlativo = models.CharField(max_length=50, null=True, blank=True)
+    glosa = models.TextField()
+    cuenta_contable = models.CharField(max_length=20)
+    debe = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    haber = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    registro_sire_id = models.UUIDField(null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+    ruc = models.CharField(max_length=11, null=True, blank=True)
+    fecha_operacion = models.DateField(null=True, blank=True)
+    origen = models.CharField(max_length=50, null=True, blank=True)
+    asiento_id = models.UUIDField(null=True, blank=True, db_index=True)
+
+    class Meta:
+        managed = False
+        db_table = "movimientos_caja"

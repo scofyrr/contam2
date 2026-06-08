@@ -18,20 +18,22 @@ export type ComprobanteLiquidacion = {
 };
 
 export async function fetchComprobantesPendientesLiquidacion(params: {
-  ruc?: string | null;
+  ruc: string;
   periodo?: string | null;
 }): Promise<ComprobanteLiquidacion[]> {
+  const ruc = params.ruc.trim();
+  if (!ruc) return [];
+
   let q = supabase
     .from("registros_sire")
     .select(
       "id, tipo, ruc, razon_social, periodo, fecha_emision, cod_tipo_cdp, serie_cdp, nro_cdp_inicial, nombre_contraparte, importe_total, mto_total_cp, mto_bi_gravada, mto_igv_ipe, bi_grav, igv_grav, estado_cobro, estado_pago, cancelacion_asiento_id",
     )
+    .eq("ruc", ruc)
     .is("cancelacion_asiento_id", null)
     .eq("estado_validacion", "validado")
     .order("fecha_emision", { ascending: false })
     .limit(100);
-
-  if (params.ruc) q = q.eq("ruc", params.ruc);
   if (params.periodo) q = q.eq("periodo", params.periodo);
 
   const { data, error } = await q;

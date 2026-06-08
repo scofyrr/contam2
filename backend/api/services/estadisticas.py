@@ -15,18 +15,14 @@ def _round2(n: float) -> float:
 
 
 def _base_of(row: RegistroSire) -> float:
-    if row.mto_bi_gravada is not None:
-        return _round2(float(row.mto_bi_gravada))
-    if row.bi_grav is not None:
-        return _round2(float(row.bi_grav))
+    if row.bi_adq_grav is not None:
+        return _round2(float(row.bi_adq_grav))
     return 0.0
 
 
 def _igv_of(row: RegistroSire) -> float:
-    if row.mto_igv_ipe is not None:
-        return _round2(float(row.mto_igv_ipe))
-    if row.igv_grav is not None:
-        return _round2(float(row.igv_grav))
+    if row.igv_adq_grav is not None:
+        return _round2(float(row.igv_adq_grav))
     return 0.0
 
 

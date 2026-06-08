@@ -8,12 +8,14 @@ import {
 } from "@/lib/cancelaciones-service";
 import { updateTotalesAsiento } from "@/lib/cancelaciones-service";
 
-export function useCancelacionesList(params: { ruc?: string | null; periodo?: string | null }) {
+export function useCancelacionesList(params: { ruc: string; periodo?: string | null }) {
   const qc = useQueryClient();
+  const ruc = params.ruc.trim();
 
   const cancelacionesQuery = useQuery({
-    queryKey: ["cancelaciones", params.ruc ?? null, params.periodo ?? null],
-    queryFn: () => fetchCancelaciones(params),
+    queryKey: ["cancelaciones", ruc || null, params.periodo ?? null],
+    queryFn: () => fetchCancelaciones({ ruc, periodo: params.periodo }),
+    enabled: !!ruc,
   });
 
   const updateLinea = useMutation({

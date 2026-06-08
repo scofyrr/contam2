@@ -141,6 +141,9 @@ const empty = (): Reg => ({
   porcentaje_participacion: 0,
   impuesto_materia_beneficio: "",
   car_orig_indicador: "",
+  estado_validacion: "pendiente",
+  estado_cobro: "pendiente",
+  estado_pago: "pendiente",
   campos_38_41: {},
   campos_libres: {},
 });

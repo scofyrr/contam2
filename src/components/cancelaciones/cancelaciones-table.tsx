@@ -24,7 +24,7 @@ type Selected = {
   tipo: "VENTA" | "COMPRA";
 };
 
-export function CancelacionesTable({ ruc, periodo }: { ruc?: string | null; periodo?: string | null }) {
+export function CancelacionesTable({ ruc, periodo }: { ruc: string; periodo?: string | null }) {
   const { cancelacionesQuery, updateLinea, updateMovimiento } = useCancelacionesList({ ruc, periodo });
   const [selected, setSelected] = useState<Selected | null>(null);
   const details = useCancelacionDetails({
@@ -239,13 +239,13 @@ export function CancelacionesTable({ ruc, periodo }: { ruc?: string | null; peri
                         <div>
                           <Label className="text-xs">Cuenta</Label>
                           <Input
-                            value={movimiento.cuenta_pcge}
+                            value={movimiento.cuenta_contable}
                             onChange={async (e) => {
-                              const cuenta_pcge = e.target.value;
+                              const cuenta_contable = e.target.value;
                               try {
                                 await updateMovimiento.mutateAsync({
                                   id: movimiento.id,
-                                  patch: { cuenta_pcge },
+                                  patch: { cuenta_contable },
                                   audit: { editado_por: usuario, editado_motivo: motivo.trim() ? motivo.trim() : null },
                                 });
                               } catch (err: any) {

@@ -35,6 +35,7 @@ export function AsientoEditorGrid({
   cuentasPcge,
   onSave,
   saving,
+  saveDisabled = false,
 }: {
   registro: RegistroSire;
   lineas: LineaAsientoEditable[];
@@ -42,6 +43,7 @@ export function AsientoEditorGrid({
   cuentasPcge: PcgeCuenta[];
   onSave: () => void;
   saving: boolean;
+  saveDisabled?: boolean;
 }) {
   const montos = useMemo(() => resolverMontosComprobante(registro), [registro]);
   const totalDebe = sumDebe(lineas);
@@ -92,7 +94,7 @@ export function AsientoEditorGrid({
           <Button size="sm" variant="outline" onClick={addLinea}>
             <Plus className="size-4 mr-1" /> Línea
           </Button>
-          <Button size="sm" disabled={!cuadrado || saving} onClick={onSave}>
+          <Button size="sm" disabled={saveDisabled || !cuadrado || saving} onClick={onSave}>
             <Save className="size-4 mr-1" />
             {saving ? "Guardando…" : "Confirmar asiento"}
           </Button>

@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { generarLineasAsiento, glosaAsiento, origenAsiento } from "@/lib/asientos-generator";
+import { generarLineasAsiento } from "@/lib/asientos-generator";
+import {
+  lineasToAsientosPlanos,
+  logSupabaseAsientosInsertError,
+  tipoAsientoProvision,
+} from "@/lib/asientos-contables-utils";
+import { normalizeRegistroSire } from "@/lib/sire-data";
 import type { RegistroSire } from "@/lib/sire-types";
 
 type AdminClient = SupabaseClient<Database>;
@@ -11,6 +17,8 @@ export type ValidateResult = {
   lineas: number;
   alreadyValidated: boolean;
 };
+
+const TIPOS_PROVISION = ["principal"] as const;
 
 export async function validarRegistroSire(
   supabase: AdminClient,
@@ -25,88 +33,62 @@ export async function validarRegistroSire(
   if (fetchError) throw fetchError;
   if (!registro) throw new Error("Registro SIRE no encontrado");
 
-  const r = registro as unknown as RegistroSire;
+  const r = normalizeRegistroSire(registro as Record<string, unknown>);
+  const tipoAsiento = tipoAsientoProvision(r.tipo);
 
-  const { data: asientoExistente } = await supabase
+  const { data: existentes } = await supabase
     .from("asientos_contables")
     .select("id")
-    .eq("registro_sire_id", registroId)
-    .eq("tipo_asiento", "principal")
-    .maybeSingle();
+    .eq("sire_registro_id", registroId)
+    .in("tipo_asiento", [...TIPOS_PROVISION]);
 
-  if (asientoExistente?.id) {
+  if (existentes?.length) {
     if (r.estado_validacion !== "validado") {
       await supabase
         .from("registros_sire")
         .update({ estado_validacion: "validado" })
         .eq("id", registroId);
     }
-    const { count } = await supabase
-      .from("lineas_asiento")
-      .select("id", { count: "exact", head: true })
-      .eq("asiento_id", asientoExistente.id);
 
     return {
       registroId,
-      asientoId: asientoExistente.id,
-      lineas: count ?? 0,
+      asientoId: existentes[0].id,
+      lineas: existentes.length,
       alreadyValidated: true,
     };
   }
 
   const lineas = generarLineasAsiento(r);
-  const totalDebe = lineas.reduce((s, l) => s + l.debe, 0);
-  const totalHaber = lineas.reduce((s, l) => s + l.haber, 0);
+  const filas = lineasToAsientosPlanos({
+    registro: r,
+    registroId,
+    lineas,
+    tipoAsiento,
+  });
 
-  const { data: asiento, error: asientoError } = await supabase
+  const { data: insertados, error: insertError } = await supabase
     .from("asientos_contables")
-    .insert({
-      periodo: r.periodo,
-      fecha: r.fecha_emision,
-      origen: origenAsiento(r.tipo),
-      registro_sire_id: registroId,
-      tipo_asiento: "principal",
-      glosa: glosaAsiento(r),
-      moneda: (r.cod_moneda === "USD" || r.cod_moneda === "EUR" ? r.cod_moneda : "PEN") as
-        | "PEN"
-        | "USD"
-        | "EUR",
-      tipo_cambio: 1,
-      total_debe: totalDebe,
-      total_haber: totalHaber,
-    })
-    .select("id")
-    .single();
+    .insert(filas)
+    .select("id");
 
-  if (asientoError) throw asientoError;
-
-  const { error: lineasError } = await supabase.from("lineas_asiento").insert(
-    lineas.map((l) => ({
-      asiento_id: asiento.id,
-      orden: l.orden,
-      cuenta: l.cuenta,
-      glosa: l.glosa,
-      debe: l.debe,
-      haber: l.haber,
-    })),
-  );
-
-  if (lineasError) {
-    await supabase.from("asientos_contables").delete().eq("id", asiento.id);
-    throw lineasError;
+  if (insertError) {
+    logSupabaseAsientosInsertError(insertError, filas, "validarRegistroSire");
+    throw insertError;
   }
+
+  const ids = (insertados ?? []).map((row) => row.id);
 
   const { error: updateError } = await supabase
     .from("registros_sire")
-    .update({ estado_validacion: "validado" } as Database["public"]["Tables"]["registros_sire"]["Update"])
+    .update({ estado_validacion: "validado" })
     .eq("id", registroId);
 
   if (updateError) throw updateError;
 
   return {
     registroId,
-    asientoId: asiento.id,
-    lineas: lineas.length,
+    asientoId: ids[0] ?? "",
+    lineas: ids.length,
     alreadyValidated: false,
   };
 }

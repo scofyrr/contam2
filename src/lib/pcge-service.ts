@@ -38,6 +38,22 @@ export function computeNivelFromCodigo(codigo: string): number {
   return 5;
 }
 
+function arrayToText(value: unknown): string | null {
+  if (value == null) return null;
+  if (Array.isArray(value)) {
+    const items = value.map((x) => String(x).trim()).filter(Boolean);
+    return items.length ? items.join(", ") : null;
+  }
+  const text = String(value).trim();
+  return text || null;
+}
+
+function textToArray(value: string | null | undefined): string[] | null {
+  const text = (value ?? "").trim();
+  if (!text) return null;
+  return text.split(",").map((x) => x.trim()).filter(Boolean);
+}
+
 function mapRow(row: Record<string, unknown>): PcgeCuenta {
   return {
     id: row.id != null ? String(row.id) : undefined,
@@ -46,8 +62,8 @@ function mapRow(row: Record<string, unknown>): PcgeCuenta {
     tipo_cuenta: row.tipo_cuenta != null ? String(row.tipo_cuenta) : null,
     nivel: Number(row.nivel ?? 1),
     naturaleza: row.naturaleza != null ? String(row.naturaleza) : null,
-    aplica_para: row.aplica_para != null ? String(row.aplica_para) : null,
-    palabras_clave: row.palabras_clave != null ? String(row.palabras_clave) : null,
+    aplica_para: arrayToText(row.aplica_para),
+    palabras_clave: arrayToText(row.palabras_clave),
     activo: row.activo !== false,
     created_at: row.created_at != null ? String(row.created_at) : undefined,
     updated_at: row.updated_at != null ? String(row.updated_at) : undefined,
@@ -98,8 +114,8 @@ export async function upsertPcgeCuenta(input: {
     activo: input.activo ?? true,
     tipo_cuenta: input.tipo_cuenta ?? null,
     naturaleza: input.naturaleza ?? null,
-    aplica_para: input.aplica_para ?? null,
-    palabras_clave: input.palabras_clave ?? null,
+    aplica_para: textToArray(input.aplica_para),
+    palabras_clave: textToArray(input.palabras_clave),
   });
 
   const existing = await supabase

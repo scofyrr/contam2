@@ -4,12 +4,14 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+import { getMtoBiGravada, getMtoIgvIpe } from "@/lib/sire-montos";
+
 function baseOf(r: RegistroSire): number {
-  return Number(r.bi_grav ?? 0);
+  return getMtoBiGravada(r);
 }
 
 function igvOf(r: RegistroSire): number {
-  return Number(r.igv_grav ?? 0);
+  return getMtoIgvIpe(r);
 }
 
 export function computeKpis(

@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    CentralizarCajaAPIView,
     ContribuyenteViewSet,
     EstadisticasAPIView,
     FichaRucDetailAPIView,
@@ -19,5 +20,6 @@ urlpatterns = [
     path("fichas-ruc/", FichaRucListCreateAPIView.as_view(), name="fichas-ruc-list"),
     path("fichas-ruc/<str:ruc>/", FichaRucDetailAPIView.as_view(), name="fichas-ruc-detail"),
     path("estadisticas/", EstadisticasAPIView.as_view(), name="estadisticas"),
+    path("caja/centralizar-periodo/", CentralizarCajaAPIView.as_view(), name="caja-centralizar"),
     *router.urls,
 ]

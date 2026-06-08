@@ -23,7 +23,7 @@ export function LiquidacionSirePanel({
   ruc,
   periodo,
 }: {
-  ruc?: string | null;
+  ruc: string;
   periodo?: string | null;
 }) {
   const qc = useQueryClient();
@@ -32,9 +32,10 @@ export function LiquidacionSirePanel({
     queryKey: ["caja_liquidacion_pendientes", ruc, periodo],
     queryFn: () =>
       fetchComprobantesPendientesLiquidacion({
-        ruc: ruc ?? undefined,
+        ruc,
         periodo: periodo ?? undefined,
       }),
+    enabled: !!ruc.trim(),
   });
 
   const liquidar = useMutation({

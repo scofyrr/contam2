@@ -1,11 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 import {
   generarLineasAsiento,
-  glosaAsiento,
-  origenAsiento,
   type CuentasAsientoDefaults,
 } from "@/lib/asientos-generator";
+import {
+  lineasToAsientosPlanos,
+  logSupabaseAsientosInsertError,
+  tipoAsientoProvision,
+  toAsientoContableInsert,
+} from "@/lib/asientos-contables-utils";
 import { normalizeRegistroSire } from "@/lib/sire-data";
 import type { LineaAsientoInput, RegistroSire } from "@/lib/sire-types";
 
@@ -14,7 +17,6 @@ export type ComprobantePendiente = RegistroSire & {
 };
 
 export type LineaAsientoEditable = LineaAsientoInput & {
-  /** id local para React keys */
   key: string;
 };
 
@@ -41,6 +43,8 @@ export function toEditableLineas(lineas: LineaAsientoInput[]): LineaAsientoEdita
   }));
 }
 
+const TIPOS_PROVISION = ["principal"] as const;
+
 export async function fetchComprobantesPendientes(params: {
   ruc: string;
   periodo?: string;
@@ -64,17 +68,16 @@ export async function fetchComprobantesPendientes(params: {
   const ids = registros.map((r) => r.id);
   const { data: asientos } = await supabase
     .from("asientos_contables")
-    .select("registro_sire_id, tipo_asiento")
-    .in("registro_sire_id", ids);
+    .select("sire_registro_id, tipo_asiento")
+    .in("sire_registro_id", ids)
+    .in("tipo_asiento", [...TIPOS_PROVISION]);
 
-  const conPrincipal = new Set(
-    (asientos ?? [])
-      .filter((a) => (a.tipo_asiento ?? "principal") === "principal")
-      .map((a) => a.registro_sire_id),
+  const conProvision = new Set(
+    (asientos ?? []).map((a) => a.sire_registro_id).filter(Boolean),
   );
 
   return registros
-    .filter((r) => !conPrincipal.has(r.id))
+    .filter((r) => !conProvision.has(r.id))
     .map((r) => ({ ...r, tieneAsiento: false }));
 }
 
@@ -100,68 +103,87 @@ export async function guardarAsientoProvision(params: {
   }
 
   const registro = await fetchRegistroSireById(params.registroId);
+  const tipoAsiento = tipoAsientoProvision(registro.tipo);
 
   const { data: existente } = await supabase
     .from("asientos_contables")
     .select("id")
-    .eq("registro_sire_id", params.registroId)
-    .eq("tipo_asiento", "principal")
+    .eq("sire_registro_id", params.registroId)
+    .in("tipo_asiento", [...TIPOS_PROVISION])
+    .limit(1)
     .maybeSingle();
 
   if (existente?.id) {
     throw new Error("Este comprobante ya tiene un asiento de provisión registrado.");
   }
 
-  const totalDebe = sumDebe(params.lineas);
-  const totalHaber = sumHaber(params.lineas);
+  const filas = lineasToAsientosPlanos({
+    registro,
+    registroId: params.registroId,
+    lineas: params.lineas,
+    tipoAsiento,
+  });
 
-  const moneda = (
-    registro.cod_moneda === "USD" || registro.cod_moneda === "EUR" ? registro.cod_moneda : "PEN"
-  ) as Database["public"]["Enums"]["moneda_iso"];
-
-  const { data: asiento, error: asientoErr } = await supabase
+  const { data: insertados, error: insertErr } = await supabase
     .from("asientos_contables")
-    .insert({
-      periodo: registro.periodo,
-      fecha: registro.fecha_emision,
-      origen: origenAsiento(registro.tipo),
-      registro_sire_id: params.registroId,
-      tipo_asiento: "principal",
-      comprobante_venta_id: null,
-      comprobante_compra_id: null,
-      glosa: glosaAsiento(registro),
-      moneda,
-      tipo_cambio: 1,
-      total_debe: totalDebe,
-      total_haber: totalHaber,
-    })
-    .select("id")
-    .single();
+    .insert(filas)
+    .select("id");
 
-  if (asientoErr) throw asientoErr;
+  if (insertErr) {
+    logSupabaseAsientosInsertError(insertErr, filas, "guardarAsientoProvision");
+    throw insertErr;
+  }
 
-  const { error: lineasErr } = await supabase.from("lineas_asiento").insert(
-    params.lineas.map((l) => ({
-      asiento_id: asiento.id,
-      orden: l.orden,
-      cuenta: l.cuenta.trim(),
-      glosa: l.glosa,
-      debe: round2(Number(l.debe ?? 0)),
-      haber: round2(Number(l.haber ?? 0)),
-    })),
-  );
-
-  if (lineasErr) {
-    await supabase.from("asientos_contables").delete().eq("id", asiento.id);
-    throw lineasErr;
+  const ids = (insertados ?? []).map((r) => r.id);
+  if (ids.length === 0) {
+    throw new Error("No se insertaron líneas en asientos_contables.");
   }
 
   const { error: updErr } = await supabase
     .from("registros_sire")
-    .update({ estado_validacion: "validado" } as Database["public"]["Tables"]["registros_sire"]["Update"])
+    .update({ estado_validacion: "validado" })
     .eq("id", params.registroId);
 
   if (updErr) throw updErr;
 
-  return { asientoId: asiento.id };
+  return { asientoId: ids[0] };
+}
+
+export async function guardarAsientoManual(params: {
+  ruc: string;
+  periodo: string;
+  fecha: string;
+  glosa: string;
+  lineas: LineaAsientoInput[];
+}): Promise<void> {
+  if (!isAsientoCuadrado(params.lineas)) {
+    throw new Error("El asiento manual está descuadrado. Debe y Haber deben ser iguales.");
+  }
+
+  const filas = params.lineas.map((l) => {
+    const debe = round2(Number(l.debe ?? 0));
+    const haber = round2(Number(l.haber ?? 0));
+    return toAsientoContableInsert({
+      sire_registro_id: null,
+      periodo: params.periodo,
+      tipo_asiento: "principal",
+      tipo_libro: "DIARIO_MANUAL",
+      fecha_asiento: params.fecha,
+      cuenta_contable: l.cuenta,
+      glosa: l.glosa?.trim() || params.glosa,
+      debe,
+      haber,
+      tipo_registro: "COMPRA",
+      ruc_contraparte: params.ruc.trim(),
+      nombre_contraparte: null,
+      serie_cdp: null,
+      nro_cdp_inicial: null,
+    });
+  });
+
+  const { error } = await supabase.from("asientos_contables").insert(filas);
+  if (error) {
+    logSupabaseAsientosInsertError(error, filas, "guardarAsientoManual");
+    throw error;
+  }
 }
