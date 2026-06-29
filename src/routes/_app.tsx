@@ -14,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AiChatBubble } from "@/components/ai-chat-bubble";
 import { ContribuyentesProvider } from "@/hooks/use-contribuyentes";
 
 export const Route = createFileRoute("/_app")({
@@ -167,6 +168,8 @@ function renderDashboard(session: NonNullable<ReturnType<typeof useSession>["ses
           <Outlet />
         </ContribuyentesProvider>
       </main>
+
+      <AiChatBubble />
     </div>
   );
 }
