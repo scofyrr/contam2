@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { FieldHelper } from "@/components/ui/field-helper";
 import {
   Dialog,
   DialogContent,
@@ -107,6 +108,9 @@ export function RegistrarPagoCobroModal({
           <div className="space-y-1.5">
             <Label>Fecha de pago / cobro</Label>
             <Input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} />
+            <FieldHelper>
+              Fecha efectiva del movimiento de caja. Debe corresponder al periodo contable abierto.
+            </FieldHelper>
           </div>
 
           <div className="space-y-1.5">
@@ -123,6 +127,9 @@ export function RegistrarPagoCobroModal({
                 ))}
               </SelectContent>
             </Select>
+            <FieldHelper>
+              Código de medio de pago según catálogo SUNAT (Tabla 01). Requerido para el Libro Caja electrónico.
+            </FieldHelper>
           </div>
 
           <div className="space-y-1.5">
@@ -146,6 +153,9 @@ export function RegistrarPagoCobroModal({
                 </SelectContent>
               </Select>
             )}
+            <FieldHelper>
+              Seleccione la caja o cuenta bancaria (PCGE Clase 10) desde donde se realiza el pago o cobro.
+            </FieldHelper>
           </div>
 
           <div className="space-y-1.5">
@@ -157,6 +167,9 @@ export function RegistrarPagoCobroModal({
               value={monto}
               onChange={(e) => setMonto(e.target.value)}
             />
+            <FieldHelper>
+              Monto en soles (PEN). No puede superar el saldo pendiente del comprobante ni ser cero.
+            </FieldHelper>
           </div>
         </div>
 

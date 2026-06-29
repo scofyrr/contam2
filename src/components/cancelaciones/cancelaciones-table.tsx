@@ -4,6 +4,7 @@ import { Pencil, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FieldHelper } from "@/components/ui/field-helper";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -146,10 +147,15 @@ export function CancelacionesTable({ ruc, periodo }: { ruc: string; periodo?: st
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Ajustar cancelación</DialogTitle>
+            <FieldHelper variant="info">
+              Modifique líneas del asiento contable y el movimiento de caja vinculado. Los cambios quedan auditados.
+            </FieldHelper>
           </DialogHeader>
 
           {!canEdit ? (
-            <div className="text-sm text-muted-foreground">Esta cancelación aún no tiene asiento o movimiento vinculado.</div>
+            <FieldHelper variant="error">
+              Esta cancelación aún no tiene asiento o movimiento vinculado. Liquide el comprobante desde SIRE o Libro Diario.
+            </FieldHelper>
           ) : (
             <div className="grid gap-4">
               {header && (
@@ -327,13 +333,15 @@ export function CancelacionesTable({ ruc, periodo }: { ruc: string; periodo?: st
               </div>
 
               <div className="grid md:grid-cols-2 gap-3">
-                <div>
+                <div className="space-y-1.5">
                   <Label className="text-xs">Quién ajusta</Label>
                   <Input value={usuario} onChange={(e) => setUsuario(e.target.value)} placeholder="Ej: contador@estudio.pe" />
+                  <FieldHelper>Correo o identificador del contador que realiza el ajuste (trazabilidad de auditoría).</FieldHelper>
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label className="text-xs">Motivo (opcional)</Label>
                   <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ej: ajuste de céntimos / corrección de cuenta" />
+                  <FieldHelper>Explique el motivo del cambio: corrección de cuenta, redondeo, reclasificación, etc.</FieldHelper>
                 </div>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Pencil, Plus, ToggleLeft, ToggleRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { FieldHelper } from "@/components/ui/field-helper";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +51,9 @@ function PcgeForm({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{initial?.codigo_cuenta ? "Editar cuenta" : "Nueva cuenta"}</DialogTitle>
+          <FieldHelper variant="info">
+            Mantenga códigos alineados al PCGE peruano. Las cuentas activas aparecen en selectores del Libro Diario y Caja.
+          </FieldHelper>
         </DialogHeader>
 
         <div className="grid gap-3">
@@ -61,6 +65,9 @@ function PcgeForm({
               placeholder="Ej: 101, 121201, 40111"
               disabled={!!initial?.codigo_cuenta}
             />
+            <FieldHelper>
+              Código numérico único según PCGE (ej. 101 Caja, 121201 Facturas por cobrar). No editable tras crear.
+            </FieldHelper>
           </div>
           <div className="grid gap-1.5">
             <Label className="text-xs">Nombre de cuenta</Label>
@@ -69,6 +76,7 @@ function PcgeForm({
               onChange={(e) => setNombreCuenta(e.target.value)}
               placeholder="Ej: Caja, IGV por pagar"
             />
+            <FieldHelper>Denominación descriptiva visible en reportes y comboboxes contables.</FieldHelper>
           </div>
           <details className="rounded-lg border p-3 bg-muted/10">
             <summary className="text-sm font-medium cursor-pointer">Campos opcionales (estructura SUNAT)</summary>

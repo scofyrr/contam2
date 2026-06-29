@@ -4,6 +4,7 @@ import { Loader2, Wallet } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldHelper } from "@/components/ui/field-helper";
 import {
   Dialog,
   DialogContent,
@@ -57,10 +58,15 @@ export function LoteCajaAuditDialog({
             <Wallet className="size-5" />
             Lote de centralización (Libro Caja)
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            Movimientos de caja vinculados al asiento consolidado del libro diario.
+          <DialogDescription>
+            Consulta los movimientos de caja vinculados al asiento consolidado del Libro Diario.
           </DialogDescription>
         </DialogHeader>
+
+        <FieldHelper variant="info">
+          Este diálogo muestra la trazabilidad entre el lote centralizado en Libro Diario y sus movimientos
+          origen en Libro Caja. Verifique que Debe y Haber cuadren antes de cerrar el periodo.
+        </FieldHelper>
 
         {linea && (
           <div className="text-sm space-y-1 rounded-md border bg-muted/30 p-3">

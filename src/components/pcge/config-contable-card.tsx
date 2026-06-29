@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { FieldHelper } from "@/components/ui/field-helper";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -50,14 +51,17 @@ export function ConfigContableCard() {
           <div>
             <Label className="text-xs">Cuenta Caja (10)</Label>
             <Input name="cuenta_caja_default" defaultValue={cfg.cuenta_caja_default} className="font-mono" />
+            <FieldHelper>Cuenta PCGE Clase 10 usada por defecto al liquidar cobros/pagos en caja.</FieldHelper>
           </div>
           <div>
             <Label className="text-xs">Cuenta por cobrar (12)</Label>
             <Input name="cuenta_cxc_default" defaultValue={cfg.cuenta_cxc_default} className="font-mono" />
+            <FieldHelper>Cuenta de clientes (ej. 121201) para cancelaciones de ventas.</FieldHelper>
           </div>
           <div>
             <Label className="text-xs">Cuenta por pagar (42)</Label>
             <Input name="cuenta_cxp_default" defaultValue={cfg.cuenta_cxp_default} className="font-mono" />
+            <FieldHelper>Cuenta de proveedores (ej. 421201) para cancelaciones de compras.</FieldHelper>
           </div>
 
           <div className="md:col-span-3 flex justify-end">

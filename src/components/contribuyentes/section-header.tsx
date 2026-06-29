@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { FieldHelper } from "@/components/ui/field-helper";
 
 export function SectionHeader({
   title,
@@ -54,11 +55,13 @@ export function FormGrid({ children }: { children: ReactNode }) {
 export function Field({
   label,
   required,
+  help,
   children,
   className,
 }: {
   label: string;
   required?: boolean;
+  help?: string;
   children: ReactNode;
   className?: string;
 }) {
@@ -69,6 +72,7 @@ export function Field({
         {required && <span className="text-red-600 ml-0.5">*</span>}
       </label>
       {children}
+      {help ? <FieldHelper className="mt-1">{help}</FieldHelper> : null}
     </div>
   );
 }

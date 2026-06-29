@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { ArrowRightLeft, Loader2, Plus, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { FieldHelper } from "@/components/ui/field-helper";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -80,14 +81,17 @@ function MovimientoForm({
           <div className="grid gap-1.5">
             <Label className="text-xs">Fecha de operación</Label>
             <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+            <FieldHelper>Fecha efectiva del movimiento de caja dentro del periodo seleccionado (AAAAMM).</FieldHelper>
           </div>
           <div className="grid gap-1.5">
             <Label className="text-xs">Glosa</Label>
             <Input value={glosa} onChange={(e) => setGlosa(e.target.value)} placeholder="Descripción de la operación" />
+            <FieldHelper>Descripción breve del movimiento para auditoría y conciliación bancaria.</FieldHelper>
           </div>
           <div className="grid gap-1.5">
             <Label className="text-xs">Cuenta (PCGE)</Label>
             <Input value={cuenta} onChange={(e) => setCuenta(e.target.value)} placeholder="Ej: 101, 104" />
+            <FieldHelper>Cuenta contable Clase 10 (caja o banco) según el plan de cuentas del contribuyente.</FieldHelper>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="grid gap-1.5">
@@ -99,6 +103,7 @@ function MovimientoForm({
                 onChange={(e) => setDebe(e.target.value)}
                 className="font-mono"
               />
+              <FieldHelper>Importe de entrada a la cuenta. Deje en 0 si registra solo Haber.</FieldHelper>
             </div>
             <div className="grid gap-1.5">
               <Label className="text-xs">Haber</Label>
@@ -109,11 +114,9 @@ function MovimientoForm({
                 onChange={(e) => setHaber(e.target.value)}
                 className="font-mono"
               />
+              <FieldHelper>Importe de salida de la cuenta. Deje en 0 si registra solo Debe.</FieldHelper>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Consejo: usa solo Debe o solo Haber por movimiento (no ambos).
-          </p>
         </div>
 
         <DialogFooter>

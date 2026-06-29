@@ -10,6 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Search, RotateCcw, Settings2, AlertCircle, Circle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { ExportButtons } from "@/components/export-buttons";
+import { SireFieldHelper, SIRE_SECTION_HELP } from "@/components/sire/sire-field-help";
+import { FieldHelper } from "@/components/ui/field-helper";
 import { exportRegistrosExcel } from "@/lib/export-service";
 import { generarCancelacionCaja } from "@/lib/asiento-cancelacion";
 import { mapRegistroFromDb, mapRegistroToDb } from "@/lib/sire-montos";
@@ -605,7 +607,8 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
       <div className="space-y-4">
         {/* Datos del contribuyente */}
         <div className="bg-muted/20 p-4 rounded-lg">
-          <h3 className="text-sm font-semibold mb-3">Datos del Contribuyente</h3>
+          <h3 className="text-sm font-semibold mb-1">Datos del Contribuyente</h3>
+          <FieldHelper className="mb-3">{SIRE_SECTION_HELP.contribuyente}</FieldHelper>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <Label className="text-xs flex items-center gap-1">
@@ -618,6 +621,7 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
                 className={`font-mono ${getFieldClass("ruc")}`}
                 placeholder="20XXXXXXXXX"
               />
+              <SireFieldHelper field="ruc" errors={errors} />
             </div>
             <div className="md:col-span-2">
               <Label className="text-xs flex items-center gap-1">
@@ -629,6 +633,7 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
                 className={getFieldClass("razon_social")}
                 placeholder="Nombre o razón social del contribuyente"
               />
+              <SireFieldHelper field="razon_social" errors={errors} />
             </div>
             <div>
               <Label className="text-xs flex items-center gap-1">
@@ -640,6 +645,7 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
                 placeholder="AAAAMM" 
                 className={`font-mono ${getFieldClass("periodo")}`}
               />
+              <SireFieldHelper field="periodo" errors={errors} />
             </div>
             <div>
               <Label className="text-xs">CAR SUNAT</Label>
@@ -655,7 +661,8 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
 
         {/* Documento */}
         <div className="bg-muted/20 p-4 rounded-lg">
-          <h3 className="text-sm font-semibold mb-3">Documento</h3>
+          <h3 className="text-sm font-semibold mb-1">Documento</h3>
+          <FieldHelper className="mb-3">{SIRE_SECTION_HELP.documento}</FieldHelper>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <Label className="text-xs flex items-center gap-1">
@@ -669,6 +676,7 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
                   {TIPOS_CDP.map((t) => <SelectItem key={t.c} value={t.c}>{t.l}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <SireFieldHelper field="cod_tipo_cdp" errors={errors} />
             </div>
             <div>
               <Label className="text-xs flex items-center gap-1">
@@ -680,6 +688,7 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
                 className={`font-mono ${getFieldClass("serie_cdp")}`}
                 placeholder="Ej: F001"
               />
+              <SireFieldHelper field="serie_cdp" errors={errors} />
             </div>
             <div>
               <Label className="text-xs flex items-center gap-1">
@@ -691,6 +700,7 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
                 className={`font-mono ${getFieldClass("nro_cdp_inicial")}`}
                 placeholder="Número inicial"
               />
+              <SireFieldHelper field="nro_cdp_inicial" errors={errors} />
             </div>
             <div>
               <Label className="text-xs">N° Final</Label>
@@ -731,7 +741,8 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
 
         {/* Contraparte */}
         <div className="bg-muted/20 p-4 rounded-lg">
-          <h3 className="text-sm font-semibold mb-3">Contraparte (Proveedor/Cliente)</h3>
+          <h3 className="text-sm font-semibold mb-1">Contraparte (Proveedor/Cliente)</h3>
+          <FieldHelper className="mb-3">{SIRE_SECTION_HELP.contraparte}</FieldHelper>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <Label className="text-xs flex items-center gap-1">
@@ -745,6 +756,7 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
                   {TIPOS_DOC.map((t) => <SelectItem key={t.c} value={t.c}>{t.l}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <SireFieldHelper field="tipo_doc_contraparte" errors={errors} />
             </div>
             <div>
               <Label className="text-xs flex items-center gap-1">
@@ -756,6 +768,7 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
                 className={`font-mono ${getFieldClass("nro_doc_contraparte")}`}
                 placeholder="RUC, DNI o documento"
               />
+              <SireFieldHelper field="nro_doc_contraparte" errors={errors} />
             </div>
             <div className="md:col-span-2">
               <Label className="text-xs flex items-center gap-1">
@@ -767,13 +780,15 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
                 className={getFieldClass("nombre_contraparte")}
                 placeholder="Nombre o razón social de la contraparte"
               />
+              <SireFieldHelper field="nombre_contraparte" errors={errors} />
             </div>
           </div>
         </div>
 
         {/* Valores Monetarios */}
         <div className="bg-muted/20 p-4 rounded-lg">
-          <h3 className="text-sm font-semibold mb-3">Valores Monetarios</h3>
+          <h3 className="text-sm font-semibold mb-1">Valores Monetarios</h3>
+          <FieldHelper className="mb-3">{SIRE_SECTION_HELP.montos}</FieldHelper>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <Label className="text-xs">BI Adq. Grav.</Label>
@@ -809,6 +824,7 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
                 className={`font-mono ${getFieldClass("importe_total")}`}
                 placeholder="0.00"
               />
+              <SireFieldHelper field="importe_total" errors={errors} />
             </div>
             <div>
               <Label className="text-xs flex items-center gap-1">
@@ -822,6 +838,7 @@ function RegistroForm({ value, onChange, onSubmit, saving }: { value: Reg; onCha
                   {MONEDAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <SireFieldHelper field="cod_moneda" errors={errors} />
             </div>
             <div>
               <Label className="text-xs">Tipo Cambio</Label>

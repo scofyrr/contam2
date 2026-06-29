@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { Button } from "@/components/ui/button";
+import { FieldHelper } from "@/components/ui/field-helper";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -118,7 +119,7 @@ function LoginPage() {
             <p className="text-sm text-muted-foreground">Usa el administrador por defecto para comenzar.</p>
           </div>
           <div className="space-y-3">
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="email">Correo</Label>
               <Input 
                 id="email" 
@@ -127,8 +128,11 @@ function LoginPage() {
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
               />
+              <FieldHelper>
+                Ingrese el correo electrónico registrado en CONTAM (ej. admin@contam.pe).
+              </FieldHelper>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="password">Contraseña</Label>
               <Input 
                 id="password" 
@@ -137,6 +141,9 @@ function LoginPage() {
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
               />
+              <FieldHelper>
+                Contraseña de acceso al sistema. Debe tener al menos 8 caracteres con mayúsculas y números.
+              </FieldHelper>
             </div>
           </div>
           <Button type="submit" disabled={loading} className="w-full" size="lg">

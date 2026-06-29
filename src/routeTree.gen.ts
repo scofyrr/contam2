@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSireRegistrosRouteImport } from './routes/_app.sire-registros'
 import { Route as AppPcgeRouteImport } from './routes/_app.pcge'
+import { Route as AppMiCuentaRouteImport } from './routes/_app.mi-cuenta'
 import { Route as AppLibroDiarioRouteImport } from './routes/_app.libro-diario'
 import { Route as AppLibroCajaRouteImport } from './routes/_app.libro-caja'
 import { Route as AppFichaRucRouteImport } from './routes/_app.ficha-ruc'
@@ -46,6 +47,11 @@ const AppSireRegistrosRoute = AppSireRegistrosRouteImport.update({
 const AppPcgeRoute = AppPcgeRouteImport.update({
   id: '/pcge',
   path: '/pcge',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMiCuentaRoute = AppMiCuentaRouteImport.update({
+  id: '/mi-cuenta',
+  path: '/mi-cuenta',
   getParentRoute: () => AppRoute,
 } as any)
 const AppLibroDiarioRoute = AppLibroDiarioRouteImport.update({
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/ficha-ruc': typeof AppFichaRucRoute
   '/libro-caja': typeof AppLibroCajaRoute
   '/libro-diario': typeof AppLibroDiarioRoute
+  '/mi-cuenta': typeof AppMiCuentaRoute
   '/pcge': typeof AppPcgeRoute
   '/sire-registros': typeof AppSireRegistrosRoute
   '/api/sire/validate': typeof ApiSireValidateRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/ficha-ruc': typeof AppFichaRucRoute
   '/libro-caja': typeof AppLibroCajaRoute
   '/libro-diario': typeof AppLibroDiarioRoute
+  '/mi-cuenta': typeof AppMiCuentaRoute
   '/pcge': typeof AppPcgeRoute
   '/sire-registros': typeof AppSireRegistrosRoute
   '/api/sire/validate': typeof ApiSireValidateRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/_app/ficha-ruc': typeof AppFichaRucRoute
   '/_app/libro-caja': typeof AppLibroCajaRoute
   '/_app/libro-diario': typeof AppLibroDiarioRoute
+  '/_app/mi-cuenta': typeof AppMiCuentaRoute
   '/_app/pcge': typeof AppPcgeRoute
   '/_app/sire-registros': typeof AppSireRegistrosRoute
   '/api/sire/validate': typeof ApiSireValidateRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/ficha-ruc'
     | '/libro-caja'
     | '/libro-diario'
+    | '/mi-cuenta'
     | '/pcge'
     | '/sire-registros'
     | '/api/sire/validate'
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/ficha-ruc'
     | '/libro-caja'
     | '/libro-diario'
+    | '/mi-cuenta'
     | '/pcge'
     | '/sire-registros'
     | '/api/sire/validate'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/_app/ficha-ruc'
     | '/_app/libro-caja'
     | '/_app/libro-diario'
+    | '/_app/mi-cuenta'
     | '/_app/pcge'
     | '/_app/sire-registros'
     | '/api/sire/validate'
@@ -235,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/pcge'
       fullPath: '/pcge'
       preLoaderRoute: typeof AppPcgeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/mi-cuenta': {
+      id: '/_app/mi-cuenta'
+      path: '/mi-cuenta'
+      fullPath: '/mi-cuenta'
+      preLoaderRoute: typeof AppMiCuentaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/libro-diario': {
@@ -310,6 +329,7 @@ interface AppRouteChildren {
   AppFichaRucRoute: typeof AppFichaRucRoute
   AppLibroCajaRoute: typeof AppLibroCajaRoute
   AppLibroDiarioRoute: typeof AppLibroDiarioRoute
+  AppMiCuentaRoute: typeof AppMiCuentaRoute
   AppPcgeRoute: typeof AppPcgeRoute
   AppSireRegistrosRoute: typeof AppSireRegistrosRoute
 }
@@ -321,6 +341,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFichaRucRoute: AppFichaRucRoute,
   AppLibroCajaRoute: AppLibroCajaRoute,
   AppLibroDiarioRoute: AppLibroDiarioRoute,
+  AppMiCuentaRoute: AppMiCuentaRoute,
   AppPcgeRoute: AppPcgeRoute,
   AppSireRegistrosRoute: AppSireRegistrosRoute,
 }

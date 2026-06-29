@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { FieldHelper } from "@/components/ui/field-helper";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -114,6 +115,7 @@ export function AsientoManualForm({
         <div className="space-y-1.5">
           <Label>Fecha</Label>
           <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          <FieldHelper>Fecha contable del asiento dentro del periodo filtrado.</FieldHelper>
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label>Glosa general</Label>
@@ -122,8 +124,13 @@ export function AsientoManualForm({
             value={glosa}
             onChange={(e) => setGlosa(e.target.value)}
           />
+          <FieldHelper>Descripción del motivo del asiento (apertura, reclasificación, planilla, etc.).</FieldHelper>
         </div>
       </div>
+
+      <FieldHelper variant="info">
+        Cada línea debe tener cuenta PCGE y solo Debe o Haber (no ambos). El total Debe debe igualar el total Haber.
+      </FieldHelper>
 
       <Table>
         <TableHeader>
@@ -211,7 +218,9 @@ export function AsientoManualForm({
 
       {!cuadrado && (
         <Alert variant="destructive">
-          <AlertDescription>El asiento está descuadrado. Ajuste Debe y Haber.</AlertDescription>
+          <AlertDescription>
+            El asiento está descuadrado. Ajuste Debe y Haber hasta que ambos totales coincidan.
+          </AlertDescription>
         </Alert>
       )}
     </div>

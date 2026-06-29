@@ -4,6 +4,7 @@ import { Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { FieldHelper } from "@/components/ui/field-helper";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -89,10 +90,12 @@ export function OperacionDirectaForm({
               <SelectItem value="ingreso">Ingreso (entrada a caja/banco)</SelectItem>
             </SelectContent>
           </Select>
+          <FieldHelper>Egreso = salida de efectivo; Ingreso = entrada. Sin comprobante electrónico vinculado.</FieldHelper>
         </div>
         <div className="space-y-1.5">
           <Label>Fecha</Label>
           <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          <FieldHelper>Fecha de la operación de tesorería dentro del periodo contable.</FieldHelper>
         </div>
         <div className="space-y-1.5">
           <Label>Monto (S/)</Label>
@@ -103,6 +106,7 @@ export function OperacionDirectaForm({
             value={monto}
             onChange={(e) => setMonto(e.target.value)}
           />
+          <FieldHelper>Importe en soles de la operación. Debe ser mayor a cero.</FieldHelper>
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label>Glosa</Label>
@@ -111,6 +115,7 @@ export function OperacionDirectaForm({
             value={glosa}
             onChange={(e) => setGlosa(e.target.value)}
           />
+          <FieldHelper>Motivo de la operación: tributos, transferencias, gastos de caja chica, etc.</FieldHelper>
         </div>
         <div className="space-y-1.5">
           <Label>Medio de pago</Label>
@@ -126,6 +131,7 @@ export function OperacionDirectaForm({
               ))}
             </SelectContent>
           </Select>
+          <FieldHelper>Código de medio de pago según catálogo SUNAT (Tabla 01).</FieldHelper>
         </div>
         <div className="space-y-1.5">
           <Label>Cuenta financiera</Label>
@@ -144,6 +150,7 @@ export function OperacionDirectaForm({
               ))}
             </SelectContent>
           </Select>
+          <FieldHelper>Caja o banco (Clase 10) desde donde sale o entra el efectivo.</FieldHelper>
         </div>
         <div className="space-y-1.5">
           <Label>Cuenta contrapartida</Label>
@@ -152,6 +159,7 @@ export function OperacionDirectaForm({
             value={contrapartida}
             onChange={(e) => setContrapartida(e.target.value)}
           />
+          <FieldHelper>Cuenta de contrapartida contable (ej. 401111 tributos, 421201 proveedores).</FieldHelper>
         </div>
       </div>
 
