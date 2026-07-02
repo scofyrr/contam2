@@ -1,9 +1,15 @@
 import { useMemo, useState } from "react";
-import { Eye } from "lucide-react";
+import { Eye, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -16,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoteCajaAuditDialog } from "@/components/libro-diario/lote-caja-audit-dialog";
 import { esLineaCentralizacionCaja } from "@/lib/asientos-contables-utils";
 import type { LibroDiarioLinea } from "@/lib/sire-types";
+import AsientoTraceabilityViewerPremium from "@/modules/contabilidad/asientos/components/asiento-traceability-viewer-premium";
 
 function formatMoney(n: number) {
   return n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -51,6 +58,7 @@ export function LibroDiarioGeneralPanel({
     cuenta: "",
   });
   const [auditLote, setAuditLote] = useState<LibroDiarioLinea | null>(null);
+  const [traceSireId, setTraceSireId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const cpeQ = filters.cpe.trim().toLowerCase();
@@ -156,6 +164,7 @@ export function LibroDiarioGeneralPanel({
                 <TableHead className="text-right">Debe</TableHead>
                 <TableHead className="text-right">Haber</TableHead>
                 <TableHead>Libro</TableHead>
+                <TableHead className="w-24 text-center">Trazab.</TableHead>
                 <TableHead className="w-28 text-right">Caja</TableHead>
               </TableRow>
             </TableHeader>
@@ -180,6 +189,21 @@ export function LibroDiarioGeneralPanel({
                       {row.tipo_libro ?? row.origen}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-center">
+                    {row.sire_registro_id ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8"
+                        title="Ver trazabilidad contable"
+                        onClick={() => setTraceSireId(row.sire_registro_id)}
+                      >
+                        <Search className="size-4" />
+                      </Button>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">
                     {esLineaCentralizacionCaja(row) ? (
                       <Button variant="ghost" size="sm" className="h-8" onClick={() => setAuditLote(row)}>
@@ -202,6 +226,17 @@ export function LibroDiarioGeneralPanel({
         open={!!auditLote}
         onOpenChange={(v) => !v && setAuditLote(null)}
       />
+
+      <Sheet open={!!traceSireId} onOpenChange={(v) => !v && setTraceSireId(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-4xl p-0 overflow-y-auto bg-[#070C1B] border-white/10">
+          <SheetHeader className="p-4 border-b border-white/10">
+            <SheetTitle className="text-[#E8EDF5]">Trazabilidad contable</SheetTitle>
+          </SheetHeader>
+          {traceSireId ? (
+            <AsientoTraceabilityViewerPremium sireRegistroId={traceSireId} compact />
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

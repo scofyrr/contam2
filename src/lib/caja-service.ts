@@ -13,25 +13,32 @@ export type MovimientoCaja = {
   id: string;
   correlativo: string | null;
   ruc: string | null;
+  ruc_contribuyente?: string | null;
   periodo: string;
   fecha: string;
   fecha_operacion: string | null;
   glosa: string;
+  descripcion?: string | null;
   cuenta_contable: string;
   debe: number;
   haber: number;
   origen: string;
+  origen_documento?: string;
+  numero_documento?: string | null;
+  tipo_movimiento?: string;
   registro_sire_id: string | null;
   asiento_id: string | null;
   created_at?: string;
 };
 
 const MOV_CAJA_SELECT =
-  "id, correlativo, ruc, periodo, fecha, fecha_operacion, glosa, cuenta_contable, debe, haber, origen, registro_sire_id, asiento_id, created_at";
+  "id, correlativo, ruc, ruc_contribuyente, periodo, fecha, fecha_operacion, glosa, descripcion, cuenta_contable, debe, haber, origen, origen_documento, numero_documento, tipo_movimiento, registro_sire_id, asiento_id, created_at";
 
 export async function fetchMovimientosCaja(params: {
   ruc: string;
   periodo?: string | null;
+  tipo_movimiento?: string | null;
+  origen_documento?: string | null;
 }): Promise<MovimientoCaja[]> {
   const ruc = params.ruc.trim();
   if (!ruc) return [];
@@ -43,6 +50,8 @@ export async function fetchMovimientosCaja(params: {
     .order("fecha", { ascending: true });
 
   if (params.periodo?.trim()) q = q.eq("periodo", params.periodo.trim());
+  if (params.tipo_movimiento?.trim()) q = q.eq("tipo_movimiento", params.tipo_movimiento.trim());
+  if (params.origen_documento?.trim()) q = q.eq("origen_documento", params.origen_documento.trim());
 
   const { data, error } = await q;
   if (error) throw error;
@@ -118,6 +127,7 @@ export async function centralizarPeriodoCaja(params: {
       sire_registro_id: null,
       periodo,
       tipo_asiento: "principal",
+      tipo_libro: "CAJA_BANCOS",
       fecha_asiento: fechaAsiento,
       cuenta_contable: cuenta,
       glosa: glosaResumen,

@@ -17,11 +17,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Loader2, Save } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Contribuyente360ViewPremium } from "@/modules/ficha-ruc/components/contribuyente-360-view-premium";
+import { RucSearchComparePremium } from "@/modules/ficha-ruc/components/ruc-search-compare-premium";
+import { FileText, LayoutDashboard, Loader2, Save, Search } from "lucide-react";
 import { toast } from "sonner";
+
+const PAGE_TABS = ["360", "editor", "buscar"] as const;
+type PageTab = (typeof PAGE_TABS)[number];
 
 export const Route = createFileRoute("/_app/ficha-ruc")({
   component: FichaRucPage,
+  validateSearch: (search: Record<string, unknown>) => {
+    const tab = search.tab as string;
+    const ruc = typeof search.ruc === "string" ? search.ruc.replace(/\D/g, "").slice(0, 11) : "";
+    return {
+      tab: PAGE_TABS.includes(tab as PageTab) ? (tab as PageTab) : "360",
+      ruc: ruc || undefined,
+    };
+  },
 });
 
 async function exportFichaPdf(ficha: FichaRuc) {
@@ -48,17 +62,31 @@ async function exportFichaPdf(ficha: FichaRuc) {
   doc.save(`CONTAM_Ficha_RUC_${ficha.ruc}.pdf`);
 }
 
+function defaultPeriodo(): string {
+  return new Date().toISOString().slice(0, 7).replace("-", "");
+}
+
 function FichaRucPage() {
-  const { contribuyentes, getFicha, saveFicha } = useContribuyentes();
-  const [selectedRuc, setSelectedRuc] = useState<string>("");
+  const { tab: searchTab, ruc: searchRuc } = Route.useSearch();
+  const { contribuyentes, getFicha, saveFicha, refresh } = useContribuyentes();
+  const [pageTab, setPageTab] = useState<PageTab>(searchTab);
+  const [selectedRuc, setSelectedRuc] = useState<string>(searchRuc ?? "");
   const [draft, setDraft] = useState<FichaRuc | null>(null);
   const [saving, setSaving] = useState(false);
+  const periodo = defaultPeriodo();
 
   const options = useMemo(
-    () =>
-      [...contribuyentes].sort((a, b) => a.razonSocial.localeCompare(b.razonSocial)),
+    () => [...contribuyentes].sort((a, b) => a.razonSocial.localeCompare(b.razonSocial)),
     [contribuyentes],
   );
+
+  useEffect(() => {
+    if (searchRuc) setSelectedRuc(searchRuc);
+  }, [searchRuc]);
+
+  useEffect(() => {
+    setPageTab(searchTab);
+  }, [searchTab]);
 
   useEffect(() => {
     if (!selectedRuc && options.length > 0) {
@@ -90,6 +118,7 @@ function FichaRucPage() {
     setSaving(true);
     try {
       await saveFicha(draft);
+      await refresh();
       toast.success(`Ficha RUC guardada (${getDataSourceLabel()})`);
     } catch (e) {
       toast.error(formatRequestError(e, "No se pudo guardar la ficha RUC"));
@@ -99,76 +128,84 @@ function FichaRucPage() {
   };
 
   return (
-    <div className="p-6 max-w-[1200px] mx-auto">
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div className="p-6 max-w-[1400px] mx-auto space-y-4">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold flex items-center gap-2">
             <FileText className="size-8 text-primary" />
-            Ficha RUC
+            Ficha RUC Premium
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Visualizador y editor indexado por RUC · Persistencia en tabla{" "}
-            <code className="text-xs">fichas_ruc</code>
+            Expediente 360° · Consulta SUNAT · Enriquecimiento SIRE
           </p>
           <Badge variant="outline" className="mt-2 border-blue-500/50">
-            Sincronizado con Supabase
+            {getDataSourceLabel()}
           </Badge>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {draft && (
-            <ExportButtons
-              compact
-              onExportPdf={async () => exportFichaPdf(draft)}
-            />
-          )}
-          <Button
-            size="lg"
-            className="bg-blue-700 hover:bg-blue-800"
-            disabled={!draft || saving}
-            onClick={() => void handleSave()}
-          >
-            {saving ? (
-              <Loader2 className="size-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="size-4 mr-2" />
-            )}
-            Guardar ficha
-          </Button>
-        </div>
+        {pageTab === "editor" && draft ? (
+          <div className="flex flex-wrap gap-2">
+            <ExportButtons compact onExportPdf={async () => exportFichaPdf(draft)} />
+            <Button size="lg" className="bg-blue-700 hover:bg-blue-800" disabled={saving} onClick={() => void handleSave()}>
+              {saving ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Save className="size-4 mr-2" />}
+              Guardar ficha
+            </Button>
+          </div>
+        ) : null}
       </header>
 
-      <div className="rounded-xl border bg-card p-4 mb-6 shadow-sm">
-        <Label className="text-sm font-medium">Seleccionar contribuyente (RUC)</Label>
-        <Select
-          value={selectedRuc || undefined}
-          onValueChange={setSelectedRuc}
-          disabled={options.length === 0}
-        >
-          <SelectTrigger className="mt-2 max-w-xl">
-            <SelectValue placeholder="Seleccione un RUC registrado…" />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((c) => (
-              <SelectItem key={c.ruc} value={c.ruc}>
-                {c.ruc} — {c.razonSocial}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {options.length === 0 && (
-          <p className="text-sm text-amber-700 mt-2">
-            Registre primero un contribuyente en el módulo Contribuyentes.
-          </p>
-        )}
-      </div>
+      <Tabs value={pageTab} onValueChange={(v) => setPageTab(v as PageTab)}>
+        <TabsList>
+          <TabsTrigger value="360" className="gap-1">
+            <LayoutDashboard className="size-4" /> Vista 360°
+          </TabsTrigger>
+          <TabsTrigger value="editor" className="gap-1">
+            <FileText className="size-4" /> Editor
+          </TabsTrigger>
+          <TabsTrigger value="buscar" className="gap-1">
+            <Search className="size-4" /> Buscar / Comparar
+          </TabsTrigger>
+        </TabsList>
 
-      {draft ? (
-        <FichaRucForm ficha={draft} onChange={setDraft} />
-      ) : (
-        <p className="text-center text-muted-foreground py-12">
-          Seleccione un RUC para cargar la ficha.
-        </p>
-      )}
+        <div className="rounded-xl border bg-card p-4 mt-4 shadow-sm">
+          <Label className="text-sm font-medium">Contribuyente (RUC)</Label>
+          <Select value={selectedRuc || undefined} onValueChange={setSelectedRuc} disabled={options.length === 0}>
+            <SelectTrigger className="mt-2 max-w-xl">
+              <SelectValue placeholder="Seleccione un RUC…" />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((c) => (
+                <SelectItem key={c.ruc} value={c.ruc}>
+                  {c.ruc} — {c.razonSocial}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <TabsContent value="360" className="mt-4">
+          {selectedRuc ? (
+            <Contribuyente360ViewPremium
+              ruc={selectedRuc}
+              periodo={periodo}
+              onEdit={() => setPageTab("editor")}
+            />
+          ) : (
+            <p className="text-center text-muted-foreground py-12">Seleccione un RUC para ver el expediente 360°.</p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="editor" className="mt-4">
+          {draft ? (
+            <FichaRucForm ficha={draft} onChange={setDraft} />
+          ) : (
+            <p className="text-center text-muted-foreground py-12">Seleccione un RUC para editar la ficha.</p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="buscar" className="mt-4">
+          <RucSearchComparePremium initialRuc={selectedRuc} onSelectRuc={setSelectedRuc} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

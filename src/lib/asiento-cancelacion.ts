@@ -1,8 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CUENTAS_DEFAULT } from "@/lib/asientos-generator";
 import { lineasToAsientosPlanos, tipoAsientoCancelacion } from "@/lib/asientos-contables-utils";
+import { useNewSireStructure } from "@/lib/feature-flags";
+import { fetchRegistroSireById, updateRegistroSireCabecera } from "@/lib/sire-registros-service";
 import { normalizeRegistroSire } from "@/lib/sire-data";
 import { resolverMontosSunat } from "@/lib/sire-montos";
+import type { RpcResult } from "@/types/database";
 import type { LineaAsientoInput } from "@/lib/sire-types";
 
 export type CancelacionResult = {
@@ -13,7 +16,33 @@ export type CancelacionResult = {
 
 export async function generarCancelacionCaja(params: {
   registroSireId: string;
+  cuentaCaja?: string;
+  cuentaCxc?: string;
+  cuentaCxp?: string;
+  usuarioId?: string;
 }): Promise<CancelacionResult> {
+  if (useNewSireStructure()) {
+    const { data, error } = await supabase.rpc("rpc_liquidacion_caja_mejorada", {
+      p_registro_sire_id: params.registroSireId,
+      p_cuenta_caja: params.cuentaCaja ?? null,
+      p_cuenta_cxc: params.cuentaCxc ?? null,
+      p_cuenta_cxp: params.cuentaCxp ?? null,
+      p_usuario_id: params.usuarioId ?? null,
+    });
+
+    if (!error && data) {
+      const result = data as RpcResult;
+      if (result.success === false) {
+        throw new Error(result.error ?? "Error en liquidación de caja");
+      }
+      return {
+        asientoId: String(result.asiento_id),
+        movimientoCajaId: String(result.movimiento_caja_id),
+        duplicado: result.duplicado ?? false,
+      };
+    }
+  }
+
   const { data, error } = await supabase.rpc("rpc_liquidacion_caja", {
     p_registro_sire_id: params.registroSireId,
   });
@@ -35,18 +64,22 @@ export async function generarCancelacionCaja(params: {
   };
 }
 
+export async function cancelarLiquidacion(registroSireId: string): Promise<void> {
+  const { data, error } = await supabase.rpc("rpc_cancelar_liquidacion", {
+    p_registro_sire_id: registroSireId,
+  });
+  if (error) throw error;
+  const result = data as RpcResult;
+  if (result.success === false) {
+    throw new Error(result.error ?? "No se pudo cancelar la liquidación");
+  }
+}
+
 async function generarCancelacionCajaLegacy(params: {
   registroSireId: string;
 }): Promise<CancelacionResult> {
-  const { data: reg, error: regErr } = await supabase
-    .from("registros_sire")
-    .select("*")
-    .eq("id", params.registroSireId)
-    .single();
+  const row = await fetchRegistroSireById(params.registroSireId);
 
-  if (regErr) throw regErr;
-
-  const row = reg as Record<string, unknown>;
   if (row.cancelacion_asiento_id && row.cancelacion_mov_caja_id) {
     return {
       asientoId: String(row.cancelacion_asiento_id),
@@ -100,6 +133,7 @@ async function generarCancelacionCajaLegacy(params: {
     .from("movimientos_caja")
     .insert({
       ruc: registro.ruc,
+      ruc_contribuyente: registro.ruc,
       periodo: registro.periodo,
       fecha: registro.fecha_emision,
       fecha_operacion: registro.fecha_emision,
@@ -107,7 +141,9 @@ async function generarCancelacionCajaLegacy(params: {
       cuenta_contable: cuentaCaja,
       debe: movDebe,
       haber: movHaber,
-      origen: "SIRE",
+      origen: "sire",
+      origen_documento: "sire",
+      tipo_movimiento: tipo === "VENTA" ? "ingreso" : "egreso",
       registro_sire_id: registro.id,
       asiento_id: asientoId,
     })
@@ -120,7 +156,7 @@ async function generarCancelacionCajaLegacy(params: {
         .from("movimientos_caja")
         .select("id")
         .eq("registro_sire_id", registro.id)
-        .eq("origen", "SIRE")
+        .eq("origen", "sire")
         .maybeSingle();
       if (selErr) throw selErr;
       if (!existing) throw movErr;
@@ -132,16 +168,12 @@ async function generarCancelacionCajaLegacy(params: {
     movimientoId = mov.id;
   }
 
-  const patch: Record<string, unknown> = {
+  await updateRegistroSireCabecera(registro.id, {
     cancelacion_asiento_id: asientoId,
     cancelacion_mov_caja_id: movimientoId,
     cancelacion_generada_at: new Date().toISOString(),
-  };
-  if (tipo === "VENTA") patch.estado_cobro = "cobrado";
-  else patch.estado_pago = "pagado";
-
-  const { error: updErr } = await supabase.from("registros_sire").update(patch).eq("id", registro.id);
-  if (updErr) throw updErr;
+    ...(tipo === "VENTA" ? { estado_cobro: "cobrado" } : { estado_pago: "pagado" }),
+  });
 
   return { asientoId, movimientoCajaId: movimientoId };
 }

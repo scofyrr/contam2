@@ -1,3 +1,4 @@
+import { getSireReadSource } from "@/lib/feature-flags";
 import { supabase } from "@/integrations/supabase/client";
 import { ASIENTOS_CONTABLES_SELECT } from "@/lib/asientos-contables-utils";
 import { resolverMontosSunat } from "@/lib/sire-montos";
@@ -45,7 +46,7 @@ export async function fetchCancelaciones(params: {
   if (!ruc) return [];
 
   let q = supabase
-    .from("registros_sire")
+    .from(getSireReadSource())
     .select(
       "id, tipo, ruc, razon_social, periodo, fecha_emision, importe_total, estado_cobro, estado_pago, cancelacion_asiento_id, cancelacion_mov_caja_id, cancelacion_generada_at",
     )

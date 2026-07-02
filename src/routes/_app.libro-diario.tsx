@@ -9,21 +9,29 @@ import { ProvisionesSirePanel } from "@/components/libro-diario/provisiones-sire
 import { LibroDiarioGeneralPanel } from "@/components/libro-diario/libro-diario-general-panel";
 import { AsientoManualForm } from "@/components/libro-diario/asiento-manual-form";
 import { CxcCxpBandeja } from "@/components/libro-diario/cxc-cxp-bandeja";
+import { LibroDiarioPremium } from "@/modules/contabilidad/diario/components/libro-diario-premium";
 import {
   EmpresaPeriodoFilters,
   RequireRucEmptyState,
 } from "@/components/shared/empresa-periodo-filters";
 import { ExportButtons } from "@/components/export-buttons";
+import { NuevaTareaButton } from "@/modules/tareas/components/NuevaTareaButton";
 import { exportLibroExcel, exportLibroPdf } from "@/lib/export-service";
 import { fetchLibroDiario } from "@/lib/sire-data";
 import type { ClienteOption } from "@/lib/cliente-search-service";
 
+const VALID_TABS = ["premium", "provisiones", "general", "cxp"] as const;
+
 export const Route = createFileRoute("/_app/libro-diario")({
   component: LibroDiarioPage,
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab:
-      search.tab === "general" || search.tab === "cxp" ? (search.tab as string) : "provisiones",
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const tab = search.tab as string;
+    return {
+      tab: VALID_TABS.includes(tab as (typeof VALID_TABS)[number])
+        ? (tab as (typeof VALID_TABS)[number])
+        : "premium",
+    };
+  },
 });
 
 function defaultPeriodo(): string {
@@ -66,6 +74,12 @@ function LibroDiarioPage() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+          <NuevaTareaButton
+            moduloOrigen="asientos"
+            ruc={rucSelected || undefined}
+            entidad="Libro Diario"
+            tramite="Revisión de asientos contables"
+          />
           <Badge variant="outline" className="self-start sm:self-auto">
             RUC obligatorio
           </Badge>
@@ -89,10 +103,24 @@ function LibroDiarioPage() {
 
       <Tabs defaultValue={tab}>
         <TabsList className="flex flex-wrap h-auto gap-1">
+          <TabsTrigger value="premium">★ Premium</TabsTrigger>
           <TabsTrigger value="provisiones">A · Provisiones SIRE</TabsTrigger>
           <TabsTrigger value="general">B · Libro Diario General</TabsTrigger>
           <TabsTrigger value="cxp">C · CxP / CxC</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="premium" className="mt-4">
+          {!rucSelected ? (
+            <RequireRucEmptyState context="Selecciona el contribuyente para el libro diario premium." />
+          ) : (
+            <LibroDiarioPremium
+              ruc={rucSelected}
+              periodo={periodo.trim()}
+              rows={rows}
+              loading={lineasQuery.isLoading}
+            />
+          )}
+        </TabsContent>
 
         <TabsContent value="provisiones" className="mt-4">
           <ProvisionesSirePanel ruc={rucSelected} periodo={periodo} />

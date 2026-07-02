@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getSireReadSource } from "@/lib/feature-flags";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { computeCharts } from "@/lib/stats-service";
 import { normalizeRegistroSire } from "@/lib/sire-data";
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/api/stats/charts")({
         const url = new URL(request.url);
         const periodo = url.searchParams.get("periodo");
 
-        let q = supabaseAdmin.from("registros_sire").select("*");
+        let q = supabaseAdmin.from(getSireReadSource()).select("*");
         if (periodo) q = q.eq("periodo", periodo);
 
         const { data, error } = await q;

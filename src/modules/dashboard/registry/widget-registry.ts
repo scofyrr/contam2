@@ -1,0 +1,111 @@
+import { lazy } from "react";
+import type { WidgetRegistry, WidgetSize } from "@/modules/dashboard/types/dashboard-configurable-types";
+
+export const WIDGET_REGISTRY: WidgetRegistry = {
+  kpis: {
+    component: lazy(() => import("@/modules/dashboard/widgets/kpi-cards-widget")),
+    nombre: "KPIs Personales",
+    descripcion: "Tarjetas con métricas clave: clientes, tareas, vencidas, efectividad",
+    icono: "BarChart3",
+    color: "#00D4FF",
+    tamano: "full",
+    permisosRequeridos: ["dashboard.leer"],
+  },
+  tareas_urgentes: {
+    component: lazy(() => import("@/modules/dashboard/widgets/tareas-urgentes-widget")),
+    nombre: "Tareas Urgentes",
+    descripcion: "Lista priorizada de tareas que requieren acción inmediata",
+    icono: "AlertTriangle",
+    color: "#FF0000",
+    tamano: "large",
+    permisosRequeridos: ["tareas.leer"],
+  },
+  clientes: {
+    component: lazy(() => import("@/modules/dashboard/widgets/clientes-grafico-widget")),
+    nombre: "Mis Clientes",
+    descripcion: "Gráfico de barras con actividad por cliente asignado",
+    icono: "Users",
+    color: "#9B87F5",
+    tamano: "medium",
+    permisosRequeridos: ["contribuyentes.leer"],
+    scopeRuc: true,
+  },
+  carga_trabajo: {
+    component: lazy(() => import("@/modules/dashboard/widgets/carga-trabajo-widget")),
+    nombre: "Carga de Trabajo",
+    descripcion: "Heatmap semanal y tendencia de tareas",
+    icono: "Calendar",
+    color: "#F0A500",
+    tamano: "medium",
+    permisosRequeridos: ["tareas.leer"],
+  },
+  sugerencias: {
+    component: lazy(() => import("@/modules/dashboard/widgets/sugerencias-widget")),
+    nombre: "Sugerencias Inteligentes",
+    descripcion: "Recomendaciones automáticas basadas en carga de trabajo",
+    icono: "Lightbulb",
+    color: "#C8A95A",
+    tamano: "large",
+    permisosRequeridos: ["dashboard.leer"],
+  },
+  logros: {
+    component: lazy(() => import("@/modules/dashboard/widgets/logros-widget")),
+    nombre: "Logros y Rachas",
+    descripcion: "Gamificación: insignias y rachas de efectividad",
+    icono: "Trophy",
+    color: "#C8A95A",
+    tamano: "small",
+    permisosRequeridos: ["dashboard.leer"],
+  },
+  actividad_reciente: {
+    component: lazy(() => import("@/modules/dashboard/widgets/actividad-reciente-widget")),
+    nombre: "Actividad Reciente",
+    descripcion: "Timeline con últimas acciones del contador",
+    icono: "Clock",
+    color: "#00C897",
+    tamano: "medium",
+    permisosRequeridos: ["dashboard.leer"],
+  },
+  meta_mensual: {
+    component: lazy(() => import("@/modules/dashboard/widgets/meta-mensual-widget")),
+    nombre: "Meta Mensual",
+    descripcion: "Progreso hacia la meta de facturación mensual del estudio",
+    icono: "Target",
+    color: "#C8A95A",
+    tamano: "medium",
+    permisosRequeridos: ["dashboard.leer"],
+  },
+  proximos_vencimientos: {
+    component: lazy(() => import("@/modules/dashboard/widgets/proximos-vencimientos-widget")),
+    nombre: "Próximos Vencimientos",
+    descripcion: "Timeline de obligaciones por vencer",
+    icono: "CalendarClock",
+    color: "#F0A500",
+    tamano: "medium",
+    permisosRequeridos: ["tareas.leer"],
+    scopeRuc: true,
+  },
+  enlaces_rapidos: {
+    component: lazy(() => import("@/modules/dashboard/widgets/enlaces-rapidos-widget")),
+    nombre: "Enlaces Rápidos",
+    descripcion: "Accesos directos configurables por el administrador",
+    icono: "Link",
+    color: "#00D4FF",
+    tamano: "small",
+    permisosRequeridos: ["dashboard.leer"],
+  },
+};
+
+export const WIDGET_SIZE_CLASSES: Record<WidgetSize, string> = {
+  small: "col-span-12 sm:col-span-6 lg:col-span-3",
+  medium: "col-span-12 sm:col-span-6 lg:col-span-4",
+  large: "col-span-12 lg:col-span-6",
+  full: "col-span-12",
+};
+
+export const WIDGET_SKELETON_HEIGHT: Record<WidgetSize, string> = {
+  small: "h-36",
+  medium: "h-52",
+  large: "h-64",
+  full: "h-28",
+};

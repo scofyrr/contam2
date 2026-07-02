@@ -6,8 +6,8 @@ import {
   logSupabaseAsientosInsertError,
   tipoAsientoProvision,
 } from "@/lib/asientos-contables-utils";
+import { getSireCabeceraTable, getSireReadSource } from "@/lib/feature-flags";
 import { normalizeRegistroSire } from "@/lib/sire-data";
-import type { RegistroSire } from "@/lib/sire-types";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -24,8 +24,11 @@ export async function validarRegistroSire(
   supabase: AdminClient,
   registroId: string,
 ): Promise<ValidateResult> {
+  const source = getSireReadSource();
+  const cabecera = getSireCabeceraTable();
+
   const { data: registro, error: fetchError } = await supabase
-    .from("registros_sire")
+    .from(source)
     .select("*")
     .eq("id", registroId)
     .maybeSingle();
@@ -44,10 +47,7 @@ export async function validarRegistroSire(
 
   if (existentes?.length) {
     if (r.estado_validacion !== "validado") {
-      await supabase
-        .from("registros_sire")
-        .update({ estado_validacion: "validado" })
-        .eq("id", registroId);
+      await supabase.from(cabecera).update({ estado_validacion: "validado" }).eq("id", registroId);
     }
 
     return {
@@ -79,7 +79,7 @@ export async function validarRegistroSire(
   const ids = (insertados ?? []).map((row) => row.id);
 
   const { error: updateError } = await supabase
-    .from("registros_sire")
+    .from(cabecera)
     .update({ estado_validacion: "validado" })
     .eq("id", registroId);
 

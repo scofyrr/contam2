@@ -12,7 +12,7 @@ export type ConfigContable = {
 /** Valores por defecto cuando la tabla está vacía o no disponible aún */
 export const DEFAULT_CONFIG_CONTABLE: ConfigContable = {
   id: 1,
-  cuenta_caja_default: "104101",
+  cuenta_caja_default: "101101",
   cuenta_cxc_default: "121201",
   cuenta_cxp_default: "421201",
   created_at: new Date(0).toISOString(),

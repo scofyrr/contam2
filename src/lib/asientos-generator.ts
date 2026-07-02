@@ -3,7 +3,7 @@ import { resolverMontosSunat } from "@/lib/sire-montos";
 
 /** Cuentas PCGE por defecto (subcuentas frecuentes en Perú) */
 export const CUENTAS_DEFAULT: CuentasAsientoDefaults = {
-  caja: "101",
+  caja: "101101",
   cliente: "121201",
   proveedor: "421201",
   igv: "40111",

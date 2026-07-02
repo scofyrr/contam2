@@ -1,7 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ASIENTOS_CONTABLES_SELECT } from "@/lib/asientos-contables-utils";
+import {
+  fetchRegistrosSireRows,
+  mergeRegistroRows,
+} from "@/lib/sire-registros-service";
 import type { LibroDiarioLinea, RegistroSire } from "@/lib/sire-types";
 import { mapRegistroFromDb, resolverMontosSunat } from "@/lib/sire-montos";
+import { getSireEmbedRelation } from "@/lib/feature-flags";
 import { throwIfSupabaseError } from "@/lib/supabase-error";
 
 export type SireDataFilters = {
@@ -39,20 +44,18 @@ function applyRucFilter<T extends { eq: (col: string, val: string) => T }>(
 export async function fetchRegistrosSire(
   filters?: SireDataFilters | string,
 ): Promise<RegistroSire[]> {
-  let q = supabase
-    .from("registros_sire")
-    .select("*")
-    .order("fecha_emision", { ascending: false })
-    .limit(5000);
+  const f =
+    typeof filters === "string"
+      ? { periodo: filters }
+      : filters;
 
-  q = applyPeriodFilters(q, filters);
+  const rows = await fetchRegistrosSireRows({
+    periodo: f?.periodo,
+    ruc: f?.ruc,
+    limit: 5000,
+  });
 
-  q = applyRucFilter(q, filters);
-
-  const { data, error } = await q;
-  throwIfSupabaseError(error, "Error al cargar registros SIRE");
-
-  return (data ?? []).map((row) => normalizeRegistroSire(row as Record<string, unknown>));
+  return rows.map((row) => normalizeRegistroSire(row));
 }
 
 /** Libro diario: vista `v_libro_diario` o tabla plana `asientos_contables`. */
@@ -77,17 +80,19 @@ export async function fetchLibroDiario(
 async function fetchLibroDiarioFromAsientos(
   filters?: SireDataFilters | string,
 ): Promise<LibroDiarioLinea[]> {
+  const sireEmbed = getSireEmbedRelation();
   let q = supabase
     .from("asientos_contables")
     .select(
       `
       ${ASIENTOS_CONTABLES_SELECT},
-      registros_sire (
+      ${sireEmbed} (
         ruc,
         razon_social,
         cod_tipo_cdp,
         serie_cdp,
-        nro_cdp_inicial
+        nro_cdp_inicial,
+        tipo
       )
     `,
     )
@@ -106,7 +111,7 @@ async function fetchLibroDiarioFromAsientos(
 
   for (const row of data ?? []) {
     const flat = row as Record<string, unknown>;
-    const rs = flat.registros_sire as Record<string, unknown> | null;
+    const rs = flat[sireEmbed] as Record<string, unknown> | null;
     lineas.push({
       id: String(flat.id ?? ""),
       sire_registro_id:
@@ -148,7 +153,7 @@ async function fetchLibroDiarioFromAsientos(
 }
 
 export function normalizeRegistroSire(row: Record<string, unknown>): RegistroSire {
-  const mapped = mapRegistroFromDb(row);
+  const mapped = mergeRegistroRows(row);
   const montos = resolverMontosSunat(mapped);
 
   return {

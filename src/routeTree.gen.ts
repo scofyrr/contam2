@@ -9,22 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppTareasRouteImport } from './routes/_app.tareas'
+import { Route as AppSireSyncRouteImport } from './routes/_app.sire-sync'
 import { Route as AppSireRegistrosRouteImport } from './routes/_app.sire-registros'
 import { Route as AppPcgeRouteImport } from './routes/_app.pcge'
+import { Route as AppNotificacionesRouteImport } from './routes/_app.notificaciones'
 import { Route as AppMiCuentaRouteImport } from './routes/_app.mi-cuenta'
 import { Route as AppLibroDiarioRouteImport } from './routes/_app.libro-diario'
 import { Route as AppLibroCajaRouteImport } from './routes/_app.libro-caja'
 import { Route as AppFichaRucRouteImport } from './routes/_app.ficha-ruc'
 import { Route as AppDashboardEstadisticasRouteImport } from './routes/_app.dashboard-estadisticas'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppContribuyentesRouteImport } from './routes/_app.contribuyentes'
 import { Route as AppCancelacionesRouteImport } from './routes/_app.cancelaciones'
 import { Route as ApiStatsKpisRouteImport } from './routes/api/stats/kpis'
 import { Route as ApiStatsChartsRouteImport } from './routes/api/stats/charts'
 import { Route as ApiSireValidateRouteImport } from './routes/api/sire/validate'
+import { Route as AppTrazabilidadSireRegistroIdRouteImport } from './routes/_app.trazabilidad.$sireRegistroId'
+import { Route as AppAdminUsuariosRouteImport } from './routes/_app.admin.usuarios'
+import { Route as AppAdminPerformanceRouteImport } from './routes/_app.admin.performance'
+import { Route as AppAdminDashboardEstudioRouteImport } from './routes/_app.admin.dashboard-estudio'
+import { Route as AppAdminConfiguracionRouteImport } from './routes/_app.admin.configuracion'
+import { Route as AppAdminAuditoriaRouteImport } from './routes/_app.admin.auditoria'
 
+const UnauthorizedRoute = UnauthorizedRouteImport.update({
+  id: '/unauthorized',
+  path: '/unauthorized',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -39,6 +55,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppTareasRoute = AppTareasRouteImport.update({
+  id: '/tareas',
+  path: '/tareas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSireSyncRoute = AppSireSyncRouteImport.update({
+  id: '/sire-sync',
+  path: '/sire-sync',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSireRegistrosRoute = AppSireRegistrosRouteImport.update({
   id: '/sire-registros',
   path: '/sire-registros',
@@ -47,6 +73,11 @@ const AppSireRegistrosRoute = AppSireRegistrosRouteImport.update({
 const AppPcgeRoute = AppPcgeRouteImport.update({
   id: '/pcge',
   path: '/pcge',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificacionesRoute = AppNotificacionesRouteImport.update({
+  id: '/notificaciones',
+  path: '/notificaciones',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMiCuentaRoute = AppMiCuentaRouteImport.update({
@@ -75,6 +106,11 @@ const AppDashboardEstadisticasRoute =
     path: '/dashboard-estadisticas',
     getParentRoute: () => AppRoute,
   } as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppContribuyentesRoute = AppContribuyentesRouteImport.update({
   id: '/contribuyentes',
   path: '/contribuyentes',
@@ -100,19 +136,62 @@ const ApiSireValidateRoute = ApiSireValidateRouteImport.update({
   path: '/api/sire/validate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppTrazabilidadSireRegistroIdRoute =
+  AppTrazabilidadSireRegistroIdRouteImport.update({
+    id: '/trazabilidad/$sireRegistroId',
+    path: '/trazabilidad/$sireRegistroId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppAdminUsuariosRoute = AppAdminUsuariosRouteImport.update({
+  id: '/admin/usuarios',
+  path: '/admin/usuarios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminPerformanceRoute = AppAdminPerformanceRouteImport.update({
+  id: '/admin/performance',
+  path: '/admin/performance',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminDashboardEstudioRoute =
+  AppAdminDashboardEstudioRouteImport.update({
+    id: '/admin/dashboard-estudio',
+    path: '/admin/dashboard-estudio',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppAdminConfiguracionRoute = AppAdminConfiguracionRouteImport.update({
+  id: '/admin/configuracion',
+  path: '/admin/configuracion',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminAuditoriaRoute = AppAdminAuditoriaRouteImport.update({
+  id: '/admin/auditoria',
+  path: '/admin/auditoria',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/unauthorized': typeof UnauthorizedRoute
   '/cancelaciones': typeof AppCancelacionesRoute
   '/contribuyentes': typeof AppContribuyentesRoute
+  '/dashboard': typeof AppDashboardRoute
   '/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
   '/ficha-ruc': typeof AppFichaRucRoute
   '/libro-caja': typeof AppLibroCajaRoute
   '/libro-diario': typeof AppLibroDiarioRoute
   '/mi-cuenta': typeof AppMiCuentaRoute
+  '/notificaciones': typeof AppNotificacionesRoute
   '/pcge': typeof AppPcgeRoute
   '/sire-registros': typeof AppSireRegistrosRoute
+  '/sire-sync': typeof AppSireSyncRoute
+  '/tareas': typeof AppTareasRoute
+  '/admin/auditoria': typeof AppAdminAuditoriaRoute
+  '/admin/configuracion': typeof AppAdminConfiguracionRoute
+  '/admin/dashboard-estudio': typeof AppAdminDashboardEstudioRoute
+  '/admin/performance': typeof AppAdminPerformanceRoute
+  '/admin/usuarios': typeof AppAdminUsuariosRoute
+  '/trazabilidad/$sireRegistroId': typeof AppTrazabilidadSireRegistroIdRoute
   '/api/sire/validate': typeof ApiSireValidateRoute
   '/api/stats/charts': typeof ApiStatsChartsRoute
   '/api/stats/kpis': typeof ApiStatsKpisRoute
@@ -120,15 +199,26 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/unauthorized': typeof UnauthorizedRoute
   '/cancelaciones': typeof AppCancelacionesRoute
   '/contribuyentes': typeof AppContribuyentesRoute
+  '/dashboard': typeof AppDashboardRoute
   '/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
   '/ficha-ruc': typeof AppFichaRucRoute
   '/libro-caja': typeof AppLibroCajaRoute
   '/libro-diario': typeof AppLibroDiarioRoute
   '/mi-cuenta': typeof AppMiCuentaRoute
+  '/notificaciones': typeof AppNotificacionesRoute
   '/pcge': typeof AppPcgeRoute
   '/sire-registros': typeof AppSireRegistrosRoute
+  '/sire-sync': typeof AppSireSyncRoute
+  '/tareas': typeof AppTareasRoute
+  '/admin/auditoria': typeof AppAdminAuditoriaRoute
+  '/admin/configuracion': typeof AppAdminConfiguracionRoute
+  '/admin/dashboard-estudio': typeof AppAdminDashboardEstudioRoute
+  '/admin/performance': typeof AppAdminPerformanceRoute
+  '/admin/usuarios': typeof AppAdminUsuariosRoute
+  '/trazabilidad/$sireRegistroId': typeof AppTrazabilidadSireRegistroIdRoute
   '/api/sire/validate': typeof ApiSireValidateRoute
   '/api/stats/charts': typeof ApiStatsChartsRoute
   '/api/stats/kpis': typeof ApiStatsKpisRoute
@@ -138,15 +228,26 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/unauthorized': typeof UnauthorizedRoute
   '/_app/cancelaciones': typeof AppCancelacionesRoute
   '/_app/contribuyentes': typeof AppContribuyentesRoute
+  '/_app/dashboard': typeof AppDashboardRoute
   '/_app/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
   '/_app/ficha-ruc': typeof AppFichaRucRoute
   '/_app/libro-caja': typeof AppLibroCajaRoute
   '/_app/libro-diario': typeof AppLibroDiarioRoute
   '/_app/mi-cuenta': typeof AppMiCuentaRoute
+  '/_app/notificaciones': typeof AppNotificacionesRoute
   '/_app/pcge': typeof AppPcgeRoute
   '/_app/sire-registros': typeof AppSireRegistrosRoute
+  '/_app/sire-sync': typeof AppSireSyncRoute
+  '/_app/tareas': typeof AppTareasRoute
+  '/_app/admin/auditoria': typeof AppAdminAuditoriaRoute
+  '/_app/admin/configuracion': typeof AppAdminConfiguracionRoute
+  '/_app/admin/dashboard-estudio': typeof AppAdminDashboardEstudioRoute
+  '/_app/admin/performance': typeof AppAdminPerformanceRoute
+  '/_app/admin/usuarios': typeof AppAdminUsuariosRoute
+  '/_app/trazabilidad/$sireRegistroId': typeof AppTrazabilidadSireRegistroIdRoute
   '/api/sire/validate': typeof ApiSireValidateRoute
   '/api/stats/charts': typeof ApiStatsChartsRoute
   '/api/stats/kpis': typeof ApiStatsKpisRoute
@@ -156,15 +257,26 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/unauthorized'
     | '/cancelaciones'
     | '/contribuyentes'
+    | '/dashboard'
     | '/dashboard-estadisticas'
     | '/ficha-ruc'
     | '/libro-caja'
     | '/libro-diario'
     | '/mi-cuenta'
+    | '/notificaciones'
     | '/pcge'
     | '/sire-registros'
+    | '/sire-sync'
+    | '/tareas'
+    | '/admin/auditoria'
+    | '/admin/configuracion'
+    | '/admin/dashboard-estudio'
+    | '/admin/performance'
+    | '/admin/usuarios'
+    | '/trazabilidad/$sireRegistroId'
     | '/api/sire/validate'
     | '/api/stats/charts'
     | '/api/stats/kpis'
@@ -172,15 +284,26 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/unauthorized'
     | '/cancelaciones'
     | '/contribuyentes'
+    | '/dashboard'
     | '/dashboard-estadisticas'
     | '/ficha-ruc'
     | '/libro-caja'
     | '/libro-diario'
     | '/mi-cuenta'
+    | '/notificaciones'
     | '/pcge'
     | '/sire-registros'
+    | '/sire-sync'
+    | '/tareas'
+    | '/admin/auditoria'
+    | '/admin/configuracion'
+    | '/admin/dashboard-estudio'
+    | '/admin/performance'
+    | '/admin/usuarios'
+    | '/trazabilidad/$sireRegistroId'
     | '/api/sire/validate'
     | '/api/stats/charts'
     | '/api/stats/kpis'
@@ -189,15 +312,26 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
+    | '/unauthorized'
     | '/_app/cancelaciones'
     | '/_app/contribuyentes'
+    | '/_app/dashboard'
     | '/_app/dashboard-estadisticas'
     | '/_app/ficha-ruc'
     | '/_app/libro-caja'
     | '/_app/libro-diario'
     | '/_app/mi-cuenta'
+    | '/_app/notificaciones'
     | '/_app/pcge'
     | '/_app/sire-registros'
+    | '/_app/sire-sync'
+    | '/_app/tareas'
+    | '/_app/admin/auditoria'
+    | '/_app/admin/configuracion'
+    | '/_app/admin/dashboard-estudio'
+    | '/_app/admin/performance'
+    | '/_app/admin/usuarios'
+    | '/_app/trazabilidad/$sireRegistroId'
     | '/api/sire/validate'
     | '/api/stats/charts'
     | '/api/stats/kpis'
@@ -207,6 +341,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  UnauthorizedRoute: typeof UnauthorizedRoute
   ApiSireValidateRoute: typeof ApiSireValidateRoute
   ApiStatsChartsRoute: typeof ApiStatsChartsRoute
   ApiStatsKpisRoute: typeof ApiStatsKpisRoute
@@ -214,6 +349,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/unauthorized': {
+      id: '/unauthorized'
+      path: '/unauthorized'
+      fullPath: '/unauthorized'
+      preLoaderRoute: typeof UnauthorizedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -235,6 +377,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/tareas': {
+      id: '/_app/tareas'
+      path: '/tareas'
+      fullPath: '/tareas'
+      preLoaderRoute: typeof AppTareasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sire-sync': {
+      id: '/_app/sire-sync'
+      path: '/sire-sync'
+      fullPath: '/sire-sync'
+      preLoaderRoute: typeof AppSireSyncRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/sire-registros': {
       id: '/_app/sire-registros'
       path: '/sire-registros'
@@ -247,6 +403,13 @@ declare module '@tanstack/react-router' {
       path: '/pcge'
       fullPath: '/pcge'
       preLoaderRoute: typeof AppPcgeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notificaciones': {
+      id: '/_app/notificaciones'
+      path: '/notificaciones'
+      fullPath: '/notificaciones'
+      preLoaderRoute: typeof AppNotificacionesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/mi-cuenta': {
@@ -284,6 +447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardEstadisticasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/contribuyentes': {
       id: '/_app/contribuyentes'
       path: '/contribuyentes'
@@ -319,31 +489,93 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSireValidateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/trazabilidad/$sireRegistroId': {
+      id: '/_app/trazabilidad/$sireRegistroId'
+      path: '/trazabilidad/$sireRegistroId'
+      fullPath: '/trazabilidad/$sireRegistroId'
+      preLoaderRoute: typeof AppTrazabilidadSireRegistroIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/usuarios': {
+      id: '/_app/admin/usuarios'
+      path: '/admin/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AppAdminUsuariosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/performance': {
+      id: '/_app/admin/performance'
+      path: '/admin/performance'
+      fullPath: '/admin/performance'
+      preLoaderRoute: typeof AppAdminPerformanceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/dashboard-estudio': {
+      id: '/_app/admin/dashboard-estudio'
+      path: '/admin/dashboard-estudio'
+      fullPath: '/admin/dashboard-estudio'
+      preLoaderRoute: typeof AppAdminDashboardEstudioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/configuracion': {
+      id: '/_app/admin/configuracion'
+      path: '/admin/configuracion'
+      fullPath: '/admin/configuracion'
+      preLoaderRoute: typeof AppAdminConfiguracionRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/auditoria': {
+      id: '/_app/admin/auditoria'
+      path: '/admin/auditoria'
+      fullPath: '/admin/auditoria'
+      preLoaderRoute: typeof AppAdminAuditoriaRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppCancelacionesRoute: typeof AppCancelacionesRoute
   AppContribuyentesRoute: typeof AppContribuyentesRoute
+  AppDashboardRoute: typeof AppDashboardRoute
   AppDashboardEstadisticasRoute: typeof AppDashboardEstadisticasRoute
   AppFichaRucRoute: typeof AppFichaRucRoute
   AppLibroCajaRoute: typeof AppLibroCajaRoute
   AppLibroDiarioRoute: typeof AppLibroDiarioRoute
   AppMiCuentaRoute: typeof AppMiCuentaRoute
+  AppNotificacionesRoute: typeof AppNotificacionesRoute
   AppPcgeRoute: typeof AppPcgeRoute
   AppSireRegistrosRoute: typeof AppSireRegistrosRoute
+  AppSireSyncRoute: typeof AppSireSyncRoute
+  AppTareasRoute: typeof AppTareasRoute
+  AppAdminAuditoriaRoute: typeof AppAdminAuditoriaRoute
+  AppAdminConfiguracionRoute: typeof AppAdminConfiguracionRoute
+  AppAdminDashboardEstudioRoute: typeof AppAdminDashboardEstudioRoute
+  AppAdminPerformanceRoute: typeof AppAdminPerformanceRoute
+  AppAdminUsuariosRoute: typeof AppAdminUsuariosRoute
+  AppTrazabilidadSireRegistroIdRoute: typeof AppTrazabilidadSireRegistroIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppCancelacionesRoute: AppCancelacionesRoute,
   AppContribuyentesRoute: AppContribuyentesRoute,
+  AppDashboardRoute: AppDashboardRoute,
   AppDashboardEstadisticasRoute: AppDashboardEstadisticasRoute,
   AppFichaRucRoute: AppFichaRucRoute,
   AppLibroCajaRoute: AppLibroCajaRoute,
   AppLibroDiarioRoute: AppLibroDiarioRoute,
   AppMiCuentaRoute: AppMiCuentaRoute,
+  AppNotificacionesRoute: AppNotificacionesRoute,
   AppPcgeRoute: AppPcgeRoute,
   AppSireRegistrosRoute: AppSireRegistrosRoute,
+  AppSireSyncRoute: AppSireSyncRoute,
+  AppTareasRoute: AppTareasRoute,
+  AppAdminAuditoriaRoute: AppAdminAuditoriaRoute,
+  AppAdminConfiguracionRoute: AppAdminConfiguracionRoute,
+  AppAdminDashboardEstudioRoute: AppAdminDashboardEstudioRoute,
+  AppAdminPerformanceRoute: AppAdminPerformanceRoute,
+  AppAdminUsuariosRoute: AppAdminUsuariosRoute,
+  AppTrazabilidadSireRegistroIdRoute: AppTrazabilidadSireRegistroIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -352,6 +584,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  UnauthorizedRoute: UnauthorizedRoute,
   ApiSireValidateRoute: ApiSireValidateRoute,
   ApiStatsChartsRoute: ApiStatsChartsRoute,
   ApiStatsKpisRoute: ApiStatsKpisRoute,

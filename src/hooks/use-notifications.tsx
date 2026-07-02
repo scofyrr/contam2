@@ -1,7 +1,23 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { fetchTareasCriticasPendientes } from "@/modules/tareas/services/tareas-service";
+import {
+  notificationService,
+} from "@/modules/notificaciones/services/notification-service";
+import type { NotificacionCorreo, PreferenciasNotificacion } from "@/modules/notificaciones/types/notifications";
+import type { TareaPendiente } from "@/types/tareas";
+import { useSession } from "@/hooks/use-session";
 
 export const INSTITUTIONAL_EMAIL_KEY = "contam-institutional-email";
 
+/** @deprecated Usar NotificacionCorreo del servicio */
 export type EmailNotification = {
   id: string;
   from: string;
@@ -29,93 +45,42 @@ export type PendingTask = {
   critical: boolean;
 };
 
-const MOCK_EMAILS: EmailNotification[] = [
-  {
-    id: "em-1",
-    from: "sire@sunat.gob.pe",
-    subject: "Recordatorio: carga de RVIE periodo 202506",
-    preview: "Estimado contribuyente, recuerde completar la carga de registros de ventas antes del cierre del periodo tributario.",
-    date: "2026-06-27T09:15:00",
-    read: false,
-  },
-  {
-    id: "em-2",
-    from: "contabilidad@empresa.pe",
-    subject: "Comprobantes pendientes de clasificación PCGE",
-    preview: "Se detectaron 4 facturas sin cuenta contable asignada en el módulo de Libro Diario.",
-    date: "2026-06-26T14:30:00",
-    read: false,
-  },
-  {
-    id: "em-3",
-    from: "tesoreria@empresa.pe",
-    subject: "Conciliación bancaria junio 2026",
-    preview: "Favor de revisar los movimientos del BCP cuenta corriente con saldo diferencial de S/ 1,250.00.",
-    date: "2026-06-25T11:00:00",
-    read: true,
-  },
-];
+function mapTareaToPending(t: TareaPendiente): PendingTask {
+  const entidadLabel = t.razon_social
+    ? `${t.razon_social}${t.ruc ? ` (${t.ruc})` : ""}`
+    : t.entidad;
+  return {
+    id: t.id,
+    entidad: entidadLabel,
+    tramite: t.titulo ?? t.tramite,
+    fechaTramitar: t.fecha_tramitar ?? "",
+    problema: t.problema ?? t.descripcion ?? "",
+    plazoVencimiento: t.plazo_vencimiento ?? "",
+    critical: t.critica || t.vencida === true,
+  };
+}
 
-const MOCK_ALERTS: SystemAlert[] = [
-  {
-    id: "al-1",
-    title: "Asiento contable incompleto",
-    message: "El asiento AS-2026-0342 tiene líneas sin cuenta de contrapartida en la Clase 12 (Cuentas por cobrar).",
-    severity: "critical",
-    date: "2026-06-28T08:00:00",
-  },
-  {
-    id: "al-2",
-    title: "Revisión SIRE incompleta",
-    message: "El periodo 202506 de RVIE tiene 12 registros sin validar en el módulo Registros SIRE.",
-    severity: "critical",
-    date: "2026-06-27T16:45:00",
-  },
-  {
-    id: "al-3",
-    title: "Proceso contable pendiente",
-    message: "3 comprobantes de compra del RUC 20123456789 no tienen asiento generado en Libro Diario.",
-    severity: "warning",
-    date: "2026-06-27T10:20:00",
-  },
-  {
-    id: "al-4",
-    title: "Libro Caja desactualizado",
-    message: "Existen movimientos de caja del 25/06 sin conciliar con el Libro Diario.",
-    severity: "info",
-    date: "2026-06-26T09:00:00",
-  },
-];
+function notifToEmail(n: NotificacionCorreo): EmailNotification {
+  return {
+    id: n.id,
+    from: n.metadata.modulo ?? "CONTAM",
+    subject: n.titulo,
+    preview: n.mensaje,
+    date: n.fecha_creacion,
+    read: n.leida,
+  };
+}
 
-const MOCK_TASKS: PendingTask[] = [
-  {
-    id: "tk-1",
-    entidad: "EMPRESA DEMO SAC (20123456789)",
-    tramite: "Validación RVIE periodo 202506",
-    fechaTramitar: "2026-06-30",
-    problema: "12 registros de ventas sin código de operación SUNAT asignado.",
-    plazoVencimiento: "2026-07-05",
-    critical: true,
-  },
-  {
-    id: "tk-2",
-    entidad: "COMERCIAL LIMA EIRL (20987654321)",
-    tramite: "Cierre de asiento AS-2026-0342",
-    fechaTramitar: "2026-06-28",
-    problema: "Falta contrapartida en cuenta 1211 — Facturas por cobrar.",
-    plazoVencimiento: "2026-06-30",
-    critical: true,
-  },
-  {
-    id: "tk-3",
-    entidad: "SERVICIOS ANDINOS SAC (20555666777)",
-    tramite: "Registro de pagos a proveedores",
-    fechaTramitar: "2026-07-02",
-    problema: "3 facturas de compra sin pago registrado en Libro Caja.",
-    plazoVencimiento: "2026-07-10",
-    critical: false,
-  },
-];
+function notifToAlert(n: NotificacionCorreo): SystemAlert | null {
+  if (n.tipo !== "ALERTA_SISTEMA" && n.tipo !== "TAREA_VENCIDA") return null;
+  return {
+    id: n.id,
+    title: n.titulo,
+    message: n.mensaje,
+    severity: n.tipo === "TAREA_VENCIDA" ? "critical" : "warning",
+    date: n.fecha_creacion,
+  };
+}
 
 type NotificationsContextValue = {
   institutionalEmail: string;
@@ -123,8 +88,16 @@ type NotificationsContextValue = {
   emails: EmailNotification[];
   alerts: SystemAlert[];
   pendingTasks: PendingTask[];
+  notificaciones: NotificacionCorreo[];
+  noLeidas: number;
+  conectado: boolean;
+  preferencias: PreferenciasNotificacion | null;
   criticalAlertCount: number;
   markEmailRead: (id: string) => void;
+  marcarLeida: (id: string) => Promise<void>;
+  marcarTodasLeidas: () => Promise<void>;
+  actualizarPreferencias: (p: Partial<PreferenciasNotificacion>) => Promise<void>;
+  refrescar: () => Promise<void>;
 };
 
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
@@ -135,32 +108,96 @@ function readEmail(): string {
 }
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
+  const { session } = useSession();
+  const userId = session?.user?.id ?? null;
+
   const [institutionalEmail, setEmailState] = useState(readEmail);
-  const [emails, setEmails] = useState<EmailNotification[]>([]);
-  const [alerts] = useState<SystemAlert[]>(MOCK_ALERTS);
-  const [pendingTasks] = useState<PendingTask[]>(MOCK_TASKS);
+  const [notificaciones, setNotificaciones] = useState<NotificacionCorreo[]>([]);
+  const [preferencias, setPreferencias] = useState<PreferenciasNotificacion | null>(null);
+  const [conectado, setConectado] = useState(true);
+  const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
+
+  const load = useCallback(async () => {
+    if (!userId) return;
+    try {
+      await notificationService.inicializar(userId);
+      await notificationService.sincronizarDesdeTareas().catch(() => null);
+      const [notifs, prefs] = await Promise.all([
+        notificationService.obtenerNotificaciones(50),
+        notificationService.obtenerPreferencias(),
+      ]);
+      setNotificaciones(notifs);
+      setPreferencias(prefs);
+      setConectado(true);
+    } catch {
+      setConectado(false);
+    }
+  }, [userId]);
 
   useEffect(() => {
-    const stored = readEmail();
-    if (stored) setEmails(MOCK_EMAILS);
+    void load();
+    const id = setInterval(() => void load(), 60_000);
+    const onNew = () => void load();
+    window.addEventListener("contam:notificacion-nueva", onNew);
+    window.addEventListener("contam:tareas-sugeridas", onNew);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("contam:notificacion-nueva", onNew);
+      window.removeEventListener("contam:tareas-sugeridas", onNew);
+    };
+  }, [load]);
+
+  useEffect(() => {
+    void fetchTareasCriticasPendientes(8)
+      .then((rows) => {
+        if (rows.length > 0) setPendingTasks(rows.map(mapTareaToPending));
+      })
+      .catch(() => {
+        /* fallback vacío */
+      });
   }, []);
 
   const setInstitutionalEmail = useCallback((email: string) => {
     const trimmed = email.trim();
     localStorage.setItem(INSTITUTIONAL_EMAIL_KEY, trimmed);
     setEmailState(trimmed);
-    setEmails(trimmed ? MOCK_EMAILS : []);
+  }, []);
+
+  const marcarLeida = useCallback(async (id: string) => {
+    setNotificaciones((prev) => prev.map((n) => (n.id === id ? { ...n, leida: true } : n)));
+    await notificationService.marcarComoLeida(id);
+  }, []);
+
+  const marcarTodasLeidas = useCallback(async () => {
+    setNotificaciones((prev) => prev.map((n) => ({ ...n, leida: true })));
+    await notificationService.marcarTodasComoLeidas();
   }, []);
 
   const markEmailRead = useCallback((id: string) => {
-    setEmails((prev) => prev.map((e) => (e.id === id ? { ...e, read: true } : e)));
+    void marcarLeida(id);
+  }, [marcarLeida]);
+
+  const actualizarPreferencias = useCallback(async (p: Partial<PreferenciasNotificacion>) => {
+    await notificationService.actualizarPreferencias(p);
+    const prefs = await notificationService.obtenerPreferencias();
+    setPreferencias(prefs);
   }, []);
+
+  const emails = useMemo(() => notificaciones.map(notifToEmail), [notificaciones]);
+  const alerts = useMemo(
+    () => notificaciones.map(notifToAlert).filter(Boolean) as SystemAlert[],
+    [notificaciones],
+  );
+  const noLeidas = useMemo(() => notificaciones.filter((n) => !n.leida).length, [notificaciones]);
 
   const criticalAlertCount = useMemo(() => {
     const criticalAlerts = alerts.filter((a) => a.severity === "critical").length;
     const criticalTasks = pendingTasks.filter((t) => t.critical).length;
-    return criticalAlerts + criticalTasks;
-  }, [alerts, pendingTasks]);
+    const criticalNotifs = notificaciones.filter(
+      (n) => !n.leida && (n.tipo === "TAREA_VENCIDA" || n.metadata.prioridad === "urgente"),
+    ).length;
+    return criticalAlerts + criticalTasks + criticalNotifs;
+  }, [alerts, pendingTasks, notificaciones]);
 
   const value = useMemo(
     () => ({
@@ -169,10 +206,34 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       emails,
       alerts,
       pendingTasks,
+      notificaciones,
+      noLeidas,
+      conectado,
+      preferencias,
       criticalAlertCount,
       markEmailRead,
+      marcarLeida,
+      marcarTodasLeidas,
+      actualizarPreferencias,
+      refrescar: load,
     }),
-    [institutionalEmail, setInstitutionalEmail, emails, alerts, pendingTasks, criticalAlertCount, markEmailRead],
+    [
+      institutionalEmail,
+      setInstitutionalEmail,
+      emails,
+      alerts,
+      pendingTasks,
+      notificaciones,
+      noLeidas,
+      conectado,
+      preferencias,
+      criticalAlertCount,
+      markEmailRead,
+      marcarLeida,
+      marcarTodasLeidas,
+      actualizarPreferencias,
+      load,
+    ],
   );
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;

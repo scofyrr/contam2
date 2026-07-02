@@ -10,6 +10,8 @@ import {
   type AsientoContableInsert,
   type TipoRegistroDb,
 } from "@/lib/asientos-contables-utils";
+import { getSireEmbedRelation } from "@/lib/feature-flags";
+import { updateRegistroSireCabecera } from "@/lib/sire-registros-service";
 import { resolverMontosSunat } from "@/lib/sire-montos";
 import { normalizeRegistroSire } from "@/lib/sire-data";
 
@@ -44,9 +46,10 @@ export async function fetchDeudasPendientes(params: {
   const ruc = params.ruc.trim();
   if (!ruc) return [];
 
+  const sireEmbed = getSireEmbedRelation();
   let qProvision = supabase
     .from("asientos_contables")
-    .select(`${ASIENTOS_CONTABLES_SELECT}, registros_sire (cod_tipo_cdp, serie_cdp, nro_cdp_inicial, nombre_contraparte, ruc)`)
+    .select(`${ASIENTOS_CONTABLES_SELECT}, ${sireEmbed} (cod_tipo_cdp, serie_cdp, nro_cdp_inicial, nombre_contraparte, ruc)`)
     .eq("ruc_contraparte", ruc)
     .in("tipo_libro", TIPOS_LIBRO_PROVISION);
 
@@ -108,7 +111,7 @@ export async function fetchDeudasPendientes(params: {
       periodo: String(row.periodo),
       monto: round2((prev?.monto ?? 0) + monto),
       cuenta,
-      rs: (row as { registros_sire?: Record<string, unknown> }).registros_sire ?? null,
+      rs: (row as Record<string, Record<string, unknown> | null>)[sireEmbed] ?? null,
     });
   }
 
@@ -157,7 +160,7 @@ export async function registrarPagoCobroCaja(params: {
   if (!cuenta10) throw new Error("Seleccione una cuenta financiera válida (Clase 10).");
 
   const { data: regRow, error: regErr } = await supabase
-    .from("registros_sire")
+    .from(getSireReadSource())
     .select("*")
     .eq("id", params.deuda.sireRegistroId)
     .maybeSingle();
@@ -258,6 +261,6 @@ export async function registrarPagoCobroCaja(params: {
       params.deuda.tipo === "COMPRA"
         ? { estado_pago: "pagado" }
         : { estado_cobro: "cobrado" };
-    await supabase.from("registros_sire").update(upd).eq("id", params.deuda.sireRegistroId);
+    await updateRegistroSireCabecera(params.deuda.sireRegistroId, upd);
   }
 }

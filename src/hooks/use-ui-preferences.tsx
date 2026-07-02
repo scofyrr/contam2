@@ -1,7 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-
-const DARK_MODE_KEY = "contam-dark-mode";
-const EXPANDED_MODE_KEY = "contam-expanded-mode";
+import { type ReactNode } from "react";
+import { useAccessibility } from "@/hooks/use-accessibility";
 
 type UiPreferencesContextValue = {
   darkMode: boolean;
@@ -10,38 +8,19 @@ type UiPreferencesContextValue = {
   toggleExpandedMode: () => void;
 };
 
-const UiPreferencesContext = createContext<UiPreferencesContextValue | null>(null);
-
-function readBool(key: string, fallback = false): boolean {
-  if (typeof window === "undefined") return fallback;
-  return localStorage.getItem(key) === "true";
-}
-
+/** Compatibilidad con componentes existentes — requiere AccessibilityProvider en __root__ */
 export function UiPreferencesProvider({ children }: { children: ReactNode }) {
-  const [darkMode, setDarkMode] = useState(() => readBool(DARK_MODE_KEY));
-  const [expandedMode, setExpandedMode] = useState(() => readBool(EXPANDED_MODE_KEY));
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-    localStorage.setItem(DARK_MODE_KEY, String(darkMode));
-  }, [darkMode]);
-
-  useEffect(() => {
-    localStorage.setItem(EXPANDED_MODE_KEY, String(expandedMode));
-  }, [expandedMode]);
-
-  const toggleDarkMode = useCallback(() => setDarkMode((v) => !v), []);
-  const toggleExpandedMode = useCallback(() => setExpandedMode((v) => !v), []);
-
-  return (
-    <UiPreferencesContext.Provider value={{ darkMode, expandedMode, toggleDarkMode, toggleExpandedMode }}>
-      {children}
-    </UiPreferencesContext.Provider>
-  );
+  return <>{children}</>;
 }
 
-export function useUiPreferences() {
-  const ctx = useContext(UiPreferencesContext);
-  if (!ctx) throw new Error("useUiPreferences debe usarse dentro de UiPreferencesProvider");
-  return ctx;
+export function useUiPreferences(): UiPreferencesContextValue {
+  const a11y = useAccessibility();
+  return {
+    darkMode: a11y.resolvedMode === "dark",
+    expandedMode: a11y.expandedMode,
+    toggleDarkMode: () => {
+      a11y.setMode(a11y.resolvedMode === "dark" ? "light" : "dark");
+    },
+    toggleExpandedMode: a11y.toggleExpandedMode,
+  };
 }

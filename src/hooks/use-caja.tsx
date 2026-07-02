@@ -7,13 +7,31 @@ import {
   updateMovimientoCaja,
 } from "@/lib/caja-service";
 
-export function useCaja(params: { ruc: string | null; periodo?: string | null }) {
+export function useCaja(params: {
+  ruc: string | null;
+  periodo?: string | null;
+  tipo_movimiento?: string | null;
+  origen_documento?: string | null;
+}) {
   const qc = useQueryClient();
   const ruc = params.ruc?.trim() ?? "";
 
   const movimientosQuery = useQuery({
-    queryKey: ["caja", "movimientos", ruc || null, params.periodo ?? null],
-    queryFn: () => fetchMovimientosCaja({ ruc, periodo: params.periodo }),
+    queryKey: [
+      "caja",
+      "movimientos",
+      ruc || null,
+      params.periodo ?? null,
+      params.tipo_movimiento ?? null,
+      params.origen_documento ?? null,
+    ],
+    queryFn: () =>
+      fetchMovimientosCaja({
+        ruc,
+        periodo: params.periodo,
+        tipo_movimiento: params.tipo_movimiento,
+        origen_documento: params.origen_documento,
+      }),
     enabled: !!ruc,
   });
 

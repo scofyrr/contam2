@@ -260,7 +260,187 @@ class MovimientoCaja(models.Model):
     fecha_operacion = models.DateField(null=True, blank=True)
     origen = models.CharField(max_length=50, null=True, blank=True)
     asiento_id = models.UUIDField(null=True, blank=True, db_index=True)
+    origen_documento = models.TextField(default="manual")
+    numero_documento = models.CharField(max_length=50, null=True, blank=True)
+    ruc_contribuyente = models.CharField(max_length=11, null=True, blank=True)
+    descripcion = models.TextField(null=True, blank=True)
+    tipo_movimiento = models.CharField(max_length=20, default="ingreso")
 
     class Meta:
         managed = False
         db_table = "movimientos_caja"
+
+
+class RegistrosSireCabecera(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tipo = models.CharField(max_length=10)
+    ruc = models.CharField(max_length=11, db_index=True)
+    razon_social = models.TextField()
+    periodo = models.CharField(max_length=6, db_index=True)
+    car_sunat = models.CharField(max_length=40, null=True, blank=True)
+    fecha_emision = models.DateField()
+    fecha_vencimiento = models.DateField(null=True, blank=True)
+    cod_tipo_cdp = models.CharField(max_length=2)
+    serie_cdp = models.CharField(max_length=20, null=True, blank=True)
+    anio_dam_dsi = models.CharField(max_length=4, null=True, blank=True)
+    nro_cdp_inicial = models.CharField(max_length=20)
+    nro_cdp_final = models.CharField(max_length=20, null=True, blank=True)
+    tipo_doc_contraparte = models.CharField(max_length=2, null=True, blank=True)
+    nro_doc_contraparte = models.CharField(max_length=20, null=True, blank=True)
+    nombre_contraparte = models.TextField(null=True, blank=True)
+    cod_moneda = models.CharField(max_length=3, default="PEN")
+    tipo_cambio = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True)
+    estado_validacion = models.CharField(max_length=20, default="pendiente")
+    estado_cobro = models.CharField(max_length=20, default="pendiente")
+    estado_pago = models.CharField(max_length=20, default="pendiente")
+    cuenta_pcge = models.CharField(max_length=10, null=True, blank=True)
+    finalidad_operativa = models.TextField(null=True, blank=True)
+    descripcion_items = models.TextField(null=True, blank=True)
+    cancelacion_asiento_id = models.UUIDField(null=True, blank=True)
+    cancelacion_mov_caja_id = models.UUIDField(null=True, blank=True)
+    cancelacion_generada_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "registros_sire_cabecera"
+
+
+class RegistrosSireMontos(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    registro_sire_id = models.UUIDField(db_index=True)
+    bi_grav = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    igv_grav = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    bi_grav_y_no_grav = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    igv_grav_y_no_grav = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    bi_no_grav = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    igv_no_grav = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    valor_no_grav = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    isc = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    icbper = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    otros_tributos = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    importe_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    mto_bi_gravada = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    mto_igv_ipe = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    mto_total_cp = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "registros_sire_montos"
+
+
+class RegistrosSireModificaciones(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    registro_sire_id = models.UUIDField(db_index=True)
+    fecha_emision_mod = models.DateField(null=True, blank=True)
+    tipo_cdp_mod = models.CharField(max_length=2, null=True, blank=True)
+    serie_cdp_mod = models.CharField(max_length=20, null=True, blank=True)
+    cod_dam_dsi = models.CharField(max_length=20, null=True, blank=True)
+    nro_cdp_mod = models.CharField(max_length=20, null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "registros_sire_modificaciones"
+
+
+class RegistrosSireAdicionales(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    registro_sire_id = models.UUIDField(db_index=True)
+    clasificacion_bienes_serv = models.CharField(max_length=10, null=True, blank=True)
+    id_proyecto_operadores = models.CharField(max_length=40, null=True, blank=True)
+    pct_participacion = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    impuesto_beneficio = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    car_orig_indicador = models.CharField(max_length=40, null=True, blank=True)
+    campos_38_41 = models.JSONField(null=True, blank=True)
+    campos_libres = models.JSONField(null=True, blank=True)
+    tipo_venta_config = models.JSONField(null=True, blank=True)
+    observaciones = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "registros_sire_adicionales"
+
+
+class TributosAfectos(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ruc = models.CharField(max_length=11, db_index=True)
+    orden = models.IntegerField(default=0)
+    codigo = models.CharField(max_length=20, null=True, blank=True)
+    descripcion = models.TextField(null=True, blank=True)
+    payload = models.JSONField(default=dict)
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "tributos_afectos"
+
+
+class RepresentantesLegales(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ruc = models.CharField(max_length=11, db_index=True)
+    orden = models.IntegerField(default=0)
+    nombre = models.TextField(null=True, blank=True)
+    documento = models.CharField(max_length=20, null=True, blank=True)
+    cargo = models.TextField(null=True, blank=True)
+    payload = models.JSONField(default=dict)
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "representantes_legales"
+
+
+class OtrasPersonasVinculadas(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ruc = models.CharField(max_length=11, db_index=True)
+    orden = models.IntegerField(default=0)
+    nombre = models.TextField(null=True, blank=True)
+    documento = models.CharField(max_length=20, null=True, blank=True)
+    vinculo = models.TextField(null=True, blank=True)
+    payload = models.JSONField(default=dict)
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "otras_personas_vinculadas"
+
+
+class EstablecimientosAnexos(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ruc = models.CharField(max_length=11, db_index=True)
+    orden = models.IntegerField(default=0)
+    codigo = models.CharField(max_length=20, null=True, blank=True)
+    direccion = models.TextField(null=True, blank=True)
+    ubigeo = models.CharField(max_length=6, null=True, blank=True)
+    payload = models.JSONField(default=dict)
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "establecimientos_anexos"
+
+
+class AuditoriaCambios(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tabla_nombre = models.TextField()
+    registro_id = models.TextField()
+    operacion = models.CharField(max_length=10)
+    datos_anteriores = models.JSONField(null=True, blank=True)
+    datos_nuevos = models.JSONField(null=True, blank=True)
+    usuario_id = models.UUIDField(null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "auditoria_cambios"

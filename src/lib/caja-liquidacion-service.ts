@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getSireReadSource } from "@/lib/feature-flags";
 import { resolverMontosSunat } from "@/lib/sire-montos";
 
 export type ComprobanteLiquidacion = {
@@ -25,7 +26,7 @@ export async function fetchComprobantesPendientesLiquidacion(params: {
   if (!ruc) return [];
 
   let q = supabase
-    .from("registros_sire")
+    .from(getSireReadSource())
     .select(
       "id, tipo, ruc, razon_social, periodo, fecha_emision, cod_tipo_cdp, serie_cdp, nro_cdp_inicial, nombre_contraparte, importe_total, mto_total_cp, mto_bi_gravada, mto_igv_ipe, bi_grav, igv_grav, estado_cobro, estado_pago, cancelacion_asiento_id",
     )

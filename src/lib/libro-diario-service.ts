@@ -9,6 +9,11 @@ import {
   tipoAsientoProvision,
   toAsientoContableInsert,
 } from "@/lib/asientos-contables-utils";
+import {
+  fetchRegistroSireById as fetchRegistroRowById,
+  fetchRegistrosSireRows,
+  updateRegistroSireCabecera,
+} from "@/lib/sire-registros-service";
 import { normalizeRegistroSire } from "@/lib/sire-data";
 import type { LineaAsientoInput, RegistroSire } from "@/lib/sire-types";
 
@@ -49,20 +54,21 @@ export async function fetchComprobantesPendientes(params: {
   ruc: string;
   periodo?: string;
 }): Promise<ComprobantePendiente[]> {
-  let q = supabase
-    .from("registros_sire")
-    .select("*")
-    .eq("ruc", params.ruc)
-    .or("estado_validacion.is.null,estado_validacion.eq.pendiente,estado_validacion.eq.ia_sugerido")
-    .order("fecha_emision", { ascending: false })
-    .limit(200);
+  const rows = await fetchRegistrosSireRows({
+    ruc: params.ruc,
+    periodo: params.periodo,
+    limit: 200,
+  });
 
-  if (params.periodo) q = q.eq("periodo", params.periodo);
+  const registros = rows
+    .map((row) => normalizeRegistroSire(row))
+    .filter(
+      (r) =>
+        !r.estado_validacion ||
+        r.estado_validacion === "pendiente" ||
+        r.estado_validacion === "ia_sugerido",
+    );
 
-  const { data, error } = await q;
-  if (error) throw error;
-
-  const registros = (data ?? []).map((row) => normalizeRegistroSire(row as Record<string, unknown>));
   if (registros.length === 0) return [];
 
   const ids = registros.map((r) => r.id);
@@ -82,9 +88,8 @@ export async function fetchComprobantesPendientes(params: {
 }
 
 export async function fetchRegistroSireById(id: string): Promise<RegistroSire> {
-  const { data, error } = await supabase.from("registros_sire").select("*").eq("id", id).single();
-  if (error) throw error;
-  return normalizeRegistroSire(data as Record<string, unknown>);
+  const row = await fetchRegistroRowById(id);
+  return normalizeRegistroSire(row);
 }
 
 export function proponerLineasAsiento(
@@ -139,12 +144,7 @@ export async function guardarAsientoProvision(params: {
     throw new Error("No se insertaron líneas en asientos_contables.");
   }
 
-  const { error: updErr } = await supabase
-    .from("registros_sire")
-    .update({ estado_validacion: "validado" })
-    .eq("id", params.registroId);
-
-  if (updErr) throw updErr;
+  await updateRegistroSireCabecera(params.registroId, { estado_validacion: "validado" });
 
   return { asientoId: ids[0] };
 }

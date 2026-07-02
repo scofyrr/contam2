@@ -24,9 +24,9 @@ export function ChartPanel({
     <Card
       id={id}
       data-export-chart={id}
-      className={cn("overflow-hidden shadow-sm", className)}
+      className={cn("overflow-hidden shadow-premium-subtle border-border/60", className)}
     >
-      <CardHeader className="pb-2 bg-muted/30 border-b">
+      <CardHeader className="pb-2 bg-muted/20 border-b border-border/60">
         <CardTitle className="text-base font-semibold" data-chart-title>
           {title}
         </CardTitle>

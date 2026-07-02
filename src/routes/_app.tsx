@@ -8,34 +8,53 @@ import {
   RefreshCw,
   BookOpen,
   BarChart3,
+  LayoutDashboard,
   Building2,
   FileText,
   Landmark,
   Wallet,
   UserCircle,
+  ClipboardList,
+  Shield,
+  Bell,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AiChatBubble } from "@/components/ai-chat-bubble";
 import { AppTopBar, ExpandedModeHint } from "@/components/layout/app-topbar";
 import { ContribuyentesProvider } from "@/hooks/use-contribuyentes";
 import { NotificationsProvider } from "@/hooks/use-notifications";
-import { UiPreferencesProvider, useUiPreferences } from "@/hooks/use-ui-preferences";
+import { AlertSystemProvider } from "@/hooks/use-alert-system";
+import { FloatingAlertButtonPremium } from "@/components/notifications/floating-alert-button-premium";
+import { SidebarAlertBadge } from "@/components/notifications/system-notifications-dropdown-premium";
+import { useUiPreferences } from "@/hooks/use-ui-preferences";
+import { AccessibilityLoupePremium } from "@/components/accessibility/accessibility-loupe-premium";
 import { cn } from "@/lib/utils";
+import { useEstudioConfig } from "@/hooks/use-estudio-config";
+import { usePermission } from "@/hooks/use-permissions";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
 
 const nav = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/contribuyentes", label: "Contribuyentes", icon: Building2 },
   { to: "/ficha-ruc", label: "Ficha RUC", icon: FileText },
   { to: "/pcge", label: "Plan de Cuentas", icon: Landmark },
+  { to: "/tareas", label: "Tareas", icon: ClipboardList },
   { to: "/libro-caja", label: "Libro Caja", icon: Wallet },
   { to: "/sire-registros", label: "Registros SIRE", icon: FileSpreadsheet },
+  { to: "/sire-sync", label: "Sync SIRE", icon: RefreshCw },
   { to: "/libro-diario", label: "Libro Diario", icon: BookOpen },
-  { to: "/dashboard-estadisticas", label: "Estadísticas", icon: BarChart3 },
+  { to: "/dashboard-estadisticas", label: "Estadísticas SIRE", icon: BarChart3 },
   { to: "/mi-cuenta", label: "Mi Cuenta", icon: UserCircle },
 ] as const;
+
+const adminNav = { to: "/admin/usuarios", label: "Admin RBAC", icon: Shield } as const;
+const auditoriaNav = { to: "/admin/auditoria", label: "Auditoría", icon: Shield } as const;
+const performanceNav = { to: "/admin/performance", label: "Rendimiento", icon: Shield } as const;
+const configuracionNav = { to: "/admin/configuracion", label: "Configuración", icon: Settings } as const;
 
 function AppLayout() {
   const { session, loading, error } = useSession();
@@ -108,11 +127,11 @@ function AppLayout() {
   }
 
   return (
-    <UiPreferencesProvider>
-      <NotificationsProvider>
+    <NotificationsProvider>
+      <AlertSystemProvider>
         <DashboardShell session={session} location={location} />
-      </NotificationsProvider>
-    </UiPreferencesProvider>
+      </AlertSystemProvider>
+    </NotificationsProvider>
   );
 }
 
@@ -124,6 +143,10 @@ function DashboardShell({
   location: ReturnType<typeof useLocation>;
 }) {
   const { expandedMode, toggleExpandedMode } = useUiPreferences();
+  const canAdmin = usePermission("admin.usuarios");
+  const canAuditoria = usePermission("admin.auditoria");
+  const canPerformance = usePermission("admin.configuracion");
+  const { sidebar, colores, isFeatureActive } = useEstudioConfig();
   const userEmail = session.user.email ?? "";
   const userName =
     session.user.user_metadata?.nombre ?? userEmail.split("@")[0] ?? "Usuario";
@@ -131,45 +154,144 @@ function DashboardShell({
   return (
     <div className="min-h-screen flex bg-background font-sans">
       {!expandedMode && (
-        <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col shadow-xl border-r border-sidebar-border">
+        <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col shadow-premium-elevated border-r border-sidebar-border">
           <button
             type="button"
             onClick={toggleExpandedMode}
-            className="p-6 flex items-center gap-3 border-b border-sidebar-border w-full text-left transition-colors hover:bg-sidebar-accent/50 group cursor-pointer"
+            className="p-6 flex items-center gap-3 border-b border-sidebar-border w-full text-left transition-all duration-300 hover:bg-sidebar-accent/50 group cursor-pointer"
             title="Clic para activar Modo Expandido (pantalla completa)"
           >
-            <div className="size-10 rounded-xl bg-primary text-primary-foreground grid place-items-center font-display font-bold shadow-lg shadow-primary/30 group-hover:scale-105 transition-transform">
+            <div className="size-10 rounded-xl bg-primary text-primary-foreground grid place-items-center font-display font-bold shadow-premium-medium pulse-glow group-hover:scale-105 transition-transform">
               C
             </div>
             <div>
-              <div className="font-display text-lg font-semibold leading-none tracking-tight">CONTAM</div>
+              <div className="font-display text-lg font-semibold leading-none tracking-tight text-premium-gold">
+                CONTAM
+              </div>
               <div className="text-xs text-sidebar-foreground/60 mt-1.5">Sistema Contable</div>
             </div>
           </button>
 
           <nav className="flex-1 p-4 space-y-1">
-            {nav.map(({ to, label, icon: Icon }) => {
+            {nav
+              .filter(({ to }) => {
+                if (!sidebar.modulos.includes(to)) return false;
+                if (to === "/dashboard-estadisticas" && !sidebar.mostrar_dashboard_estadisticas) return false;
+                if (to === "/sire-sync" && !sidebar.mostrar_estadisticas_sire) return false;
+                return true;
+              })
+              .map(({ to, label, icon: Icon }) => {
               const active = location.pathname.startsWith(to);
               return (
                 <Link
                   key={to}
                   to={to}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200",
+                    "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ease-out",
                     active
-                      ? "bg-primary text-primary-foreground font-medium shadow-md shadow-primary/25"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                      ? "bg-primary text-primary-foreground font-medium shadow-premium-medium border border-primary/25"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground hover:translate-x-0.5",
                   )}
                 >
-                  <Icon className={cn("size-4 shrink-0", active ? "text-primary-foreground" : "text-sidebar-foreground/50")} />
+                  <Icon
+                    className={cn(
+                      "size-4 shrink-0",
+                      active ? "text-primary-foreground" : "text-sidebar-foreground/50",
+                    )}
+                    strokeWidth={1.5}
+                  />
                   {label}
+                  {to === "/tareas" && <SidebarAlertBadge type="tasks" />}
                 </Link>
               );
             })}
+            {canAdmin ? (
+              <Link
+                to="/admin/dashboard-estudio"
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ease-out mt-2 border border-[#C8A95A]/20",
+                  location.pathname.startsWith("/admin/dashboard-estudio")
+                    ? "bg-[#C8A95A]/15 text-[#C8A95A] font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-[#C8A95A]",
+                )}
+              >
+                <LayoutDashboard className="size-4 shrink-0" strokeWidth={1.5} />
+                Centro de Control
+              </Link>
+            ) : null}
+            {canAdmin ? (
+              <Link
+                to={adminNav.to}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ease-out mt-2 border border-[#C8A44D]/20",
+                  location.pathname.startsWith(adminNav.to)
+                    ? "bg-[#C8A44D]/20 text-[#C8A44D] font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-[#C8A44D]",
+                )}
+              >
+                <Shield className="size-4 shrink-0" strokeWidth={1.5} />
+                {adminNav.label}
+              </Link>
+            ) : null}
+            {canAuditoria ? (
+              <Link
+                to={auditoriaNav.to}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ease-out border border-[#00C8FF]/20",
+                  location.pathname.startsWith(auditoriaNav.to)
+                    ? "bg-[#00C8FF]/20 text-[#00C8FF] font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-[#00C8FF]",
+                )}
+              >
+                <Shield className="size-4 shrink-0" strokeWidth={1.5} />
+                {auditoriaNav.label}
+              </Link>
+            ) : null}
+            {canPerformance ? (
+              <Link
+                to={performanceNav.to}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ease-out border border-[#00C897]/20",
+                  location.pathname.startsWith(performanceNav.to)
+                    ? "bg-[#00C897]/20 text-[#00C897] font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-[#00C897]",
+                )}
+              >
+                <Shield className="size-4 shrink-0" strokeWidth={1.5} />
+                {performanceNav.label}
+              </Link>
+            ) : null}
+            {canPerformance ? (
+              <Link
+                to={configuracionNav.to}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ease-out border border-[#C8A95A]/20",
+                  location.pathname.startsWith(configuracionNav.to)
+                    ? "bg-[#C8A95A]/15 text-[#C8A95A] font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-[#C8A95A]",
+                )}
+              >
+                <Settings className="size-4 shrink-0" strokeWidth={1.5} />
+                {configuracionNav.label}
+              </Link>
+            ) : null}
+            <Link
+              to="/notificaciones"
+              className={cn(
+                "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ease-out mt-2 border border-[#00D4FF]/15",
+                location.pathname.startsWith("/notificaciones")
+                  ? "bg-[#00D4FF]/15 text-[#00D4FF] font-medium"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-[#00D4FF]",
+              )}
+            >
+              <Bell className="size-4 shrink-0" strokeWidth={1.5} />
+              Notificaciones
+              <SidebarAlertBadge type="notifications" />
+            </Link>
           </nav>
 
           <div className="p-4 border-t border-sidebar-border space-y-2">
-            <div className="px-3 py-3 rounded-xl bg-sidebar-accent/60 text-xs">
+            <div className="px-3 py-3 rounded-xl glass-surface text-xs">
               <div className="font-medium text-sidebar-foreground truncate">{userName}</div>
               <div className="text-sidebar-foreground/50 text-xs truncate mt-0.5">{userEmail}</div>
             </div>
@@ -192,7 +314,7 @@ function DashboardShell({
 
       <div className="flex-1 flex flex-col min-w-0">
         <AppTopBar />
-        <main className="flex-1 overflow-x-hidden bg-background">
+        <main className="flex-1 overflow-x-hidden bg-background page-enter">
           <ContribuyentesProvider>
             <Outlet />
           </ContribuyentesProvider>
@@ -214,7 +336,9 @@ function DashboardShell({
       )}
 
       <ExpandedModeHint />
-      <AiChatBubble />
+      {sidebar.mostrar_lupa_accesibilidad && <AccessibilityLoupePremium />}
+      {colores.fab_visible && isFeatureActive("fab_alertas_dual") && <FloatingAlertButtonPremium />}
+      {(sidebar.mostrar_chat_ai || isFeatureActive("chat_ia_contador")) && <AiChatBubble />}
     </div>
   );
 }

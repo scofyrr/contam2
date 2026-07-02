@@ -7,6 +7,13 @@ import { FieldHelper } from "@/components/ui/field-helper";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -149,9 +156,14 @@ export function MovimientosCajaTable({
   razonSocial?: string;
   periodo?: string | null;
 }) {
+  const [filtroTipo, setFiltroTipo] = useState<string>("todos");
+  const [filtroOrigen, setFiltroOrigen] = useState<string>("todos");
+
   const { movimientosQuery, pendientesCentralizarQuery, create, update, centralizar } = useCaja({
     ruc,
     periodo,
+    tipo_movimiento: filtroTipo === "todos" ? null : filtroTipo,
+    origen_documento: filtroOrigen === "todos" ? null : filtroOrigen,
   });
   const [openNew, setOpenNew] = useState(false);
   const [editing, setEditing] = useState<MovimientoCaja | null>(null);
@@ -203,6 +215,35 @@ export function MovimientosCajaTable({
         </div>
       </div>
 
+      <div className="px-4 pb-2 flex flex-wrap gap-3">
+        <div className="grid gap-1">
+          <Label className="text-xs">Tipo movimiento</Label>
+          <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+            <SelectTrigger className="w-40 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="ingreso">Ingreso</SelectItem>
+              <SelectItem value="egreso">Egreso</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-1">
+          <Label className="text-xs">Origen documento</Label>
+          <Select value={filtroOrigen} onValueChange={setFiltroOrigen}>
+            <SelectTrigger className="w-40 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="manual">Manual</SelectItem>
+              <SelectItem value="sire">SIRE</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="px-4 pb-4">
         {movimientosQuery.isLoading ? (
           <div className="text-sm text-muted-foreground py-10 text-center">Cargando movimientos…</div>
@@ -210,6 +251,7 @@ export function MovimientosCajaTable({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-36">N° doc.</TableHead>
                 <TableHead className="w-20">N°</TableHead>
                 <TableHead className="w-36">Fecha</TableHead>
                 <TableHead>Glosa</TableHead>
@@ -224,23 +266,29 @@ export function MovimientosCajaTable({
             <TableBody>
               {withSaldo.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-sm text-muted-foreground py-10">
+                  <TableCell colSpan={10} className="text-center text-sm text-muted-foreground py-10">
                     No hay movimientos para este RUC y periodo.
                   </TableCell>
                 </TableRow>
               ) : (
                 withSaldo.map((m) => (
                   <TableRow key={m.id}>
+                    <TableCell className="font-mono text-xs">{m.numero_documento ?? "—"}</TableCell>
                     <TableCell className="font-mono">{m.correlativo ?? "-"}</TableCell>
                     <TableCell className="font-mono">{m.fecha_operacion ?? m.fecha}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span>{m.glosa}</span>
-                        {String(m.origen).toUpperCase() === "SIRE" ? (
+                        {String(m.origen_documento ?? m.origen).toLowerCase() === "sire" ? (
                           <Badge variant="secondary">SIRE</Badge>
                         ) : (
                           <Badge variant="outline">Manual</Badge>
                         )}
+                        {m.tipo_movimiento ? (
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {m.tipo_movimiento}
+                          </Badge>
+                        ) : null}
                       </div>
                     </TableCell>
                     <TableCell className="font-mono">{m.cuenta_contable}</TableCell>

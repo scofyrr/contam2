@@ -59,13 +59,14 @@ export function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-/** Extrae código PCGE numérico desde '[601101]' o texto con corchetes (minúsculas). */
+/** Extrae código PCGE numérico sin puntos desde '[601101]' o '1.1.1.01.001'. */
 export function normalizeCuentaContable(value: string | null | undefined): string {
   const text = String(value ?? "").trim();
   if (!text) return "";
-  const match = text.match(/\d+/);
-  const code = match ? match[0] : text.replace(/[[\]]/g, "").trim();
-  return code.toLowerCase();
+  const stripped = text.replace(/\./g, "");
+  const match = stripped.match(/\d+/);
+  const code = match ? match[0] : stripped.replace(/[[\]]/g, "").trim();
+  return code;
 }
 
 function parseMonto(value: unknown): number {

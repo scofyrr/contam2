@@ -1,6 +1,9 @@
 import { Maximize2, Minimize2, Moon, Sun } from "lucide-react";
 
-import { NotificationPanel } from "@/components/notifications/notification-panel";
+import {
+  SystemNotificationsDropdownPremium,
+  UrgentTasksTopbarIndicator,
+} from "@/components/notifications/system-notifications-dropdown-premium";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -15,7 +18,7 @@ export function AppTopBar({ title }: AppTopBarProps) {
   const { darkMode, expandedMode, toggleDarkMode } = useUiPreferences();
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border/60 bg-background/80 backdrop-blur-md px-6 py-3">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border/60 glass-surface shadow-premium-subtle px-6 py-3">
       <div className="flex items-center gap-3 min-w-0">
         {expandedMode && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -29,7 +32,7 @@ export function AppTopBar({ title }: AppTopBarProps) {
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        <div className="hidden sm:flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5">
+        <div className="hidden sm:flex items-center gap-2 rounded-xl glass-surface px-3 py-1.5 shadow-premium-subtle">
           {darkMode ? <Moon className="size-3.5 text-primary" /> : <Sun className="size-3.5 text-amber-500" />}
           <Label htmlFor="dark-mode-toggle" className="text-xs cursor-pointer select-none">
             Modo Nocturno
@@ -53,7 +56,8 @@ export function AppTopBar({ title }: AppTopBarProps) {
           {darkMode ? <Moon className="size-5" /> : <Sun className="size-5" />}
         </Button>
 
-        <NotificationPanel />
+        <UrgentTasksTopbarIndicator />
+        <SystemNotificationsDropdownPremium />
       </div>
     </header>
   );
@@ -69,7 +73,7 @@ export function ExpandedModeHint() {
       variant="outline"
       size="sm"
       onClick={toggleExpandedMode}
-      className="fixed bottom-6 left-6 z-40 shadow-lg gap-2 rounded-xl bg-background/90 backdrop-blur"
+      className="fixed bottom-20 left-6 z-40 shadow-lg gap-2 rounded-xl bg-background/90 backdrop-blur"
     >
       <Minimize2 className="size-4" />
       Restaurar navegación

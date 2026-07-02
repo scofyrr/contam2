@@ -15,6 +15,7 @@ import {
   SectionBody,
   SectionHeader,
 } from "@/components/contribuyentes/section-header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { FichaRuc } from "@/lib/contribuyentes-types";
 import {
   emptyEstablecimiento,
@@ -57,7 +58,16 @@ export function FichaRucForm({ ficha, onChange }: Props) {
     onChange({ ...ficha, empresa: { ...ficha.empresa, [key]: value } });
 
   return (
-    <div className="space-y-0">
+    <Tabs defaultValue="general" className="space-y-4">
+      <TabsList className="flex flex-wrap h-auto gap-1">
+        <TabsTrigger value="general">Datos generales</TabsTrigger>
+        <TabsTrigger value="tributos">Tributos</TabsTrigger>
+        <TabsTrigger value="representantes">Representantes</TabsTrigger>
+        <TabsTrigger value="vinculados">Vinculados</TabsTrigger>
+        <TabsTrigger value="establecimientos">Establecimientos</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="general" className="space-y-0 mt-0">
       <div className="mb-6">
         <SectionHeader
           title="Sección A — Información General del Contribuyente"
@@ -274,6 +284,9 @@ export function FichaRucForm({ ficha, onChange }: Props) {
         </SectionBody>
       </div>
 
+      </TabsContent>
+
+      <TabsContent value="tributos" className="mt-0">
       <DynamicArrayBlock
         title="Tributo Afecto"
         items={ficha.tributosAfectos}
@@ -313,7 +326,9 @@ export function FichaRucForm({ ficha, onChange }: Props) {
           </FormGrid>
         )}
       />
+      </TabsContent>
 
+      <TabsContent value="representantes" className="mt-0">
       <DynamicArrayBlock
         title="Representante Legal"
         items={ficha.representantesLegales}
@@ -354,7 +369,9 @@ export function FichaRucForm({ ficha, onChange }: Props) {
           </FormGrid>
         )}
       />
+      </TabsContent>
 
+      <TabsContent value="vinculados" className="mt-0">
       <DynamicArrayBlock
         title="Otras Personas Vinculadas"
         items={ficha.personasVinculadas}
@@ -396,7 +413,9 @@ export function FichaRucForm({ ficha, onChange }: Props) {
           </FormGrid>
         )}
       />
+      </TabsContent>
 
+      <TabsContent value="establecimientos" className="mt-0">
       <DynamicArrayBlock
         title="Establecimientos Anexos"
         items={ficha.establecimientosAnexos}
@@ -445,6 +464,7 @@ export function FichaRucForm({ ficha, onChange }: Props) {
           </FormGrid>
         )}
       />
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }

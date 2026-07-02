@@ -1,21 +1,27 @@
 import { useMemo, useState, useEffect } from "react";
+import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Trash2, Search, RotateCcw, Settings2, AlertCircle, Circle, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, RotateCcw, Settings2, AlertCircle, Circle, CheckCircle2, GitBranch } from "lucide-react";
 import { toast } from "sonner";
 import { ExportButtons } from "@/components/export-buttons";
+import { NuevaTareaButton } from "@/modules/tareas/components/NuevaTareaButton";
 import { SireFieldHelper, SIRE_SECTION_HELP } from "@/components/sire/sire-field-help";
 import { FieldHelper } from "@/components/ui/field-helper";
 import { exportRegistrosExcel } from "@/lib/export-service";
 import { generarCancelacionCaja } from "@/lib/asiento-cancelacion";
-import { mapRegistroFromDb, mapRegistroToDb } from "@/lib/sire-montos";
-import { sanitizePayload, throwIfSupabaseError, formatSupabaseError } from "@/lib/supabase-error";
+import { mapRegistroFromDb } from "@/lib/sire-montos";
+import {
+  deleteRegistroSire,
+  fetchRegistrosSireRows,
+  upsertRegistroSire,
+} from "@/lib/sire-registros-service";
+import { formatSupabaseError } from "@/lib/supabase-error";
 
 const TIPOS_CDP = [
   { c: "01", l: "01 - Factura" },
@@ -225,16 +231,16 @@ export function SireRegistrosPage() {
   const query = useQuery({
     queryKey: ["registros_sire", filters],
     queryFn: async () => {
-      let q = supabase.from("registros_sire").select("*").order("fecha_emision", { ascending: false }).limit(500);
-      if (filters.tipo !== "TODOS") q = q.eq("tipo", filters.tipo);
-      if (filters.periodo) q = q.eq("periodo", filters.periodo);
-      if (filters.ruc) q = q.ilike("ruc", `%${filters.ruc}%`);
-      if (filters.contraparte) q = q.ilike("nro_doc_contraparte", `%${filters.contraparte}%`);
-      if (filters.cod_tipo_cdp !== "TODOS") q = q.eq("cod_tipo_cdp", filters.cod_tipo_cdp);
-      if (filters.q) q = q.or(`razon_social.ilike.%${filters.q}%,nombre_contraparte.ilike.%${filters.q}%,serie_cdp.ilike.%${filters.q}%,nro_cdp_inicial.ilike.%${filters.q}%`);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []).map((row) => mapRegistroFromDb(row as Record<string, unknown>) as Reg);
+      const data = await fetchRegistrosSireRows({
+        tipo: filters.tipo,
+        periodo: filters.periodo,
+        ruc: filters.ruc,
+        contraparte: filters.contraparte,
+        cod_tipo_cdp: filters.cod_tipo_cdp,
+        q: filters.q,
+        limit: 500,
+      });
+      return data.map((row) => mapRegistroFromDb(row) as Reg);
     },
   });
 
@@ -251,7 +257,6 @@ export function SireRegistrosPage() {
 
   const upsert = useMutation({
     mutationFn: async (r: Reg) => {
-      // Validar campos obligatorios
       const missingFields = validateRequiredFields(r);
       if (missingFields.length > 0) {
         const fieldNames = missingFields.map(f => {
@@ -260,20 +265,7 @@ export function SireRegistrosPage() {
         }).join(", ");
         throw new Error(`Campos obligatorios faltantes: ${fieldNames}`);
       }
-
-      const raw = mapRegistroToDb({ ...r }) as Record<string, unknown>;
-      delete raw.id;
-      delete raw.created_at;
-      delete raw.updated_at;
-      const payload = sanitizePayload(raw);
-
-      if (r.id) {
-        const { error } = await supabase.from("registros_sire").update(payload).eq("id", r.id);
-        throwIfSupabaseError(error, "Error al actualizar registro SIRE");
-      } else {
-        const { error } = await supabase.from("registros_sire").insert(payload);
-        throwIfSupabaseError(error, "Error al registrar comprobante SIRE");
-      }
+      await upsertRegistroSire(r as Record<string, unknown>);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["registros_sire"] });
@@ -289,8 +281,7 @@ export function SireRegistrosPage() {
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("registros_sire").delete().eq("id", id);
-      if (error) throw error;
+      await deleteRegistroSire(id);
     },
     onSuccess: () => { 
       qc.invalidateQueries({ queryKey: ["registros_sire"] }); 
@@ -324,6 +315,12 @@ export function SireRegistrosPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
+          <NuevaTareaButton
+            moduloOrigen="sire"
+            ruc={filters.ruc || undefined}
+            entidad="SIRE"
+            tramite="Revisión de registros SIRE"
+          />
           <ExportButtons
             compact
             disabled={query.isLoading || (query.data ?? []).length === 0}
@@ -495,6 +492,23 @@ export function SireRegistrosPage() {
                       </td>
                     ))}
                     <td className="px-3 py-2 text-center whitespace-nowrap">
+                      <NuevaTareaButton
+                        iconOnly
+                        size="icon"
+                        variant="ghost"
+                        label="Crear tarea"
+                        moduloOrigen="sire"
+                        ruc={r.ruc}
+                        entidad={r.nombre_contraparte ?? r.razon_social ?? "SIRE"}
+                        titulo={`Revisar ${r.cod_tipo_cdp}-${r.serie_cdp}-${r.nro_cdp_inicial}`}
+                        tramite={`Revisar ${r.cod_tipo_cdp}-${r.serie_cdp}-${r.nro_cdp_inicial}`}
+                        referenciaId={r.id}
+                      />
+                      <Button size="icon" variant="ghost" title="Ver trazabilidad contable" asChild>
+                        <Link to="/trazabilidad/$sireRegistroId" params={{ sireRegistroId: r.id }}>
+                          <GitBranch className="size-4 text-[#00D4FF]" />
+                        </Link>
+                      </Button>
                       <Button
                         size="icon"
                         variant="ghost"

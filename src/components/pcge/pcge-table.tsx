@@ -62,11 +62,11 @@ function PcgeForm({
             <Input
               value={codigoCuenta}
               onChange={(e) => setCodigoCuenta(e.target.value)}
-              placeholder="Ej: 101, 121201, 40111"
+              placeholder="Ej: 101101, 121201 (sin puntos)"
               disabled={!!initial?.codigo_cuenta}
             />
             <FieldHelper>
-              Código numérico único según PCGE (ej. 101 Caja, 121201 Facturas por cobrar). No editable tras crear.
+              Código numérico secuencial sin puntos (ej. 101101 Caja, 121201 Facturas por cobrar).
             </FieldHelper>
           </div>
           <div className="grid gap-1.5">
