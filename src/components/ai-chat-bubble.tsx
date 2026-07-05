@@ -1,91 +1,256 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
-import { MessageCircle, X } from "lucide-react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { Bug, MessageCircle, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAiComposer } from "@/contexts/ai-composer-context";
+import {
+  type AiChatMode,
+  type AiChatResponse,
+  sendAiChat,
+} from "@/lib/ai-chat-api";
+import {
+  applyFillActionsProgressive,
+  COMPOSER_LOADING_STEPS,
+  DEBUG_LOADING_STEPS,
+  highlightDebugField,
+} from "@/lib/ai-composer-fill";
+import { cn } from "@/lib/utils";
 
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   toolsUsed?: string[];
+  streaming?: boolean;
+  streamKind?: "composer" | "debug";
+  streamLines?: string[];
 };
 
-function getAiApiBase(): string {
-  const fromEnv = (import.meta.env.VITE_AI_API_URL as string | undefined)?.trim();
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
-  // Proxy Vite en dev → misma origen, evita CORS / "Failed to fetch"
-  if (import.meta.env.DEV) return "/ai-api";
-  return "http://localhost:8001";
+const MODES: { id: AiChatMode; label: string; enabled: boolean; hint: string }[] = [
+  { id: "ask", label: "Ask", enabled: true, hint: "Consultas BD + internet" },
+  { id: "composer", label: "Composer", enabled: true, hint: "Rellenar formularios (sin guardar)" },
+  { id: "debug", label: "Debug", enabled: true, hint: "Revisar y corregir lo que puso Composer" },
+];
+
+function thinkingMax(mode: AiChatMode): number {
+  if (mode === "composer") return 45;
+  if (mode === "debug") return 30;
+  return 15;
 }
 
-const AI_API_BASE = getAiApiBase();
-
-async function sendChat(params: {
-  message: string;
-  history: ChatMessage[];
-  thinkingSeconds: number;
-}): Promise<{ reply: string; tools_used: string[] }> {
-  const res = await fetch(`${AI_API_BASE}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      message: params.message,
-      history: params.history.map(({ role, content }) => ({ role, content })),
-      mode: "ask",
-      thinking_seconds: params.thinkingSeconds,
-    }),
-  });
-  const data = (await res.json()) as { reply?: string; tools_used?: string[]; detail?: string };
-  if (!res.ok) throw new Error(data.detail ?? `Error HTTP ${res.status}`);
-  return { reply: data.reply ?? "", tools_used: data.tools_used ?? [] };
+function loadingSteps(mode: AiChatMode) {
+  return mode === "debug" ? DEBUG_LOADING_STEPS : COMPOSER_LOADING_STEPS;
 }
 
-/** Bolita flotante CONTAM AI — llama a ai-agent/server (puerto 8001). Sin tocar BD. */
 export function AiChatBubble() {
+  const { registration, buildPageContext } = useAiComposer();
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<AiChatMode>("ask");
   const [thinkingSeconds, setThinkingSeconds] = useState(3);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
       content:
-        "Hola, soy CONTAM AI (beta). Modo Ask: consulto la base de datos en solo lectura y puedo buscar en internet. ¿En qué te ayudo?",
+        "Hola, soy CONTAM AI. **Ask**: consultas. **Composer**: rellena campos. **Debug**: revisa y corrige lo que Composer puso. Tú siempre guardas.",
     },
   ]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading, open]);
+  }, [messages, loading, open, loadingStep]);
+
+  useEffect(() => {
+    if (!loading || (mode !== "composer" && mode !== "debug")) return;
+    const steps = loadingSteps(mode);
+    const id = window.setInterval(() => {
+      setLoadingStep((s) => (s + 1) % steps.length);
+    }, 900);
+    return () => window.clearInterval(id);
+  }, [loading, mode]);
+
+  useEffect(() => {
+    const max = thinkingMax(mode);
+    if (thinkingSeconds > max) setThinkingSeconds(max);
+  }, [mode, thinkingSeconds]);
+
+  const appendStreamLine = useCallback((msgIndex: number, line: string) => {
+    setMessages((prev) => {
+      const next = [...prev];
+      const msg = next[msgIndex];
+      if (!msg) return prev;
+      next[msgIndex] = {
+        ...msg,
+        streamLines: [...(msg.streamLines ?? []), line],
+        content: [...(msg.streamLines ?? []), line].join("\n"),
+      };
+      return next;
+    });
+  }, []);
+
+  async function runLiveFill(
+    res: AiChatResponse,
+    streamMsgIndex: number,
+    kind: "composer" | "debug",
+  ): Promise<void> {
+    const actions = res.fill_actions ?? [];
+    if (!actions.length || !registration) {
+      setMessages((prev) => {
+        const next = [...prev];
+        const msg = next[streamMsgIndex];
+        if (msg) {
+          next[streamMsgIndex] = {
+            ...msg,
+            streaming: false,
+            content: res.reply,
+            toolsUsed: res.tools_used,
+          };
+        }
+        return next;
+      });
+      return;
+    }
+
+    const delay = Math.max(80, Math.min(400, Math.floor((thinkingSeconds * 1000) / actions.length)));
+    const intro =
+      kind === "debug"
+        ? `\n🔧 Corrigiendo **${actions.length}** campos que no cuadraban…\n`
+        : `\n📝 Rellenando **${actions.length}** campos…\n`;
+    appendStreamLine(streamMsgIndex, intro);
+
+    await applyFillActionsProgressive(
+      actions,
+      (action) => registration.applyFill(action),
+      (action, i, total) => {
+        const label = action.label || action.field_path;
+        const preview =
+          action.value.length > 42 ? `${action.value.slice(0, 42)}…` : action.value;
+        const prefix = kind === "debug" ? "🔧" : "✏️";
+        appendStreamLine(
+          streamMsgIndex,
+          `${prefix} \`${i + 1}/${total}\` **${label}** → ${preview}`,
+        );
+      },
+      delay,
+      kind === "debug" ? highlightDebugField : undefined,
+    );
+
+    setMessages((prev) => {
+      const next = [...prev];
+      const msg = next[streamMsgIndex];
+      if (msg) {
+        next[streamMsgIndex] = {
+          ...msg,
+          streaming: false,
+          content: `${msg.content}\n\n---\n\n${res.reply}`,
+          toolsUsed: res.tools_used,
+        };
+      }
+      return next;
+    });
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const text = input.trim();
     if (!text || loading) return;
 
+    const needsForm = mode === "composer" || mode === "debug";
+    if (needsForm && !registration) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: text },
+        {
+          role: "assistant",
+          content:
+            "⚠️ Abre el **Editor** de Ficha RUC para revisar o rellenar campos.",
+        },
+      ]);
+      setInput("");
+      return;
+    }
+
     setMessages((prev) => [...prev, { role: "user", content: text }]);
     setInput("");
     setLoading(true);
+    setLoadingStep(0);
 
-    try {
-      const history = messages.filter((m) => m.role === "user" || m.role === "assistant");
-      const res = await sendChat({ message: text, history, thinkingSeconds });
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: res.reply, toolsUsed: res.tools_used },
-      ]);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error desconocido";
+    const history = messages.filter((m) => m.role === "user" || m.role === "assistant");
+    const maxThink = thinkingMax(mode);
+    const think = Math.min(thinkingSeconds, maxThink);
+    const streamIndex =
+      mode === "composer" || mode === "debug" ? messages.length + 1 : -1;
+
+    if (mode === "composer" || mode === "debug") {
+      const intro =
+        mode === "debug"
+          ? "🔍 Revisando datos rellenados vs base de datos…"
+          : "⏳ Analizando formulario y fuentes de datos…";
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: `⚠️ ${msg}. ¿Está corriendo el servidor AI? (cd ai-agent/server → python main.py)`,
+          content: intro,
+          streaming: true,
+          streamKind: mode,
+          streamLines: [intro],
         },
       ]);
+    }
+
+    try {
+      const pageContext = needsForm ? buildPageContext() : undefined;
+      const res = await sendAiChat({
+        message: text,
+        history,
+        mode,
+        thinkingSeconds: think,
+        pageContext,
+      });
+
+      if (mode === "composer" || mode === "debug") {
+        appendStreamLine(
+          streamIndex,
+          mode === "debug" ? "✅ Revisión completada." : "✅ Plan recibido del servidor.",
+        );
+        await runLiveFill(res, streamIndex, mode);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: res.reply, toolsUsed: res.tools_used },
+        ]);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      if ((mode === "composer" || mode === "debug") && streamIndex >= 0) {
+        setMessages((prev) => {
+          const next = [...prev];
+          if (next[streamIndex]) {
+            next[streamIndex] = {
+              role: "assistant",
+              content: `⚠️ ${msg}. ¿Servidor AI activo? (cd ai-agent/server → python main.py)`,
+              streaming: false,
+            };
+          }
+          return next;
+        });
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: `⚠️ ${msg}. ¿Servidor AI activo? (cd ai-agent/server → python main.py)`,
+          },
+        ]);
+      }
     } finally {
       setLoading(false);
     }
   }
+
+  const activeMode = MODES.find((m) => m.id === mode)!;
+  const maxThink = thinkingMax(mode);
 
   return (
     <>
@@ -99,7 +264,7 @@ export function AiChatBubble() {
             <div className="flex items-center gap-2">
               <span className="font-semibold">CONTAM AI</span>
               <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-medium">
-                Beta · Ask
+                Beta · {activeMode.label}
               </span>
             </div>
             <button
@@ -113,35 +278,51 @@ export function AiChatBubble() {
           </header>
 
           <div className="flex gap-1 border-b border-slate-100 bg-slate-50 px-3 py-2">
-            <span className="flex-1 rounded-lg bg-blue-600 py-1.5 text-center text-xs font-medium text-white">
-              Ask
-            </span>
-            <span
-              className="flex-1 rounded-lg border border-slate-200 py-1.5 text-center text-xs text-slate-400"
-              title="Próximamente"
-            >
-              Composer
-            </span>
-            <span
-              className="flex-1 rounded-lg border border-slate-200 py-1.5 text-center text-xs text-slate-400"
-              title="Próximamente"
-            >
-              Debug
-            </span>
+            {MODES.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                title={m.hint}
+                disabled={!m.enabled}
+                onClick={() => m.enabled && setMode(m.id)}
+                className={cn(
+                  "flex-1 rounded-lg py-1.5 text-center text-xs font-medium transition-colors",
+                  mode === m.id && m.enabled
+                    ? "bg-blue-600 text-white"
+                    : "border border-slate-200 text-slate-400",
+                  !m.enabled && "cursor-not-allowed opacity-60",
+                )}
+              >
+                {m.label}
+              </button>
+            ))}
           </div>
+
+          {mode === "composer" && registration && (
+            <div className="border-b border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[10px] text-emerald-800">
+              📋 {registration.title} · RUC {registration.ruc}
+            </div>
+          )}
+          {mode === "debug" && registration && (
+            <div className="border-b border-orange-100 bg-orange-50 px-3 py-1.5 text-[10px] text-orange-900">
+              🔍 Revisando {registration.title} · RUC {registration.ruc}
+            </div>
+          )}
 
           <div className="border-b border-slate-100 px-3 py-2 text-xs text-slate-500">
             <label htmlFor="ai-thinking" className="flex items-center justify-between gap-2">
               <span>
-                Pensamiento: <strong className="text-slate-700">{thinkingSeconds}s</strong>
+                Pensamiento: <strong className="text-slate-700">{Math.min(thinkingSeconds, maxThink)}s</strong>
+                {mode === "composer" && <span className="text-slate-400"> (1–45)</span>}
+                {mode === "debug" && <span className="text-slate-400"> (1–30)</span>}
               </span>
               <input
                 id="ai-thinking"
                 type="range"
-                min={0}
-                max={15}
+                min={1}
+                max={maxThink}
                 step={1}
-                value={thinkingSeconds}
+                value={Math.min(thinkingSeconds, maxThink)}
                 onChange={(e) => setThinkingSeconds(Number(e.target.value))}
                 className="w-32 accent-blue-600"
               />
@@ -152,27 +333,62 @@ export function AiChatBubble() {
             {messages.map((m, i) => (
               <div
                 key={i}
-                className={`flex flex-col max-w-[92%] ${m.role === "user" ? "ml-auto items-end" : "items-start"}`}
+                className={cn(
+                  "flex flex-col max-w-[92%]",
+                  m.role === "user" ? "ml-auto items-end" : "items-start",
+                )}
               >
                 <div
-                  className={`rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
+                  className={cn(
+                    "rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap font-mono text-[12px]",
                     m.role === "user"
-                      ? "bg-blue-600 text-white rounded-br-sm"
-                      : "border border-slate-200 bg-white text-slate-800 rounded-bl-sm"
-                  }`}
+                      ? "bg-blue-600 text-white rounded-br-sm font-sans text-sm"
+                      : "border border-slate-200 bg-white text-slate-800 rounded-bl-sm",
+                    m.streaming && m.streamKind === "debug" && "border-orange-300 ring-1 ring-orange-200",
+                    m.streaming && m.streamKind !== "debug" && "border-blue-300 ring-1 ring-blue-200",
+                  )}
                 >
+                  {m.streaming && m.streamKind === "debug" && (
+                    <span className="mb-1 flex items-center gap-1 font-sans text-[10px] text-orange-700">
+                      <Bug className="size-3 animate-pulse" />
+                      Debug en vivo
+                    </span>
+                  )}
+                  {m.streaming && m.streamKind !== "debug" && (
+                    <span className="mb-1 flex items-center gap-1 font-sans text-[10px] text-blue-600">
+                      <Sparkles className="size-3 animate-pulse" />
+                      Composer en vivo
+                    </span>
+                  )}
                   {m.content}
                 </div>
-                {m.toolsUsed && m.toolsUsed.length > 0 && (
-                  <span className="mt-0.5 text-[10px] text-slate-400">
+                {m.toolsUsed && m.toolsUsed.length > 0 && !m.streaming && (
+                  <span className="mt-0.5 font-sans text-[10px] text-slate-400">
                     {m.toolsUsed.join(", ")}
                   </span>
                 )}
               </div>
             ))}
-            {loading && (
+            {loading && mode === "ask" && (
               <div className="text-sm italic text-slate-500">
-                Analizando{thinkingSeconds > 0 ? ` (~${thinkingSeconds}s)` : ""}…
+                Analizando (~{Math.min(thinkingSeconds, maxThink)}s)…
+              </div>
+            )}
+            {loading && (mode === "composer" || mode === "debug") && (
+              <div
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-xs",
+                  mode === "debug"
+                    ? "border-orange-200 bg-orange-50 text-orange-900"
+                    : "border-blue-200 bg-blue-50 text-blue-800",
+                )}
+              >
+                {mode === "debug" ? (
+                  <Bug className="mb-1 inline size-3 animate-pulse" />
+                ) : (
+                  <Sparkles className="mb-1 inline size-3 animate-pulse" />
+                )}{" "}
+                {loadingSteps(mode)[loadingStep]}
               </div>
             )}
             <div ref={bottomRef} />
@@ -182,7 +398,13 @@ export function AiChatBubble() {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ej: teléfono del RUC 20123456789…"
+              placeholder={
+                mode === "composer"
+                  ? "Ej: Rellena la ficha con datos de la Clave SOL…"
+                  : mode === "debug"
+                    ? "Ej: Revisa los datos que rellenaste…"
+                    : "Ej: ¿Cuántos registros hay en plan_contable_pcge?"
+              }
               disabled={loading}
               className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />

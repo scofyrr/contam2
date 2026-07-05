@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AiChatBubble } from "@/components/ai-chat-bubble";
+import { AiComposerProvider } from "@/contexts/ai-composer-context";
 import { AppTopBar, ExpandedModeHint } from "@/components/layout/app-topbar";
 import { ContribuyentesProvider } from "@/hooks/use-contribuyentes";
 import { NotificationsProvider } from "@/hooks/use-notifications";
@@ -152,6 +153,7 @@ function DashboardShell({
     session.user.user_metadata?.nombre ?? userEmail.split("@")[0] ?? "Usuario";
 
   return (
+    <AiComposerProvider>
     <div className="min-h-screen flex bg-background font-sans">
       {!expandedMode && (
         <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col shadow-premium-elevated border-r border-sidebar-border">
@@ -340,5 +342,6 @@ function DashboardShell({
       {colores.fab_visible && isFeatureActive("fab_alertas_dual") && <FloatingAlertButtonPremium />}
       {(sidebar.mostrar_chat_ai || isFeatureActive("chat_ia_contador")) && <AiChatBubble />}
     </div>
+    </AiComposerProvider>
   );
 }

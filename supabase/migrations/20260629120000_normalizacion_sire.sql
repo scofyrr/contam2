@@ -167,6 +167,15 @@ CREATE TABLE IF NOT EXISTS public.notificaciones_correo (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.tareas_pendientes 
+  ADD COLUMN IF NOT EXISTS ruc varchar(11) REFERENCES public.contribuyentes(ruc),
+  ADD COLUMN IF NOT EXISTS entidad text,
+  ADD COLUMN IF NOT EXISTS tramite text,
+  ADD COLUMN IF NOT EXISTS fecha_tramitar date,
+  ADD COLUMN IF NOT EXISTS problema text,
+  ADD COLUMN IF NOT EXISTS plazo_vencimiento date,
+  ADD COLUMN IF NOT EXISTS critica boolean DEFAULT false;
+
 CREATE TABLE IF NOT EXISTS public.tareas_pendientes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   ruc varchar(11) REFERENCES public.contribuyentes(ruc),
@@ -220,6 +229,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_caja_unico_por_registro_sire_sire
 -- ============================================================
 -- 6. MIGRACIÓN DE DATOS (preserva UUID para FKs existentes)
 -- ============================================================
+ALTER TABLE public.registros_sire 
+  ADD COLUMN IF NOT EXISTS cuenta_pcge varchar(10),
+  ADD COLUMN IF NOT EXISTS finalidad_operativa text,
+  ADD COLUMN IF NOT EXISTS descripcion_items text;
+
 INSERT INTO public.registros_sire_cabecera (
   id, tipo, ruc, razon_social, periodo, car_sunat, fecha_emision, fecha_vencimiento,
   cod_tipo_cdp, serie_cdp, anio_dam_dsi, nro_cdp_inicial, nro_cdp_final,
@@ -230,7 +244,9 @@ INSERT INTO public.registros_sire_cabecera (
   created_at, updated_at
 )
 SELECT
-  id, tipo, ruc, razon_social, periodo, car_sunat, fecha_emision, fecha_vencimiento,
+  id, 
+  CASE WHEN tipo = 'COMPRAS' THEN 'COMPRA' WHEN tipo = 'VENTAS' THEN 'VENTA' ELSE tipo END AS tipo,
+  ruc, razon_social, periodo, car_sunat, fecha_emision, fecha_vencimiento,
   cod_tipo_cdp, serie_cdp, anio_dam_dsi, nro_cdp_inicial, nro_cdp_final,
   tipo_doc_contraparte, nro_doc_contraparte, nombre_contraparte,
   cod_moneda, tipo_cambio,
@@ -244,6 +260,10 @@ FROM public.registros_sire rs
 WHERE NOT EXISTS (SELECT 1 FROM public.registros_sire_cabecera c WHERE c.id = rs.id)
 ON CONFLICT (id) DO NOTHING;
 
+ALTER TABLE public.registros_sire_montos 
+  ADD COLUMN IF NOT EXISTS bi_adq_grav numeric(14,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS igv_adq_grav numeric(14,2) DEFAULT 0;
+
 INSERT INTO public.registros_sire_montos (
   registro_sire_id, bi_grav, igv_grav, bi_grav_y_no_grav, igv_grav_y_no_grav,
   bi_no_grav, igv_no_grav, valor_no_grav, isc, icbper, otros_tributos,
@@ -252,12 +272,12 @@ INSERT INTO public.registros_sire_montos (
 )
 SELECT
   id,
-  COALESCE(bi_grav, 0), COALESCE(igv_grav, 0),
-  COALESCE(bi_grav_y_no_grav, 0), COALESCE(igv_grav_y_no_grav, 0),
-  COALESCE(bi_no_grav, 0), COALESCE(igv_no_grav, 0), COALESCE(valor_no_grav, 0),
+  COALESCE(bi_adq_grav, 0), COALESCE(igv_adq_grav, 0),
+  COALESCE(bi_adq_grav_y_no_grav, 0), COALESCE(igv_adq_grav_y_no_grav, 0),
+  COALESCE(bi_adq_no_grav, 0), COALESCE(igv_adq_no_grav, 0), COALESCE(valor_adq_no_grav, 0),
   COALESCE(isc, 0), COALESCE(icbper, 0), COALESCE(otros_tributos, 0),
-  COALESCE(importe_total, 0), COALESCE(mto_bi_gravada, 0), COALESCE(mto_igv_ipe, 0), COALESCE(mto_total_cp, 0),
-  COALESCE(bi_adq_grav, bi_grav, 0), COALESCE(igv_adq_grav, igv_grav, 0)
+  COALESCE(importe_total, 0), COALESCE(bi_adq_grav, 0), COALESCE(igv_adq_grav, 0), COALESCE(importe_total, 0),
+  COALESCE(bi_adq_grav, 0), COALESCE(igv_adq_grav, 0)
 FROM public.registros_sire rs
 WHERE EXISTS (SELECT 1 FROM public.registros_sire_cabecera c WHERE c.id = rs.id)
   AND NOT EXISTS (SELECT 1 FROM public.registros_sire_montos m WHERE m.registro_sire_id = rs.id);
@@ -276,10 +296,13 @@ INSERT INTO public.registros_sire_adicionales (
   campos_38_41, campos_libres, tipo_venta_config, observaciones
 )
 SELECT
-  id, clasificacion_bienes_serv, id_proyecto_operadores,
-  COALESCE(pct_participacion, 0), COALESCE(impuesto_beneficio, 0), car_orig_indicador,
+  id, clasificacion_bienes_serv, 
+  COALESCE(id_proyecto, '') || COALESCE(operadores, '') AS id_proyecto_operadores,
+  COALESCE(porcentaje_participacion, 0) AS pct_participacion, 
+  COALESCE(CASE WHEN trim(impuesto_materia_beneficio) ~ '^[0-9]+(\.[0-9]+)?$' THEN trim(impuesto_materia_beneficio)::numeric ELSE 0 END, 0) AS impuesto_beneficio, 
+  car_orig_indicador,
   COALESCE(campos_38_41, '{}'::jsonb), COALESCE(campos_libres, '{}'::jsonb),
-  COALESCE(tipo_venta_config, '[]'::jsonb), observaciones
+  '[]'::jsonb AS tipo_venta_config, NULL::text AS observaciones
 FROM public.registros_sire rs
 WHERE EXISTS (SELECT 1 FROM public.registros_sire_cabecera c WHERE c.id = rs.id)
   AND NOT EXISTS (SELECT 1 FROM public.registros_sire_adicionales a WHERE a.registro_sire_id = rs.id);

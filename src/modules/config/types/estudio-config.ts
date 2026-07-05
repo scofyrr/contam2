@@ -150,7 +150,7 @@ export const DEFAULT_ESTUDIO_CONFIG: EstudioConfigBundle = {
     modulo_inicio: "/dashboard",
     mostrar_estadisticas_sire: true,
     mostrar_dashboard_estadisticas: true,
-    mostrar_chat_ai: false,
+    mostrar_chat_ai: true,
     mostrar_lupa_accesibilidad: true,
     mostrar_cancelaciones: true,
   },

@@ -1,6 +1,9 @@
 -- PCGE: corrección masiva de códigos + validación en BD
 -- Idempotente · alinea con reglas TypeScript pcge-validator
 
+ALTER TABLE public.plan_contable_pcge ADD COLUMN IF NOT EXISTS padre_codigo TEXT;
+ALTER TABLE public.plan_contable_pcge ADD COLUMN IF NOT EXISTS es_agrupador BOOLEAN DEFAULT FALSE;
+
 -- ============================================================
 -- A. Tabla temporal de log (persistente para auditoría)
 -- ============================================================

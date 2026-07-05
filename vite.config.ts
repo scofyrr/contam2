@@ -14,6 +14,9 @@ export default defineConfig({
   },
   vite: {
     server: {
+      watch: {
+        ignored: ["**/backend/venv/**", "**/ai-agent/server/venv/**"],
+      },
       proxy: {
         "/ai-api": {
           target: "http://127.0.0.1:8001",

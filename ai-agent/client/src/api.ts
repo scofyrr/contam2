@@ -4,6 +4,41 @@ export type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   toolsUsed?: string[];
+  fillCount?: number;
+  skippedCount?: number;
+};
+
+export type PageFieldSnapshot = {
+  field_path: string;
+  label?: string;
+  value?: string;
+  readonly?: boolean;
+  disabled?: boolean;
+  sensitive?: boolean;
+};
+
+export type PageContext = {
+  page_id: string;
+  route?: string;
+  ruc: string;
+  title?: string;
+  fields: PageFieldSnapshot[];
+  sol_credentials?: { usuario: string; clave: string };
+  overwrite?: boolean;
+};
+
+export type FillAction = {
+  field_path: string;
+  label?: string;
+  value: string;
+  source?: string;
+};
+
+export type SkippedField = {
+  field_path: string;
+  label?: string;
+  reason: string;
+  current_value?: string | null;
 };
 
 export type ChatResponse = {
@@ -11,6 +46,9 @@ export type ChatResponse = {
   mode: string;
   tools_used: string[];
   thinking_seconds: number;
+  fill_actions?: FillAction[];
+  skipped_fields?: SkippedField[];
+  composer_meta?: Record<string, unknown>;
 };
 
 export async function sendChat(params: {
@@ -18,6 +56,7 @@ export async function sendChat(params: {
   history: ChatMessage[];
   mode: ChatMode;
   thinkingSeconds: number;
+  pageContext?: PageContext;
 }): Promise<ChatResponse> {
   const res = await fetch("/api/chat", {
     method: "POST",
@@ -27,6 +66,7 @@ export async function sendChat(params: {
       history: params.history.map(({ role, content }) => ({ role, content })),
       mode: params.mode,
       thinking_seconds: params.thinkingSeconds,
+      page_context: params.pageContext,
     }),
   });
 
@@ -44,4 +84,11 @@ export async function fetchHealth(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function fetchComposerPages(): Promise<{ page_id: string; title: string }[]> {
+  const res = await fetch("/api/composer/pages");
+  if (!res.ok) return [];
+  const data = (await res.json()) as { pages?: { page_id: string; title: string }[] };
+  return data.pages ?? [];
 }

@@ -96,3 +96,25 @@ def fetch_all(conn, query: str, params: tuple | list | None = None) -> list[dict
 def fetch_one(conn, query: str, params: tuple | list | None = None) -> dict[str, Any] | None:
     rows = fetch_all(conn, query, params)
     return rows[0] if rows else None
+
+
+def fetch_scalar(conn, query: str, params: tuple | list | None = None) -> Any:
+    with conn.cursor() as cur:
+        cur.execute(query, params or ())
+        row = cur.fetchone()
+        return row[0] if row else None
+
+
+def get_table_columns(conn, table: str) -> list[dict[str, Any]]:
+    if table not in ALLOWED_TABLES:
+        return []
+    return fetch_all(
+        conn,
+        """
+        SELECT column_name, data_type, is_nullable, column_default
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = %s
+        ORDER BY ordinal_position
+        """,
+        (table,),
+    )

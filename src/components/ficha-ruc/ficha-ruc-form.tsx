@@ -17,6 +17,7 @@ import {
 } from "@/components/contribuyentes/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { FichaRuc } from "@/lib/contribuyentes-types";
+import { aiFieldAttrs } from "@/lib/ai-composer-fill";
 import {
   emptyEstablecimiento,
   emptyPersonaVinculada,
@@ -75,18 +76,19 @@ export function FichaRucForm({ ficha, onChange }: Props) {
         />
         <SectionBody>
           <FormGrid>
-            <Field label="Apellidos y Nombres o Razón Social" required>
+            <Field label="Apellidos y Nombres o Razón Social" required aiFieldPath="general.razonSocial">
               <Input
+                {...aiFieldAttrs("general.razonSocial", "Razón Social")}
                 value={ficha.general.razonSocial}
                 onChange={(e) => patchGeneral("razonSocial", e.target.value)}
               />
             </Field>
-            <Field label="Tipo de Contribuyente" required>
+            <Field label="Tipo de Contribuyente" required aiFieldPath="general.tipoContribuyente">
               <Select
                 value={ficha.general.tipoContribuyente || undefined}
                 onValueChange={(v) => patchGeneral("tipoContribuyente", v)}
               >
-                <SelectTrigger>
+                <SelectTrigger {...aiFieldAttrs("general.tipoContribuyente", "Tipo de Contribuyente")}>
                   <SelectValue placeholder="Seleccionar…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -98,54 +100,62 @@ export function FichaRucForm({ ficha, onChange }: Props) {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Fecha de Inscripción" required>
+            <Field label="Fecha de Inscripción" required aiFieldPath="general.fechaInscripcion">
               <Input
                 type="date"
+                {...aiFieldAttrs("general.fechaInscripcion", "Fecha de Inscripción")}
                 value={ficha.general.fechaInscripcion}
                 onChange={(e) => patchGeneral("fechaInscripcion", e.target.value)}
               />
             </Field>
-            <Field label="Fecha de Inicio de Actividades">
+            <Field label="Fecha de Inicio de Actividades" aiFieldPath="general.fechaInicioActividades">
               <Input
                 type="date"
+                {...aiFieldAttrs("general.fechaInicioActividades", "Fecha de Inicio de Actividades")}
                 value={ficha.general.fechaInicioActividades}
                 onChange={(e) => patchGeneral("fechaInicioActividades", e.target.value)}
               />
             </Field>
-            <Field label="Estado del Contribuyente">
+            <Field label="Estado del Contribuyente" aiFieldPath="general.estadoContribuyente">
               <Input
+                {...aiFieldAttrs("general.estadoContribuyente", "Estado del Contribuyente")}
                 value={ficha.general.estadoContribuyente}
                 onChange={(e) => patchGeneral("estadoContribuyente", e.target.value)}
               />
             </Field>
-            <Field label="Dependencia SUNAT">
+            <Field label="Dependencia SUNAT" aiFieldPath="general.dependenciaSunat">
               <Input
+                {...aiFieldAttrs("general.dependenciaSunat", "Dependencia SUNAT")}
                 value={ficha.general.dependenciaSunat}
                 onChange={(e) => patchGeneral("dependenciaSunat", e.target.value)}
               />
             </Field>
-            <Field label="Condición de Domicilio Fiscal">
+            <Field label="Condición de Domicilio Fiscal" aiFieldPath="general.condicionDomicilioFiscal">
               <Input
+                {...aiFieldAttrs("general.condicionDomicilioFiscal", "Condición Domicilio Fiscal")}
                 value={ficha.general.condicionDomicilioFiscal}
                 onChange={(e) => patchGeneral("condicionDomicilioFiscal", e.target.value)}
               />
             </Field>
-            <Field label="Emisor electrónico desde">
+            <Field label="Emisor electrónico desde" aiFieldPath="general.emisorElectronicoDesde">
               <Input
                 type="date"
+                {...aiFieldAttrs("general.emisorElectronicoDesde", "Emisor electrónico desde")}
                 value={ficha.general.emisorElectronicoDesde}
                 onChange={(e) => patchGeneral("emisorElectronicoDesde", e.target.value)}
               />
             </Field>
-            <Field label="Comprobantes electrónicos">
+            <Field label="Comprobantes electrónicos" aiFieldPath="general.comprobantesElectronicos">
               <Input
+                {...aiFieldAttrs("general.comprobantesElectronicos", "Comprobantes electrónicos")}
                 value={ficha.general.comprobantesElectronicos}
                 onChange={(e) => patchGeneral("comprobantesElectronicos", e.target.value)}
               />
             </Field>
-            <Field label="Fecha de Baja">
+            <Field label="Fecha de Baja" aiFieldPath="general.fechaBaja">
               <Input
                 type="date"
+                {...aiFieldAttrs("general.fechaBaja", "Fecha de Baja")}
                 value={ficha.general.fechaBaja}
                 onChange={(e) => patchGeneral("fechaBaja", e.target.value)}
               />
@@ -178,8 +188,9 @@ export function FichaRucForm({ ficha, onChange }: Props) {
                 ["correoElectronico2", "Correo Electrónico 2"],
               ] as const
             ).map(([key, label]) => (
-              <Field key={key} label={label}>
+              <Field key={key} label={label} aiFieldPath={`modificacionContribuyente.${key}`}>
                 <Input
+                  {...aiFieldAttrs(`modificacionContribuyente.${key}`, label)}
                   value={ficha.modificacionContribuyente[key]}
                   onChange={(e) => patchMod(key, e.target.value)}
                 />
@@ -207,8 +218,9 @@ export function FichaRucForm({ ficha, onChange }: Props) {
                 ["licenciaMunicipal", "Licencia Municipal"],
               ] as const
             ).map(([key, label]) => (
-              <Field key={key} label={label}>
+              <Field key={key} label={label} aiFieldPath={`domicilioFiscal.${key}`}>
                 <Input
+                  {...aiFieldAttrs(`domicilioFiscal.${key}`, label)}
                   value={ficha.domicilioFiscal[key]}
                   onChange={(e) => patchDom(key, e.target.value)}
                 />
@@ -233,15 +245,17 @@ export function FichaRucForm({ ficha, onChange }: Props) {
                 ["condDomiciliado", "Cond. Domiciliado"],
               ] as const
             ).map(([key, label]) => (
-              <Field key={key} label={label}>
+              <Field key={key} label={label} aiFieldPath={`personaNatural.${key}`}>
                 {key === "fechaNacimientoSucesion" ? (
                   <Input
                     type="date"
+                    {...aiFieldAttrs(`personaNatural.${key}`, label)}
                     value={ficha.personaNatural[key]}
                     onChange={(e) => patchPn(key, e.target.value)}
                   />
                 ) : (
                   <Input
+                    {...aiFieldAttrs(`personaNatural.${key}`, label)}
                     value={ficha.personaNatural[key]}
                     onChange={(e) => patchPn(key, e.target.value)}
                   />
@@ -265,15 +279,17 @@ export function FichaRucForm({ ficha, onChange }: Props) {
                 ["paisOrigenCapital", "País de Origen del Capital"],
               ] as const
             ).map(([key, label]) => (
-              <Field key={key} label={label}>
+              <Field key={key} label={label} aiFieldPath={`empresa.${key}`}>
                 {key === "fechaInscripcionRrPp" ? (
                   <Input
                     type="date"
+                    {...aiFieldAttrs(`empresa.${key}`, label)}
                     value={ficha.empresa[key]}
                     onChange={(e) => patchEmp(key, e.target.value)}
                   />
                 ) : (
                   <Input
+                    {...aiFieldAttrs(`empresa.${key}`, label)}
                     value={ficha.empresa[key]}
                     onChange={(e) => patchEmp(key, e.target.value)}
                   />

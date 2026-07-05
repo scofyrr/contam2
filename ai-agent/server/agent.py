@@ -11,15 +11,22 @@ from mistralai.client import Mistral
 
 from config import MISTRAL_API_KEY, MISTRAL_MODEL
 from prompts import SYSTEM_PROMPT_ASK
-from tools import TOOL_DEFINITIONS, execute_tool
+from tools import TOOL_DEFINITIONS, build_verified_count_context, execute_tool, try_direct_count_reply
 
 logger = logging.getLogger(__name__)
 
-MAX_TOOL_ROUNDS = 6
+MAX_TOOL_ROUNDS = 10
 
 
-def _to_mistral_messages(history: list[dict[str, str]]) -> list[dict[str, Any]]:
-    messages: list[dict[str, Any]] = [{"role": "system", "content": SYSTEM_PROMPT_ASK}]
+def _to_mistral_messages(
+    history: list[dict[str, str]],
+    *,
+    extra_system: str = "",
+) -> list[dict[str, Any]]:
+    system_content = SYSTEM_PROMPT_ASK
+    if extra_system:
+        system_content = f"{SYSTEM_PROMPT_ASK}\n\n{extra_system}"
+    messages: list[dict[str, Any]] = [{"role": "system", "content": system_content}]
     for item in history:
         role = item.get("role", "user")
         content = item.get("content", "")
@@ -67,8 +74,24 @@ async def run_ask_agent(
     if thinking_seconds > 0:
         await asyncio.sleep(min(thinking_seconds, 30))
 
+    last_user = ""
+    for item in reversed(history):
+        if item.get("role") == "user" and (item.get("content") or "").strip():
+            last_user = item["content"].strip()
+            break
+
+    direct = try_direct_count_reply(last_user, history)
+    if direct:
+        return {
+            "reply": direct["reply"],
+            "tools_used": direct["tools_used"],
+            "thinking_seconds": thinking_seconds,
+        }
+
+    verified_counts = build_verified_count_context(last_user, history)
+
     client = Mistral(api_key=MISTRAL_API_KEY)
-    messages = _to_mistral_messages(history)
+    messages = _to_mistral_messages(history, extra_system=verified_counts)
     tools_used: list[str] = []
 
     for _round in range(MAX_TOOL_ROUNDS):

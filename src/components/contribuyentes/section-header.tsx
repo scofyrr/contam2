@@ -58,15 +58,18 @@ export function Field({
   help,
   children,
   className,
+  aiFieldPath,
 }: {
   label: string;
   required?: boolean;
   help?: string;
   children: ReactNode;
   className?: string;
+  /** Marca el contenedor para highlight del modo Composer AI */
+  aiFieldPath?: string;
 }) {
   return (
-    <div className={className}>
+    <div className={className} {...(aiFieldPath ? { "data-ai-field-wrap": aiFieldPath } : {})}>
       <label className="text-xs font-medium text-foreground/80 mb-1.5 block">
         {label}
         {required && <span className="text-red-600 ml-0.5">*</span>}

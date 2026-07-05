@@ -8,7 +8,7 @@ import type {
   TareasFiltros,
 } from "@/types/tareas";
 
-const TAREA_VIEW = "v_tareas_pendientes";
+const TAREA_VIEW = "tareas_pendientes";
 const TAREA_TABLE = "tareas_pendientes";
 
 function mapTarea(row: Record<string, unknown>): TareaPendiente {

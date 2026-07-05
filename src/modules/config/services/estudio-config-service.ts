@@ -57,6 +57,7 @@ export async function loadFeatureFlags(): Promise<FeatureFlagRow[]> {
       { codigo: "gamificacion_activa", nombre: "Gamificación", activo: true, descripcion: null },
       { codigo: "fab_alertas_dual", nombre: "FAB Alertas", activo: true, descripcion: null },
       { codigo: "mv_dashboard_stats", nombre: "MV Stats", activo: true, descripcion: null },
+      { codigo: "chat_ia_contador", nombre: "Chat IA", activo: true, descripcion: null },
     ];
   }
 }

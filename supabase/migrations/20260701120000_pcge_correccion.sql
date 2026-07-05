@@ -8,7 +8,13 @@ ALTER TABLE public.plan_contable_pcge
   ALTER COLUMN codigo_cuenta TYPE varchar(10);
 
 ALTER TABLE public.plan_contable_pcge
+  ADD COLUMN IF NOT EXISTS padre_codigo varchar(20),
   ADD COLUMN IF NOT EXISTS es_agrupador boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.auditoria_cambios 
+  ALTER COLUMN registro_id TYPE text,
+  ALTER COLUMN tabla_afectada DROP NOT NULL,
+  ALTER COLUMN accion DROP NOT NULL;
 
 -- ============================================================
 -- 2. NORMALIZAR CÓDIGOS EXISTENTES (eliminar puntos)
@@ -39,18 +45,22 @@ BEGIN
       CONTINUE;
     END IF;
 
-    INSERT INTO public.plan_contable_pcge (
-      codigo_cuenta, nombre_cuenta, nivel, activo, naturaleza, padre_codigo,
-      tipo_cuenta, aplica_para, palabras_clave, created_at, updated_at
-    ) VALUES (
-      v_new, r.nombre_cuenta, r.nivel, r.activo, r.naturaleza,
-      CASE WHEN r.padre_codigo IS NOT NULL THEN public.pcge_strip_dots(r.padre_codigo) ELSE NULL END,
-      r.tipo_cuenta, r.aplica_para, r.palabras_clave, r.created_at, r.updated_at
-    )
-    ON CONFLICT (codigo_cuenta) DO UPDATE SET
-      nombre_cuenta = EXCLUDED.nombre_cuenta,
-      nivel = EXCLUDED.nivel,
-      updated_at = now();
+    IF EXISTS (SELECT 1 FROM public.plan_contable_pcge WHERE codigo_cuenta = v_new) THEN
+      UPDATE public.plan_contable_pcge 
+      SET nombre_cuenta = r.nombre_cuenta,
+          nivel = r.nivel,
+          updated_at = now()
+      WHERE codigo_cuenta = v_new;
+    ELSE
+      INSERT INTO public.plan_contable_pcge (
+        codigo_cuenta, nombre_cuenta, nivel, activo, naturaleza, padre_codigo,
+        tipo_cuenta, aplica_para, palabras_clave, created_at, updated_at
+      ) VALUES (
+        v_new, r.nombre_cuenta, r.nivel, r.activo, r.naturaleza,
+        CASE WHEN r.padre_codigo IS NOT NULL THEN public.pcge_strip_dots(r.padre_codigo) ELSE NULL END,
+        r.tipo_cuenta, r.aplica_para, r.palabras_clave, r.created_at, r.updated_at
+      );
+    END IF;
 
     UPDATE public.plan_contable_pcge
     SET padre_codigo = v_new
@@ -214,45 +224,68 @@ ORDER BY p.codigo_cuenta;
 -- ============================================================
 -- 7. DATOS INICIALES — CLASES Y DIVISIONES PCGE 2026
 -- ============================================================
-INSERT INTO public.plan_contable_pcge (codigo_cuenta, nombre_cuenta, nivel, es_agrupador, activo, naturaleza) VALUES
-  ('1', 'ACTIVO', 1, true, true, 'deudora'),
-  ('10', 'EFECTIVO Y EQUIVALENTES DE EFECTIVO', 2, true, true, 'deudora'),
-  ('101', 'CAJA', 3, true, true, 'deudora'),
-  ('1011', 'CAJA', 4, true, true, 'deudora'),
-  ('101101', 'CAJA', 5, false, true, 'deudora'),
-  ('104', 'CUENTAS CORRIENTES EN INSTITUCIONES FINANCIERAS', 3, true, true, 'deudora'),
-  ('1041', 'CUENTAS CORRIENTES EN INSTITUCIONES FINANCIERAS', 4, true, true, 'deudora'),
-  ('104101', 'CUENTAS CORRIENTES OPERATIVAS', 5, false, true, 'deudora'),
-  ('12', 'CUENTAS POR COBRAR COMERCIALES – TERCEROS', 2, true, true, 'deudora'),
-  ('121', 'FACTURAS, BOLETAS Y OTROS COMPROBANTES POR COBRAR', 3, true, true, 'deudora'),
-  ('1212', 'FACTURAS, BOLETAS Y OTROS COMPROBANTES POR COBRAR', 4, true, true, 'deudora'),
-  ('121201', 'FACTURAS POR COBRAR', 5, false, true, 'deudora'),
-  ('2', 'PASIVO', 1, true, true, 'acreedora'),
-  ('40', 'TRIBUTOS, CONTRAPRESTACIONES Y APORTES AL SISTEMA DE PENSIONES Y DE SALUD POR PAGAR', 2, true, true, 'acreedora'),
-  ('401', 'GOBIERNO CENTRAL', 3, true, true, 'acreedora'),
-  ('4011', 'IMPUESTO GENERAL A LAS VENTAS', 4, true, true, 'acreedora'),
-  ('40111', 'IGV', 5, false, true, 'acreedora'),
-  ('42', 'CUENTAS POR PAGAR COMERCIALES – TERCEROS', 2, true, true, 'acreedora'),
-  ('421', 'FACTURAS, BOLETAS Y OTROS COMPROBANTES POR PAGAR', 3, true, true, 'acreedora'),
-  ('4212', 'FACTURAS, BOLETAS Y OTROS COMPROBANTES POR PAGAR', 4, true, true, 'acreedora'),
-  ('421201', 'FACTURAS POR PAGAR', 5, false, true, 'acreedora'),
-  ('6', 'COSTO DE VENTAS', 1, true, true, 'deudora'),
-  ('60', 'COMPRAS', 2, true, true, 'deudora'),
-  ('601', 'MERCADERÍAS', 3, true, true, 'deudora'),
-  ('6011', 'MERCADERÍAS', 4, true, true, 'deudora'),
-  ('601101', 'MERCADERÍAS', 5, false, true, 'deudora'),
-  ('7', 'INGRESOS', 1, true, true, 'acreedora'),
-  ('70', 'VENTAS', 2, true, true, 'acreedora'),
-  ('701', 'MERCADERÍAS', 3, true, true, 'acreedora'),
-  ('7011', 'MERCADERÍAS', 4, true, true, 'acreedora'),
-  ('701111', 'VENTAS DE MERCADERÍAS', 5, false, true, 'acreedora')
-ON CONFLICT (codigo_cuenta) DO UPDATE SET
-  nombre_cuenta = EXCLUDED.nombre_cuenta,
-  nivel = EXCLUDED.nivel,
-  es_agrupador = EXCLUDED.es_agrupador,
-  naturaleza = EXCLUDED.naturaleza,
-  padre_codigo = public.pcge_padre_desde_codigo(EXCLUDED.codigo_cuenta),
-  updated_at = now();
+DO $$
+DECLARE
+  v_caja_values jsonb := '[
+    {"c": "1", "n": "ACTIVO", "lvl": 1, "agr": true, "nat": "deudora"},
+    {"c": "10", "n": "EFECTIVO Y EQUIVALENTES DE EFECTIVO", "lvl": 2, "agr": true, "nat": "deudora"},
+    {"c": "101", "n": "CAJA", "lvl": 3, "agr": true, "nat": "deudora"},
+    {"c": "1011", "n": "CAJA", "lvl": 4, "agr": true, "nat": "deudora"},
+    {"c": "101101", "n": "CAJA", "lvl": 5, "agr": false, "nat": "deudora"},
+    {"c": "104", "n": "CUENTAS CORRIENTES EN INSTITUCIONES FINANCIERAS", "lvl": 3, "agr": true, "nat": "deudora"},
+    {"c": "1041", "n": "CUENTAS CORRIENTES EN INSTITUCIONES FINANCIERAS", "lvl": 4, "agr": true, "nat": "deudora"},
+    {"c": "104101", "n": "CUENTAS CORRIENTES OPERATIVAS", "lvl": 5, "agr": false, "nat": "deudora"},
+    {"c": "12", "n": "CUENTAS POR COBRAR COMERCIALES – TERCEROS", "lvl": 2, "agr": true, "nat": "deudora"},
+    {"c": "121", "n": "FACTURAS, BOLETAS Y OTROS COMPROBANTES POR COBRAR", "lvl": 3, "agr": true, "nat": "deudora"},
+    {"c": "1212", "n": "FACTURAS, BOLETAS Y OTROS COMPROBANTES POR COBRAR", "lvl": 4, "agr": true, "nat": "deudora"},
+    {"c": "121201", "n": "FACTURAS POR COBRAR", "lvl": 5, "agr": false, "nat": "deudora"},
+    {"c": "2", "n": "PASIVO", "lvl": 1, "agr": true, "nat": "acreedora"},
+    {"c": "40", "n": "TRIBUTOS, CONTRAPRESTACIONES Y APORTES AL SISTEMA DE PENSIONES Y DE SALUD POR PAGAR", "lvl": 2, "agr": true, "nat": "acreedora"},
+    {"c": "401", "n": "GOBIERNO CENTRAL", "lvl": 3, "agr": true, "nat": "acreedora"},
+    {"c": "4011", "n": "IMPUESTO GENERAL A LAS VENTAS", "lvl": 4, "agr": true, "nat": "acreedora"},
+    {"c": "40111", "n": "IGV", "lvl": 5, "agr": false, "nat": "acreedora"},
+    {"c": "42", "n": "CUENTAS POR PAGAR COMERCIALES – TERCEROS", "lvl": 2, "agr": true, "nat": "acreedora"},
+    {"c": "421", "n": "FACTURAS, BOLETAS Y OTROS COMPROBANTES POR PAGAR", "lvl": 3, "agr": true, "nat": "acreedora"},
+    {"c": "4212", "n": "FACTURAS, BOLETAS Y OTROS COMPROBANTES POR PAGAR", "lvl": 4, "agr": true, "nat": "acreedora"},
+    {"c": "421201", "n": "FACTURAS POR PAGAR", "lvl": 5, "agr": false, "nat": "acreedora"},
+    {"c": "6", "n": "COSTO DE VENTAS", "lvl": 1, "agr": true, "nat": "deudora"},
+    {"c": "60", "n": "COMPRAS", "lvl": 2, "agr": true, "nat": "deudora"},
+    {"c": "601", "n": "MERCADERÍAS", "lvl": 3, "agr": true, "nat": "deudora"},
+    {"c": "6011", "n": "MERCADERÍAS", "lvl": 4, "agr": true, "nat": "deudora"},
+    {"c": "601101", "n": "MERCADERÍAS", "lvl": 5, "agr": false, "nat": "deudora"},
+    {"c": "7", "n": "INGRESOS", "lvl": 1, "agr": true, "nat": "acreedora"},
+    {"c": "70", "n": "VENTAS", "lvl": 2, "agr": true, "nat": "acreedora"},
+    {"c": "701", "n": "MERCADERÍAS", "lvl": 3, "agr": true, "nat": "acreedora"},
+    {"c": "7011", "n": "MERCADERÍAS", "lvl": 4, "agr": true, "nat": "acreedora"},
+    {"c": "701111", "n": "VENTAS DE MERCADERÍAS", "lvl": 5, "agr": false, "nat": "acreedora"}
+  ]'::jsonb;
+  v_item jsonb;
+BEGIN
+  FOR v_item IN SELECT * FROM jsonb_array_elements(v_caja_values)
+  LOOP
+    IF EXISTS (SELECT 1 FROM public.plan_contable_pcge WHERE codigo_cuenta = v_item->>'c') THEN
+      UPDATE public.plan_contable_pcge
+      SET nombre_cuenta = v_item->>'n',
+          nivel = (v_item->>'lvl')::int,
+          es_agrupador = (v_item->>'agr')::boolean,
+          naturaleza = upper(v_item->>'nat'),
+          padre_codigo = public.pcge_padre_desde_codigo(v_item->>'c'),
+          updated_at = now()
+      WHERE codigo_cuenta = v_item->>'c';
+    ELSE
+      INSERT INTO public.plan_contable_pcge (codigo_cuenta, nombre_cuenta, nivel, es_agrupador, activo, naturaleza, padre_codigo)
+      VALUES (
+        v_item->>'c',
+        v_item->>'n',
+        (v_item->>'lvl')::int,
+        (v_item->>'agr')::boolean,
+        true,
+        upper(v_item->>'nat'),
+        public.pcge_padre_desde_codigo(v_item->>'c')
+      );
+    END IF;
+  END LOOP;
+END $$;
 
 UPDATE public.config_contable
 SET cuenta_caja_default = '101101'

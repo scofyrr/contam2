@@ -29,6 +29,21 @@ DB_CONFIG = {
 AI_SERVER_HOST = os.getenv("AI_SERVER_HOST", "127.0.0.1")
 AI_SERVER_PORT = int(os.getenv("AI_SERVER_PORT", "8001"))
 
+QUERY_DEFAULT_LIMIT = int(os.getenv("QUERY_DEFAULT_LIMIT", "50"))
+QUERY_MAX_LIMIT = int(os.getenv("QUERY_MAX_LIMIT", "200"))
+QUERY_MAX_OFFSET = int(os.getenv("QUERY_MAX_OFFSET", "50000"))
+
+# Modo Composer
+COMPOSER_MAX_THINKING_SECONDS = int(os.getenv("COMPOSER_MAX_THINKING_SECONDS", "45"))
+ASK_MAX_THINKING_SECONDS = int(os.getenv("ASK_MAX_THINKING_SECONDS", "15"))
+DEBUG_MAX_THINKING_SECONDS = int(os.getenv("DEBUG_MAX_THINKING_SECONDS", "30"))
+SUNAT_CLIENT_ID = os.getenv("SUNAT_CLIENT_ID", "").strip()
+SUNAT_CLIENT_SECRET = os.getenv("SUNAT_CLIENT_SECRET", "").strip()
+SUNAT_TOKEN_URL_TEMPLATE = (
+    "https://api-seguridad.sunat.gob.pe/v1/clientessol/{client_id}/oauth2/token/"
+)
+SUNAT_SIRE_SCOPE = "https://api-sire.sunat.gob.pe"
+
 # Tablas permitidas (solo lectura, consultas predefinidas)
 ALLOWED_TABLES = frozenset(
     {

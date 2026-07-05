@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useContribuyentes } from "@/hooks/use-contribuyentes";
 import { FichaRucForm } from "@/components/ficha-ruc/ficha-ruc-form";
+import { useRegisterAiComposerPage } from "@/contexts/ai-composer-context";
+import { applyFillToFicha, buildFichaFieldSnapshots } from "@/lib/ai-composer-fill";
 import { ExportButtons } from "@/components/export-buttons";
 import { emptyFichaRuc, validateFichaRequired } from "@/lib/contribuyentes-factory";
 import type { FichaRuc } from "@/lib/contribuyentes-types";
@@ -107,6 +109,27 @@ function FichaRucPage() {
       setDraft(emptyFichaRuc(selectedRuc, c?.razonSocial ?? ""));
     }
   }, [selectedRuc, getFicha, contribuyentes]);
+
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+
+  const applyComposerFill = useCallback((action: { field_path: string; value: string }) => {
+    setDraft((prev) => (prev ? applyFillToFicha(prev, action) : prev));
+  }, []);
+
+  const composerRegistration = useMemo(() => {
+    if (!draft || pageTab !== "editor") return null;
+    return {
+      pageId: "ficha-ruc",
+      ruc: draft.ruc,
+      title: "Ficha RUC — Editor",
+      route: "/ficha-ruc",
+      getFields: () => buildFichaFieldSnapshots(draftRef.current!),
+      applyFill: applyComposerFill,
+    };
+  }, [draft, pageTab, applyComposerFill]);
+
+  useRegisterAiComposerPage(composerRegistration, pageTab === "editor" && !!draft);
 
   const handleSave = async () => {
     if (!draft) return;
