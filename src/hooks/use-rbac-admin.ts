@@ -10,6 +10,7 @@ import {
   removerRolUsuario,
 } from "@/modules/auth/services/rbac-admin-service";
 import { permissionService } from "@/modules/auth/services/permission-service";
+import { useSession } from "@/hooks/use-session";
 
 export function useUsuariosAdmin(adminUserId: string | null) {
   return useQuery({
@@ -21,18 +22,22 @@ export function useUsuariosAdmin(adminUserId: string | null) {
 }
 
 export function useRolesCatalogo() {
+  const { user } = useSession();
   return useQuery({
     queryKey: ["rbac", "roles-catalogo"],
     queryFn: listarRolesCatalogo,
     staleTime: 5 * 60_000,
+    enabled: !!user?.id,
   });
 }
 
 export function usePermisosCatalogo() {
+  const { user } = useSession();
   return useQuery({
     queryKey: ["rbac", "permisos-catalogo"],
     queryFn: listarPermisosCatalogo,
     staleTime: 5 * 60_000,
+    enabled: !!user?.id,
   });
 }
 

@@ -149,13 +149,13 @@ export class AdminDashboardService {
     );
 
     return {
-      totalContadores: contadores.length || 4,
-      contadoresActivos: contadores.filter((u) => u.activo).length || 3,
+      totalContadores: contadores.length,
+      contadoresActivos: contadores.filter((u) => u.activo).length,
       totalClientes: contribuyentes.length,
       clientesActivos: contribuyentes.filter((c) => c.estado === "ACTIVO").length,
       facturacionMensual: facturacion.at(-1)?.monto ?? 0,
       facturacionAnual: facturacion.reduce((s, f) => s + f.monto, 0),
-      efectividadPromedio: stats?.efectividad_pct ?? 88,
+      efectividadPromedio: stats?.efectividad_pct ?? 0,
       tareasPendientesEstudio: stats?.pendientes ?? 0,
       tareasVencidasEstudio: stats?.vencidas ?? 0,
       clientesPorContador: contadores.map((c) => ({
@@ -178,7 +178,7 @@ export class AdminDashboardService {
     );
 
     if (contadores.length === 0) {
-      return this.demoContadores();
+      return [];
     }
 
     return contadores.map((u) => {
@@ -239,12 +239,7 @@ export class AdminDashboardService {
       /* fallback */
     }
 
-    const now = new Date();
-    return Array.from({ length: meses }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (meses - 1 - i), 1);
-      const mes = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
-      return { mes, monto: 180_000 + Math.random() * 120_000 };
-    });
+    return [];
   }
 
   async getTareasPorContador(adminUserId: string): Promise<TareasPorContador[]> {

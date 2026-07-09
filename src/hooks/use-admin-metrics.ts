@@ -56,11 +56,12 @@ export function useAdminAlertas() {
 }
 
 export function useAdminActividad(limit = 10) {
+  const { user } = useSession();
   const enabled = useAdminEnabled();
   return useQuery({
     queryKey: ["admin", "actividad", limit],
     queryFn: () => adminMetricsService.getActividadReciente(limit),
-    enabled,
+    enabled: !!user?.id && enabled,
     staleTime: STALE_TIMES.AUDITORIA_RECIENTE,
     refetchInterval: 60_000,
   });

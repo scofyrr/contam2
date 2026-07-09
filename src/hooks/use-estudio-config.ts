@@ -6,22 +6,26 @@ import {
 } from "@/modules/config/services/estudio-config-service";
 import { DEFAULT_ESTUDIO_CONFIG } from "@/modules/config/types/estudio-config";
 import { useEstudioConfigOverride } from "@/hooks/estudio-config-override";
+import { useSession } from "@/hooks/use-session";
 
 export function useEstudioConfig() {
   const qc = useQueryClient();
   const override = useEstudioConfigOverride();
+  const { user } = useSession();
 
   const query = useQuery({
     queryKey: ["estudio", "config"],
     queryFn: loadEstudioConfig,
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
+    enabled: !!user?.id,
   });
 
   const flagsQuery = useQuery({
     queryKey: ["estudio", "feature-flags"],
     queryFn: loadFeatureFlags,
     staleTime: 5 * 60_000,
+    enabled: !!user?.id,
   });
 
   const cfg = override ?? query.data ?? DEFAULT_ESTUDIO_CONFIG;

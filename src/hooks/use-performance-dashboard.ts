@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { performanceMonitor } from "@/lib/performance-monitoring";
+import { useSession } from "@/hooks/use-session";
 
 type DbSlowQuery = {
   query_text: string;
@@ -41,6 +42,7 @@ export function useSlowComponents() {
 }
 
 export function useDbSlowQueries() {
+  const { user } = useSession();
   return useQuery({
     queryKey: ["performance", "slow-queries-db"],
     queryFn: async () => {
@@ -49,6 +51,7 @@ export function useDbSlowQueries() {
       return (data ?? []) as DbSlowQuery[];
     },
     staleTime: 5 * 60_000,
+    enabled: !!user?.id,
   });
 }
 
@@ -63,6 +66,7 @@ export function useRefreshMaterializedViews() {
 }
 
 export function useMvDashboardStats(ruc: string | null, periodo: string | null) {
+  const { user } = useSession();
   return useQuery({
     queryKey: ["performance", "mv-dashboard", ruc, periodo],
     queryFn: async () => {
@@ -73,7 +77,7 @@ export function useMvDashboardStats(ruc: string | null, periodo: string | null) 
       if (error) throw error;
       return data?.[0] ?? null;
     },
-    enabled: !!ruc && !!periodo,
+    enabled: !!ruc && !!periodo && !!user?.id,
     staleTime: 5 * 60_000,
   });
 }

@@ -142,8 +142,7 @@ class AuditoriaService {
       const total = rows[0]?.total_count ?? 0;
       return { data: rows.map(mapRegistro), total: Number(total), pagina };
     } catch {
-      const demo = demoRegistros();
-      return { data: demo, total: demo.length, pagina: 1 };
+      return { data: [], total: 0, pagina: 1 };
     }
   }
 
@@ -165,10 +164,7 @@ class AuditoriaService {
         ultimaActividad: String(r.ultima_actividad ?? new Date().toISOString()),
       }));
     } catch {
-      return [
-        { modulo: "SIRE", accion: "CREAR", totalOperaciones: 45, usuariosUnicos: 3, rucsUnicos: 12, ultimaActividad: new Date().toISOString() },
-        { modulo: "DIARIO", accion: "MODIFICAR", totalOperaciones: 28, usuariosUnicos: 2, rucsUnicos: 8, ultimaActividad: new Date().toISOString() },
-      ];
+      return [];
     }
   }
 
@@ -196,7 +192,7 @@ class AuditoriaService {
         createdAt: String(row.created_at),
       }));
     } catch {
-      return demoRegistros().filter((r) => r.severity === "CRITICAL");
+      return [];
     }
   }
 
@@ -241,11 +237,11 @@ class AuditoriaService {
       };
     } catch {
       return {
-        accionesHoy: 1247,
-        usuariosActivos: 45,
-        alertasActivas: 3,
-        modulosActivos: 12,
-        estadoSistema: "ATENCION",
+        accionesHoy: 0,
+        usuariosActivos: 0,
+        alertasActivas: 0,
+        modulosActivos: 0,
+        estadoSistema: "NORMAL",
       };
     }
   }

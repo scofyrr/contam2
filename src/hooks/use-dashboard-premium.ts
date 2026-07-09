@@ -36,11 +36,12 @@ export function useContadoresPerformance() {
 }
 
 export function useFacturacionMensual(meses = 12) {
+  const { user } = useSession();
   const isAdmin = useIsAdminDashboard();
   return useQuery({
     queryKey: ["dashboard", "admin", "facturacion", meses],
     queryFn: () => adminDashboardService.getFacturacionMensual(meses),
-    enabled: isAdmin,
+    enabled: !!user?.id && isAdmin,
     staleTime: STALE_TIMES.DASHBOARD_KPIS,
   });
 }
@@ -69,11 +70,12 @@ export function useAlertasEstudio() {
 }
 
 export function useActividadEstudio(limit = 20) {
+  const { user } = useSession();
   const isAdmin = useIsAdminDashboard();
   return useQuery({
     queryKey: ["dashboard", "admin", "actividad", limit],
     queryFn: () => adminDashboardService.getActividadReciente(limit),
-    enabled: isAdmin,
+    enabled: !!user?.id && isAdmin,
     staleTime: STALE_TIMES.AUDITORIA_RECIENTE,
     refetchInterval: 60_000,
   });
