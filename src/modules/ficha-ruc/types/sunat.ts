@@ -18,6 +18,7 @@ export interface SunatRucData {
   nombreComercial?: string;
   tipoContribuyente: "PERSONA_NATURAL" | "SOCIEDAD_ANONIMA" | "SOCIEDAD_COMERCIAL" | "OTRO";
   estadoContribuyente: "ACTIVO" | "SUSPENSION_TEMPORAL" | "BAJA_DEFINITIVA" | "NO_HALLADO";
+  condicionDomicilioFiscal?: string;
   fechaInscripcion: string;
   fechaInicioActividades: string;
   actividadEconomicaPrincipal: { codigo: string; descripcion: string };

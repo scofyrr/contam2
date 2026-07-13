@@ -24,6 +24,7 @@ function mergeSunatIntoFicha(ficha: FichaRuc, sunat: SunatRucData): FichaRuc {
       razonSocial: sunat.razonSocial || ficha.general.razonSocial,
       tipoContribuyente: mapTipoSunat(sunat.tipoContribuyente),
       estadoContribuyente: sunat.estadoContribuyente.replace(/_/g, " "),
+      condicionDomicilioFiscal: sunat.condicionDomicilioFiscal || ficha.general.condicionDomicilioFiscal,
       fechaInscripcion: sunat.fechaInscripcion || ficha.general.fechaInscripcion,
       fechaInicioActividades: sunat.fechaInicioActividades || ficha.general.fechaInicioActividades,
     },

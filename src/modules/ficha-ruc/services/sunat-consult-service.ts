@@ -139,7 +139,7 @@ function checkRateLimit(): { ok: boolean; restantes: number; waitMs: number } {
   return { ok: true, restantes: MAX_PER_MINUTE - bucket.count, waitMs: 0 };
 }
 
-function generarDatosSimulados(ruc: string): SunatRucData {
+function generarDatosSimulados(ruc: string, razonSocialExistente?: string): SunatRucData {
   const seed = parseInt(ruc, 10) || 20100000001;
   const rng = seeded(seed);
   const tipo = ruc.slice(0, 2);
@@ -150,7 +150,9 @@ function generarDatosSimulados(ruc: string): SunatRucData {
   const dist = pick(rng, dept.distritos);
 
   let razonSocial: string;
-  if (tipo === "10") {
+  if (razonSocialExistente) {
+    razonSocial = razonSocialExistente;
+  } else if (tipo === "10") {
     const ap = pick(rng, APELLIDOS);
     const nom = pick(rng, NOMBRES);
     razonSocial = rng() > 0.5 ? `${ap} ${nom}, ${pick(rng, NOMBRES)}` : `${ap} ${nom}`;
@@ -268,6 +270,80 @@ function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+function mapDecolectaToSunatRucData(d: any): SunatRucData {
+  const principalAct = d.actividad_economica || d.actividadEconomica || "";
+  let actCod = "0000";
+  let actDesc = principalAct;
+  const digits = principalAct.match(/\d+/);
+  if (digits) {
+    actCod = digits[0];
+  }
+
+  const parseDate = (val: any) => {
+    if (!val) return "";
+    const cleanVal = String(val).trim();
+    if (cleanVal.includes("/")) {
+      const parts = cleanVal.split("/");
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+      }
+    }
+    return cleanVal;
+  };
+
+  const mapTipoContribuyente = (val: string): SunatRucData["tipoContribuyente"] => {
+    const u = String(val || "").toUpperCase();
+    if (u.includes("NATURAL")) return "PERSONA_NATURAL";
+    if (u.includes("ANONIMA") || u.includes("S.A.")) return "SOCIEDAD_ANONIMA";
+    if (u.includes("COMERCIAL") || u.includes("S.R.L.")) return "SOCIEDAD_COMERCIAL";
+    return "OTRO";
+  };
+
+  return {
+    ruc: d.numero_documento || d.numeroDocumento || d.ruc || "",
+    razonSocial: (d.razon_social || d.razonSocial || "").trim().toUpperCase(),
+    nombreComercial: d.nombre_comercial || d.nombreComercial || undefined,
+    tipoContribuyente: mapTipoContribuyente(d.tipo || d.tipo_contribuyente || d.tipoContribuyente || ""),
+    estadoContribuyente: mapEstado(d.estado || d.estado_contribuyente || "ACTIVO"),
+    condicionDomicilioFiscal: d.condicion || d.condicion_domicilio_fiscal || "HABIDO",
+    fechaInscripcion: parseDate(d.fecha_inscripcion || d.fechaInscripcion),
+    fechaInicioActividades: parseDate(d.fecha_inicio_actividades || d.fechaInicioActividades || d.fecha_inicio_actividad),
+    actividadEconomicaPrincipal: {
+      codigo: actCod,
+      descripcion: actDesc
+    },
+    actividadesEconomicasSecundarias: [],
+    domicilioFiscal: {
+      direccion: d.direccion || d.otras_referencias || "",
+      departamento: d.departamento || "",
+      provincia: d.provincia || "",
+      distrito: d.distrito || "",
+      ubigeo: d.ubigeo || ""
+    },
+    representantesLegales: (d.representantes_legales || d.representantes || []).map((r: any) => ({
+      nombre: r.nombre || r.apellidos_nombres || "",
+      cargo: r.cargo || "",
+      fechaDesde: parseDate(r.desde || r.fecha_desde),
+      tipoDocumento: r.tipoDocumento || r.tipo_documento || "DNI",
+      numeroDocumento: r.numero || r.numero_documento || ""
+    })),
+    tributosAfectos: (d.tributos_afectos || d.tributos || []).map((t: any) => ({
+      codigo: t.codigo || "0000",
+      descripcion: t.descripcion || t.tributo || "",
+      desde: parseDate(t.fecha || t.fecha_alta)
+    })),
+    establecimientos: (d.locales_anexos || d.establecimientos || []).map((e: any, idx: number) => ({
+      codigo: e.codigo || String(idx).padStart(4, "0"),
+      tipo: e.tipo || "ESTABLECIMIENTO",
+      direccion: e.direccion || e.domicilio || "",
+      departamento: e.departamento || "",
+      provincia: e.provincia || "",
+      distrito: e.distrito || ""
+    })),
+    fechaActualizacion: new Date().toISOString()
+  };
+}
+
 export async function consultarRucSunat(
   ruc: string,
   options?: { forzarActualizacion?: boolean },
@@ -301,7 +377,7 @@ export async function consultarRucSunat(
     }
 
     const dbData = await fetchFromDb(clean);
-    if (dbData?.razonSocial) {
+    if (dbData?.razonSocial && dbData.fechaInscripcion) {
       cacheSet(clean, dbData);
       return {
         success: true,
@@ -328,9 +404,49 @@ export async function consultarRucSunat(
     }
   }
 
+  // 1. INTENTAR CONSULTAR LA API DECOLECTA REAL A TRAVÉS DE LA SUPABASE EDGE FUNCTION
+  try {
+    const { data: resData, error: fnError } = await supabase.functions.invoke("consultar-ruc", {
+      body: { ruc: clean }
+    });
+
+    if (fnError) throw fnError;
+
+    if (resData && resData.data) {
+      const mappedData = mapDecolectaToSunatRucData(resData.data);
+      cacheSet(clean, mappedData);
+      return {
+        success: true,
+        data: mappedData,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          source: "API_SUNAT",
+          consultasRestantes: rate.restantes,
+        },
+      };
+    }
+  } catch (err: any) {
+    console.warn("No se pudo obtener datos de la API real, usando simulación local:", err);
+  }
+
+  // 2. FALLBACK A SIMULACION LOCAL SI LA API REAL FALLA O NO ESTÁ DEPLEGADA
   await delay(1000 + Math.floor(Math.random() * 2000));
 
-  const data = generarDatosSimulados(clean);
+  let razonSocialExistente: string | undefined;
+  try {
+    const { data: dbContribuyente } = await supabase
+      .from("contribuyentes")
+      .select("razon_social")
+      .eq("ruc", clean)
+      .maybeSingle();
+    if (dbContribuyente?.razon_social) {
+      razonSocialExistente = dbContribuyente.razon_social;
+    }
+  } catch {
+    // Ignorar si falla
+  }
+
+  const data = generarDatosSimulados(clean, razonSocialExistente);
   cacheSet(clean, data);
 
   return {

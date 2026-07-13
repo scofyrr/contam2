@@ -134,12 +134,33 @@ function applyFiltros(cuentas: PlanContableCuenta[], filtros?: PcgeFiltros): Pla
 /** Servicio PCGE refactorizado — lectura, escritura y estadísticas. */
 export class PcgeService {
   async fetchAll(): Promise<PlanContableCuenta[]> {
-    const { data, error } = await supabase
-      .from("plan_contable_pcge")
-      .select(PCGE_COLUMNS)
-      .order("codigo_cuenta", { ascending: true });
-    throwIfSupabaseError(error, "Error al cargar plan de cuentas");
-    return (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
+    const allRows: unknown[] = [];
+    const pageSize = 1000;
+    let page = 0;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from("plan_contable_pcge")
+        .select(PCGE_COLUMNS)
+        .order("codigo_cuenta", { ascending: true })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+      throwIfSupabaseError(error, "Error al cargar plan de cuentas");
+
+      if (!data || data.length === 0) {
+        break;
+      }
+
+      allRows.push(...data);
+
+      if (data.length < pageSize) {
+        break;
+      }
+
+      page++;
+    }
+
+    return allRows.map((row) => mapRow(row as Record<string, unknown>));
   }
 
   async getArbolPCGE(filtros?: PcgeFiltros): Promise<PcgeTreeNode[]> {

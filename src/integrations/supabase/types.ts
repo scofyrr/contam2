@@ -804,18 +804,51 @@ export type Database = {
           payload: Json
           created_at: string
           updated_at: string
+          datos_incompletos: boolean | null
+          fuente_datos: string | null
+          ultima_actualizacion: string | null
+          ultima_actividad: string | null
+          cantidad_comprobantes: number | null
+          total_compras_12m: number | null
+          total_ventas_12m: number | null
+          actividad_economica_principal: string | null
+          actividad_economica_secundaria1: string | null
+          actividad_economica_secundaria2: string | null
+          actividad_economica: string | null
         }
         Insert: {
           ruc: string
           payload?: Json
           created_at?: string
           updated_at?: string
+          datos_incompletos?: boolean | null
+          fuente_datos?: string | null
+          ultima_actualizacion?: string | null
+          ultima_actividad?: string | null
+          cantidad_comprobantes?: number | null
+          total_compras_12m?: number | null
+          total_ventas_12m?: number | null
+          actividad_economica_principal?: string | null
+          actividad_economica_secundaria1?: string | null
+          actividad_economica_secundaria2?: string | null
+          actividad_economica?: string | null
         }
         Update: {
           ruc?: string
           payload?: Json
           created_at?: string
           updated_at?: string
+          datos_incompletos?: boolean | null
+          fuente_datos?: string | null
+          ultima_actualizacion?: string | null
+          ultima_actividad?: string | null
+          cantidad_comprobantes?: number | null
+          total_compras_12m?: number | null
+          total_ventas_12m?: number | null
+          actividad_economica_principal?: string | null
+          actividad_economica_secundaria1?: string | null
+          actividad_economica_secundaria2?: string | null
+          actividad_economica?: string | null
         }
         Relationships: [
           {
