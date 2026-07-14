@@ -59,9 +59,54 @@ export function generarLineasAsiento(
   const c = { ...CUENTAS_DEFAULT, ...cuentas };
   const { mto_bi_gravada, mto_igv_ipe, mto_total_cp } = resolverMontosComprobante(registro);
   const label = comprobanteLabel(registro);
-  const cuentaGasto = registro.cuenta_pcge?.trim() || c.gastoCompra;
+  const round = (n: number) => Math.round(n * 100) / 100;
 
   if (registro.tipo === "COMPRA") {
+    // Si es un Recibo por Honorarios (CPE tipo 02)
+    if (registro.cod_tipo_cdp === "02") {
+      const gastoDefault = "632901"; // Honorarios profesionales - Otros
+      const cuentaGasto = registro.cuenta_pcge?.trim() || gastoDefault;
+      const cuentaHonPagar = "424101"; // Honorarios por pagar
+      const cuentaRetencion = "40172"; // Renta de cuarta categoría
+
+      const bruto = mto_total_cp;
+      const aplicaRetencion = bruto > 1500;
+      const retencion = aplicaRetencion ? round(bruto * 0.08) : 0;
+      const neto = round(bruto - retencion);
+
+      const lineas: LineaAsientoInput[] = [
+        {
+          orden: 1,
+          cuenta: cuentaGasto,
+          glosa: `Por provisión de honorarios según comprobante ${label}`,
+          debe: bruto,
+          haber: 0,
+        },
+      ];
+
+      if (retencion > 0) {
+        lineas.push({
+          orden: 2,
+          cuenta: cuentaRetencion,
+          glosa: `Retención IR 4ta Cat. ${label}`,
+          debe: 0,
+          haber: retencion,
+        });
+      }
+
+      lineas.push({
+        orden: lineas.length + 1,
+        cuenta: cuentaHonPagar,
+        glosa: `Obligación por honorarios ${registro.nombre_contraparte ?? ""}`.trim(),
+        debe: 0,
+        haber: neto,
+      });
+
+      return lineas;
+    }
+
+    // Compra estándar
+    const cuentaGasto = registro.cuenta_pcge?.trim() || c.gastoCompra;
     return [
       {
         orden: 1,

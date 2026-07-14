@@ -70,6 +70,41 @@ describe("AsientosGenerator", () => {
       expect(debe).toBe(2950);
       expect(haber).toBe(2950);
     });
+
+    it("debe generar lineas correctas para Recibo por Honorarios (CPE 02) sin retencion (<= 1500)", () => {
+      const registro = mockRegistroCompra({
+        cod_tipo_cdp: "02",
+        mto_bi_gravada: 0,
+        mto_igv_ipe: 0,
+        mto_total_cp: 1200,
+        importe_total: 1200,
+      });
+      const lineas = generarLineasAsiento(registro);
+      expect(lineas).toHaveLength(2);
+      expect(lineas[0]).toMatchObject({ cuenta: "632901", debe: 1200, haber: 0 });
+      expect(lineas[1]).toMatchObject({ cuenta: "424101", debe: 0, haber: 1200 });
+
+      const { debe, haber } = sumDebeHaber(lineas);
+      expect(debe).toBe(haber);
+    });
+
+    it("debe generar lineas correctas para Recibo por Honorarios (CPE 02) con retencion 8% (> 1500)", () => {
+      const registro = mockRegistroCompra({
+        cod_tipo_cdp: "02",
+        mto_bi_gravada: 0,
+        mto_igv_ipe: 0,
+        mto_total_cp: 3000,
+        importe_total: 3000,
+      });
+      const lineas = generarLineasAsiento(registro);
+      expect(lineas).toHaveLength(3);
+      expect(lineas[0]).toMatchObject({ cuenta: "632901", debe: 3000, haber: 0 });
+      expect(lineas[1]).toMatchObject({ cuenta: "40172", debe: 0, haber: 240 });
+      expect(lineas[2]).toMatchObject({ cuenta: "424101", debe: 0, haber: 2760 });
+
+      const { debe, haber } = sumDebeHaber(lineas);
+      expect(debe).toBe(haber);
+    });
   });
 
   describe("generarLineasAsiento — venta", () => {

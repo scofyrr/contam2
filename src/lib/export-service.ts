@@ -137,6 +137,113 @@ export async function exportToExcel(pack: ExportPack, options: ExportOptions = {
   );
 }
 
+function setupStyleOverrides() {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return () => {};
+  }
+
+  const originalGetComputedStyle = window.getComputedStyle;
+  const originalIframeDescriptor = Object.getOwnPropertyDescriptor(
+    HTMLIFrameElement.prototype,
+    "contentWindow"
+  );
+
+  const colorCache = new Map<string, string>();
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = 1;
+  tempCanvas.height = 1;
+  const ctx = tempCanvas.getContext("2d", { willReadFrequently: true });
+
+  function resolveModernColorToRgba(colorStr: string): string {
+    if (!colorStr) return colorStr;
+    if (!colorStr.includes("oklch") && !colorStr.includes("oklab")) {
+      return colorStr;
+    }
+    if (colorCache.has(colorStr)) {
+      return colorCache.get(colorStr)!;
+    }
+    try {
+      if (ctx) {
+        ctx.clearRect(0, 0, 1, 1);
+        ctx.fillStyle = colorStr;
+        ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+        const resolved = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+        colorCache.set(colorStr, resolved);
+        return resolved;
+      }
+    } catch (e) {
+      console.warn("Failed to resolve modern color:", colorStr, e);
+    }
+    return "rgba(0, 0, 0, 0)";
+  }
+
+  function wrapGetComputedStyle(originalFn: typeof window.getComputedStyle) {
+    return function (el: Element, pseudoElt?: string | null) {
+      const style = originalFn(el, pseudoElt);
+      return new Proxy(style, {
+        get(target, prop) {
+          if (prop === "getPropertyValue") {
+            return function (propertyName: string) {
+              const val = target.getPropertyValue(propertyName);
+              if (
+                typeof val === "string" &&
+                (val.includes("oklch") || val.includes("oklab"))
+              ) {
+                return resolveModernColorToRgba(val);
+              }
+              return val;
+            };
+          }
+          const val = Reflect.get(target, prop);
+          if (typeof val === "function") {
+            return val.bind(target);
+          }
+          if (
+            typeof val === "string" &&
+            (val.includes("oklch") || val.includes("oklab"))
+          ) {
+            return resolveModernColorToRgba(val);
+          }
+          return val;
+        },
+      }) as CSSStyleDeclaration;
+    };
+  }
+
+  window.getComputedStyle = wrapGetComputedStyle(originalGetComputedStyle);
+
+  if (originalIframeDescriptor && originalIframeDescriptor.get) {
+    const originalGet = originalIframeDescriptor.get;
+    Object.defineProperty(HTMLIFrameElement.prototype, "contentWindow", {
+      ...originalIframeDescriptor,
+      get() {
+        const win = originalGet.call(this);
+        if (win && !win.__getComputedStyleOverridden) {
+          win.__getComputedStyleOverridden = true;
+          try {
+            win.getComputedStyle = wrapGetComputedStyle(win.getComputedStyle);
+          } catch (err) {
+            console.warn("Failed to override iframe getComputedStyle", err);
+          }
+        }
+        return win;
+      },
+    });
+  }
+
+  return function restore() {
+    window.getComputedStyle = originalGetComputedStyle;
+    if (originalIframeDescriptor) {
+      Object.defineProperty(
+        HTMLIFrameElement.prototype,
+        "contentWindow",
+        originalIframeDescriptor
+      );
+    }
+  };
+}
+
 async function captureChartImages(
   chartIds?: ChartCatalogId[],
 ): Promise<{ title: string; dataUrl: string }[]> {
@@ -148,15 +255,21 @@ async function captureChartImages(
   const nodes = document.querySelectorAll<HTMLElement>(selector);
   const shots: { title: string; dataUrl: string }[] = [];
 
-  for (const el of nodes) {
-    const title =
-      el.querySelector("[data-chart-title]")?.textContent?.trim() ?? "Gráfico";
-    const canvas = await html2canvas(el, {
-      backgroundColor: "#ffffff",
-      scale: 2,
-      logging: false,
-    });
-    shots.push({ title, dataUrl: canvas.toDataURL("image/png") });
+  const restore = setupStyleOverrides();
+
+  try {
+    for (const el of nodes) {
+      const title =
+        el.querySelector("[data-chart-title]")?.textContent?.trim() ?? "Gráfico";
+      const canvas = await html2canvas(el, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        logging: false,
+      });
+      shots.push({ title, dataUrl: canvas.toDataURL("image/png") });
+    }
+  } finally {
+    restore();
   }
 
   return shots;

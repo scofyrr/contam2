@@ -238,10 +238,10 @@ function NodeDetailPanel({
 
         {link ? (
           <Button variant="outline" size="sm" asChild>
-            <Link to={link}>
+            <a href={link}>
               <ExternalLink className="size-3.5 mr-1" />
               Ir al módulo
-            </Link>
+            </a>
           </Button>
         ) : null}
       </div>

@@ -74,7 +74,7 @@ Debe mostrar: `Uvicorn running on http://127.0.0.1:8001`
 ```powershell
 cd backend
 python -m venv venv
-.\venv\Scripts\Activate.ps1
+.
 pip install -r requirements.txt
 python manage.py runserver
 ```
@@ -94,7 +94,7 @@ Debe mostrar: `Starting development server at http://127.0.0.1:8000/`
 ---
 
 ## Compilar (producción)
-
+\venv\Scripts\Activate.ps1
 ```powershell
 npm run build
 npm run preview   # sirve dist/ localmente
