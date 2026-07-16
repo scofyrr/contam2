@@ -11,6 +11,14 @@ from db import fetch_one, read_only_connection, table_exists
 from sunat_client import sunat_ficha_ruc_note, validate_sol_credentials
 
 RUC_RE = re.compile(r"\d{11}")
+FILL_INTENT_RE = re.compile(
+    r"rellen|complet|llen|autocomplet|fill|pobla|pon\s+los\s+datos|actualiz|escrib",
+    re.I,
+)
+
+
+def detect_fill_intent(message: str) -> bool:
+    return bool(FILL_INTENT_RE.search((message or "").strip()))
 
 
 def _normalize_ruc(value: str) -> str:
@@ -231,13 +239,16 @@ def build_fill_plan(
     available: dict[str, str],
     *,
     overwrite: bool = False,
+    fill_intent: bool = False,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
     Genera acciones de relleno determinísticas.
     Solo asigna valores con fuente verificada — nunca inventa.
+    Con fill_intent/overwrite rellena vacíos y corrige valores distintos a BD.
     """
     fills: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
+    force = overwrite or fill_intent
 
     for field in fields:
         path = _s(field.get("path") or field.get("field_path"))
@@ -269,7 +280,7 @@ def build_fill_plan(
             )
             continue
 
-        if current and not overwrite and current == new_value:
+        if current and _normalize_compare(current) == _normalize_compare(new_value):
             skipped.append(
                 {
                     "field_path": path,
@@ -280,7 +291,7 @@ def build_fill_plan(
             )
             continue
 
-        if current and not overwrite:
+        if current and not force:
             skipped.append(
                 {
                     "field_path": path,
@@ -291,12 +302,18 @@ def build_fill_plan(
             )
             continue
 
+        source = "bd:fichas_ruc"
+        if path == "ruc":
+            source = "bd:contribuyentes"
+        elif path.startswith("general.") or path.startswith("domicilioFiscal."):
+            source = "bd:fichas_ruc"
+
         fills.append(
             {
                 "field_path": path,
                 "label": label,
                 "value": new_value,
-                "source": "bd:fichas_ruc" if path != "ruc" else "bd:contribuyentes",
+                "source": source,
             }
         )
 

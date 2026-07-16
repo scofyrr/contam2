@@ -69,31 +69,31 @@
   --font-scale-factor: 1;
   --theme-base-font-px: 16;
 
-  /* Financial tokens (dark default until theme-manager applies) */
-  --fin-gain-text: #00c897;
-  --fin-gain-bg: rgba(0, 200, 151, 0.1);
-  --fin-gain-border: rgba(0, 200, 151, 0.3);
-  --fin-loss-text: #ff5e7a;
-  --fin-loss-bg: rgba(255, 94, 122, 0.1);
-  --fin-loss-border: rgba(255, 94, 122, 0.3);
-  --fin-security-text: #60a5fa;
-  --fin-security-bg: rgba(59, 130, 246, 0.1);
-  --fin-security-border: rgba(59, 130, 246, 0.3);
-  --fin-info-text: #00d4ff;
-  --fin-info-bg: rgba(0, 212, 255, 0.1);
-  --fin-premium-text: #c8a95a;
-  --fin-premium-bg: rgba(200, 169, 90, 0.1);
-  --fin-warning-text: #f0a500;
-  --fin-warning-bg: rgba(240, 165, 0, 0.1);
-  --fin-error-text: #ff4757;
-  --fin-error-bg: rgba(255, 71, 87, 0.1);
-  --fin-success-text: #00d68f;
-  --fin-success-bg: rgba(0, 214, 143, 0.1);
+  /* Financial tokens — light mode: colores con contraste WCAG AA sobre fondos claros */
+  --fin-gain-text: #007a5e;
+  --fin-gain-bg: rgba(0, 122, 94, 0.08);
+  --fin-gain-border: rgba(0, 122, 94, 0.3);
+  --fin-loss-text: #c0243a;
+  --fin-loss-bg: rgba(192, 36, 58, 0.08);
+  --fin-loss-border: rgba(192, 36, 58, 0.3);
+  --fin-security-text: #1a56b0;
+  --fin-security-bg: rgba(26, 86, 176, 0.08);
+  --fin-security-border: rgba(26, 86, 176, 0.3);
+  --fin-info-text: #0077a8;
+  --fin-info-bg: rgba(0, 119, 168, 0.08);
+  --fin-premium-text: #8a6820;
+  --fin-premium-bg: rgba(138, 104, 32, 0.08);
+  --fin-warning-text: #8a5c00;
+  --fin-warning-bg: rgba(138, 92, 0, 0.08);
+  --fin-error-text: #b81c2e;
+  --fin-error-bg: rgba(184, 28, 46, 0.08);
+  --fin-success-text: #006b47;
+  --fin-success-bg: rgba(0, 107, 71, 0.08);
 
   --background: #f4f7fb;
   --foreground: #0a1628;
 
-  --card: #c03a3a;
+  --card: #ffffff;
   --card-foreground: #0a1628;
   --popover: #ffffff;
   --popover-foreground: #0a1628;
@@ -105,10 +105,10 @@
   --secondary-foreground: #0a1628;
 
   --muted: #eef2f8;
-  --muted-foreground: #5a6b85;
+  --muted-foreground: #3d4f68;
 
   --accent: #c8a95a;
-  --accent-foreground: #0a1628;
+  --accent-foreground: #1a0f00;
 
   --destructive: #ff6b6b;
   --destructive-foreground: #ffffff;
@@ -124,11 +124,11 @@
   --ring: #00d4ff;
 
   --sidebar: #0a1628;
-  --sidebar-foreground: #e8edf5;
+  --sidebar-foreground: #dce5f0;
   --sidebar-primary: #c8a95a;
   --sidebar-primary-foreground: #0a1628;
   --sidebar-accent: #0f1d32;
-  --sidebar-accent-foreground: #336bc5;
+  --sidebar-accent-foreground: #7eb0e8;
   --sidebar-border: #1a2f4a;
 
   --shadow-subtle-token: 0 2px 8px rgba(10, 22, 40, 0.08);
@@ -156,10 +156,10 @@
   --secondary-foreground: #e8edf5;
 
   --muted: #0a1628;
-  --muted-foreground: #8899b4;
+  --muted-foreground: #a8bcd4;
 
   --accent: #00d4ff;
-  --accent-foreground: #060b14;
+  --accent-foreground: #02080f;
 
   --destructive: #ff6b6b;
   --destructive-foreground: #ffffff;
@@ -175,11 +175,11 @@
   --ring: #00d4ff;
 
   --sidebar: #060b14;
-  --sidebar-foreground: #224680;
+  --sidebar-foreground: #c8d8ec;
   --sidebar-primary: #c8a95a;
   --sidebar-primary-foreground: #060b14;
   --sidebar-accent: #0f1d32;
-  --sidebar-accent-foreground: #1b3052;
+  --sidebar-accent-foreground: #7eb0e8;
   --sidebar-border: #1a2f4a;
 
   --shadow-subtle-token: 0 2px 12px rgba(0, 212, 255, 0.06);

@@ -31,10 +31,21 @@ export async function generarCancelacionCaja(params: {
     });
 
     if (!error && data) {
-      const result = data as RpcResult;
+      const result = data as RpcResult & { asiento_id?: string; movimiento_caja_id?: string; duplicado?: boolean };
       if (result.success === false) {
         throw new Error(result.error ?? "Error en liquidación de caja");
       }
+      
+      // Self-heal: if it was a duplicate, force the state update just in case it was out of sync
+      if (result.duplicado) {
+        const row = await fetchRegistroSireById(params.registroSireId);
+        if (row.tipo === "VENTA" && row.estado_cobro !== "cobrado") {
+          await updateRegistroSireCabecera(params.registroSireId, { estado_cobro: "cobrado" });
+        } else if (row.tipo !== "VENTA" && row.estado_pago !== "pagado") {
+          await updateRegistroSireCabecera(params.registroSireId, { estado_pago: "pagado" });
+        }
+      }
+
       return {
         asientoId: String(result.asiento_id),
         movimientoCajaId: String(result.movimiento_caja_id),
@@ -57,6 +68,16 @@ export async function generarCancelacionCaja(params: {
     duplicado?: boolean;
   };
 
+  // Self-heal: if it was a duplicate, force the state update just in case it was out of sync
+  if (result.duplicado) {
+    const row = await fetchRegistroSireById(params.registroSireId);
+    if (row.tipo === "VENTA" && row.estado_cobro !== "cobrado") {
+      await updateRegistroSireCabecera(params.registroSireId, { estado_cobro: "cobrado" });
+    } else if (row.tipo !== "VENTA" && row.estado_pago !== "pagado") {
+      await updateRegistroSireCabecera(params.registroSireId, { estado_pago: "pagado" });
+    }
+  }
+
   return {
     asientoId: result.asiento_id,
     movimientoCajaId: result.movimiento_caja_id,
@@ -73,6 +94,45 @@ export async function cancelarLiquidacion(registroSireId: string): Promise<void>
   if (result.success === false) {
     throw new Error(result.error ?? "No se pudo cancelar la liquidación");
   }
+}
+
+/**
+ * Revierte atómicamente un pago/cobro ya registrado:
+ * - Elimina los asientos de cancelacion_caja
+ * - Elimina el movimiento de caja asociado
+ * - Resetea el estado del registro SIRE a 'pendiente'
+ */
+export async function revertirCancelacion(registroSireId: string): Promise<void> {
+  const { data, error } = await supabase.rpc("rpc_revertir_cancelacion", {
+    p_registro_sire_id: registroSireId,
+  });
+  if (error) throw error;
+  const result = data as RpcResult;
+  if (result?.success === false) {
+    throw new Error(result.error ?? "No se pudo revertir la cancelación");
+  }
+}
+
+/**
+ * Limpieza de emergencia: elimina asientos/movimientos duplicados de cancelación
+ * conservando solo el más reciente por registro SIRE.
+ * @param ruc  - opcional, filtra por RUC contribuyente
+ * @param periodo - opcional, filtra por periodo AAAAMM
+ */
+export async function limpiarDuplicadosCancelacion(
+  ruc?: string | null,
+  periodo?: string | null,
+): Promise<{ registros_eliminados: number }> {
+  const { data, error } = await supabase.rpc("rpc_limpiar_duplicados_cancelacion", {
+    p_ruc: ruc?.trim() || null,
+    p_periodo: periodo?.trim() || null,
+  });
+  if (error) throw error;
+  const result = data as RpcResult & { registros_eliminados?: number };
+  if (result?.success === false) {
+    throw new Error(result.error ?? "Error en limpieza de duplicados");
+  }
+  return { registros_eliminados: result?.registros_eliminados ?? 0 };
 }
 
 async function generarCancelacionCajaLegacy(params: {
@@ -112,6 +172,7 @@ async function generarCancelacionCajaLegacy(params: {
     registroId: registro.id,
     lineas: lineasInput,
     tipoAsiento: tipoAsientoCancelacion(),
+    tipoLibro: "CAJA_BANCOS", // ← garantiza que aparezca en Flujo de efectivo
   });
 
   const { data: insertados, error: asientoErr } = await supabase

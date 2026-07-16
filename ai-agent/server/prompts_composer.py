@@ -16,7 +16,8 @@ FUENTES DE DATOS (en orden):
 - La Ficha RUC completa no tiene API REST oficial; CONTAM usa datos ya sincronizados en BD
 
 FORMATO DE RESPUESTA:
-- Resumen de cuántos campos se rellenaron
+- Los valores se aplican AUTOMÁTICAMENTE en los campos del formulario (no listes todos los valores campo por campo).
+- Resumen de cuántos campos se rellenaron en pantalla
 - Lista breve de campos NO rellenados y por qué
 - Recordatorio: "Revisa y guarda tú — no se envió nada a SUNAT"
 - Cita fuentes: "Base de datos (fichas_ruc)" o "Clave SOL validada"

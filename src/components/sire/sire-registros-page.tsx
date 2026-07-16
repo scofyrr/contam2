@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Search, RotateCcw, Settings2, AlertCircle, Circle, CheckCircle2, GitBranch } from "lucide-react";
@@ -14,7 +15,7 @@ import { NuevaTareaButton } from "@/modules/tareas/components/NuevaTareaButton";
 import { SireFieldHelper, SIRE_SECTION_HELP } from "@/components/sire/sire-field-help";
 import { FieldHelper } from "@/components/ui/field-helper";
 import { exportRegistrosExcel } from "@/lib/export-service";
-import { generarCancelacionCaja } from "@/lib/asiento-cancelacion";
+import { generarCancelacionCaja, revertirCancelacion } from "@/lib/asiento-cancelacion";
 import { mapRegistroFromDb } from "@/lib/sire-montos";
 import {
   deleteRegistroSire,
@@ -299,6 +300,19 @@ export function SireRegistrosPage() {
     },
   });
 
+  const revertirPago = useMutation({
+    mutationFn: async (registroId: string) => {
+      await revertirCancelacion(registroId);
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["registros_sire"] });
+      await qc.invalidateQueries({ queryKey: ["caja"] });
+      await qc.invalidateQueries({ queryKey: ["cancelaciones"] });
+      toast.success("Pago/cobro revertido — el comprobante vuelve a estado Pendiente");
+    },
+    onError: (e: Error) => toast.error(e.message ?? "No se pudo revertir"),
+  });
+
   const formatValue = (value: any, isNumeric?: boolean) => {
     if (value === null || value === undefined) return "-";
     if (isNumeric && typeof value === "number") return value.toFixed(2);
@@ -509,42 +523,73 @@ export function SireRegistrosPage() {
                           <GitBranch className="size-4 text-[#00D4FF]" />
                         </Link>
                       </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        title={
-                          r.tipo === "VENTA"
-                            ? r.estado_cobro === "cobrado"
-                              ? "Cobrado"
-                              : "Marcar como cobrado"
-                            : r.estado_pago === "pagado"
-                              ? "Pagado"
-                              : "Marcar como pagado"
+                      {/* Botón toggle Cobrado/Pagado con reversión */}
+                      {(() => {
+                        const rTipo = String(r.tipo || "").trim().toUpperCase();
+                        const isPaid = rTipo === "VENTA"
+                          ? String(r.estado_cobro || "").trim().toLowerCase() === "cobrado"
+                          : String(r.estado_pago || "").trim().toLowerCase() === "pagado";
+                        const label = rTipo === "VENTA" ? "cobro" : "pago";
+                        const labelCap = rTipo === "VENTA" ? "Cobro" : "Pago";
+
+                        if (isPaid) {
+                          return (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  title={`${labelCap} registrado — clic para deshacer`}
+                                  disabled={revertirPago.isPending}
+                                >
+                                  <CheckCircle2 className="size-4 text-emerald-600" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Deshacer {label}?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Se eliminará el asiento de cancelación y el movimiento de
+                                    caja. El comprobante volverá a estado{" "}
+                                    <strong>Pendiente</strong>.
+                                    Esta acción no se puede deshacer automáticamente.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={() => revertirPago.mutate(r.id)}
+                                  >
+                                    Sí, deshacer {label}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          );
                         }
-                        onClick={async () => {
-                          try {
-                            await marcarCobroPago.mutateAsync(r.id);
-                            toast.success(
-                              r.tipo === "VENTA" ? "Cobro registrado en caja" : "Pago registrado en caja",
-                            );
-                          } catch (e: any) {
-                            toast.error(e?.message ?? "No se pudo generar la cancelación");
-                          }
-                        }}
-                        disabled={marcarCobroPago.isPending}
-                      >
-                        {r.tipo === "VENTA" ? (
-                          r.estado_cobro === "cobrado" ? (
-                            <CheckCircle2 className="size-4 text-emerald-600" />
-                          ) : (
+
+                        return (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title={`Marcar como ${label}ado`}
+                            onClick={async () => {
+                              try {
+                                await marcarCobroPago.mutateAsync(r.id);
+                                toast.success(
+                                  r.tipo === "VENTA" ? "Cobro registrado en caja" : "Pago registrado en caja",
+                                );
+                              } catch (e: any) {
+                                toast.error(e?.message ?? "No se pudo generar la cancelación");
+                              }
+                            }}
+                            disabled={marcarCobroPago.isPending}
+                          >
                             <Circle className="size-4 text-muted-foreground" />
-                          )
-                        ) : r.estado_pago === "pagado" ? (
-                          <CheckCircle2 className="size-4 text-emerald-600" />
-                        ) : (
-                          <Circle className="size-4 text-muted-foreground" />
-                        )}
-                      </Button>
+                          </Button>
+                        );
+                      })()}
                       <Button
                         size="icon"
                         variant="ghost"

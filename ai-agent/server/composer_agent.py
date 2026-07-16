@@ -10,7 +10,7 @@ from typing import Any
 
 from mistralai.client import Mistral
 
-from composer_data import build_fill_plan, gather_composer_data
+from composer_data import build_fill_plan, detect_fill_intent, gather_composer_data
 from composer_schemas import get_page_schema
 from config import COMPOSER_MAX_THINKING_SECONDS, MISTRAL_API_KEY, MISTRAL_MODEL
 from prompts_composer import SYSTEM_PROMPT_COMPOSER
@@ -181,19 +181,23 @@ async def run_composer_agent(
             "thinking_seconds": thinking,
         }
 
-    fills, skipped = build_fill_plan(
-        fields,
-        data.get("values") or {},
-        overwrite=ctx.get("overwrite", False),
-    )
-
-    deterministic = _format_reply_deterministic(fills, skipped, data)
-
     last_user = ""
     for item in reversed(history):
         if item.get("role") == "user" and item.get("content"):
             last_user = item["content"]
             break
+
+    fill_intent = detect_fill_intent(last_user)
+    overwrite = bool(ctx.get("overwrite")) or fill_intent
+
+    fills, skipped = build_fill_plan(
+        fields,
+        data.get("values") or {},
+        overwrite=overwrite,
+        fill_intent=fill_intent,
+    )
+
+    deterministic = _format_reply_deterministic(fills, skipped, data)
 
     reply = deterministic
     if use_llm_summary and fills:

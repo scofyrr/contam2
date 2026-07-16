@@ -5,8 +5,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Literal
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from agent import run_ask_agent
@@ -115,6 +118,15 @@ class ChatResponse(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "contam-ai-agent", "modes": ["ask", "composer", "debug"]}
+
+
+@app.get("/composer-bridge.js")
+def composer_bridge_js():
+    """Puente DOM para rellenar campos data-ai-field desde el ERP."""
+    path = Path(__file__).resolve().parent / "static" / "composer-bridge.js"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="composer-bridge.js no encontrado")
+    return FileResponse(path, media_type="application/javascript")
 
 
 @app.get("/api/tables")

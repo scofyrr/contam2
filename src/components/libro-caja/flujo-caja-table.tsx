@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { ArrowDownLeft, ArrowUpRight, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowDownLeft, ArrowUpRight, Loader2, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,7 +10,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { fetchFlujoCajaBancos } from "@/lib/libro-caja-asientos-service";
+import { revertirCancelacion } from "@/lib/asiento-cancelacion";
 import { queryKeys } from "@/lib/query-keys-contables";
 
 function formatMoney(n: number) {
@@ -24,6 +37,7 @@ export function FlujoCajaTable({
   ruc: string;
   periodo: string | null;
 }) {
+  const qc = useQueryClient();
   const query = useQuery({
     queryKey: queryKeys.libroCajaBancos(ruc, periodo),
     queryFn: () =>
@@ -32,6 +46,15 @@ export function FlujoCajaTable({
         periodo,
       }),
     enabled: !!ruc,
+  });
+
+  const anular = useMutation({
+    mutationFn: (sireRegistroId: string) => revertirCancelacion(sireRegistroId),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: queryKeys.libroCajaBancos(ruc, periodo) });
+      await qc.invalidateQueries({ queryKey: ["registros_sire"] });
+      await qc.invalidateQueries({ queryKey: ["cancelaciones"] });
+    },
   });
 
   const rows = query.data ?? [];
@@ -64,6 +87,7 @@ export function FlujoCajaTable({
               <TableHead className="text-right">Ingreso</TableHead>
               <TableHead className="text-right">Egreso</TableHead>
               <TableHead>Origen</TableHead>
+              <TableHead className="text-right">Anular</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -94,6 +118,43 @@ export function FlujoCajaTable({
                     <Badge variant="outline" className="text-[10px]">
                       {row.origen === "cancelacion_caja" ? "Cancelación CxP/CxC" : "Directo"}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {row.sire_registro_id ? (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Anular este movimiento"
+                            disabled={anular.isPending}
+                          >
+                            <Trash2 className="size-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Anular movimiento?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Se eliminará el asiento de cancelación y el movimiento de caja.{" "}
+                              El comprobante SIRE volverá a estado{" "}
+                              <strong>Pendiente</strong>.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => anular.mutate(row.sire_registro_id!)}
+                            >
+                              Sí, anular
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               );

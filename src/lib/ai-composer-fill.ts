@@ -120,6 +120,52 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((r) => window.setTimeout(r, ms));
 }
 
+/** Aplica fill_actions directamente en el DOM (inputs con data-ai-field). */
+export function applyFillActionsToDom(
+  actions: AiFillAction[],
+  root: ParentNode = document,
+): { applied: number; failed: { field_path: string; reason: string }[] } {
+  const failed: { field_path: string; reason: string }[] = [];
+  let applied = 0;
+
+  for (const action of actions) {
+    const el = root.querySelector<HTMLElement>(`[data-ai-field="${CSS.escape(action.field_path)}"]`);
+    if (!el) {
+      failed.push({ field_path: action.field_path, reason: "Campo no encontrado en pantalla" });
+      continue;
+    }
+    if (el.getAttribute("data-ai-sensitive") === "true") {
+      failed.push({ field_path: action.field_path, reason: "Campo sensible" });
+      continue;
+    }
+
+    const input = el as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+    if ("readOnly" in input && input.readOnly) {
+      failed.push({ field_path: action.field_path, reason: "Solo lectura" });
+      continue;
+    }
+    if ("disabled" in input && input.disabled) {
+      failed.push({ field_path: action.field_path, reason: "Deshabilitado" });
+      continue;
+    }
+
+    if (input instanceof HTMLSelectElement) {
+      const opt = Array.from(input.options).find(
+        (o) => o.value === action.value || o.textContent?.includes(action.value),
+      );
+      input.value = opt ? opt.value : action.value;
+    } else if ("value" in input) {
+      input.value = action.value;
+    }
+
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    applied += 1;
+  }
+
+  return { applied, failed };
+}
+
 /** Relleno/corrección progresiva con callback por campo. */
 export async function applyFillActionsProgressive(
   actions: AiFillAction[],

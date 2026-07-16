@@ -256,28 +256,28 @@ export function AiChatBubble() {
     <>
       {open && (
         <div
-          className="fixed right-5 bottom-20 z-50 flex w-[min(420px,calc(100vw-2.5rem))] h-[min(580px,calc(100vh-6rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+          className="fixed right-5 bottom-20 z-50 flex w-[min(420px,calc(100vw-2.5rem))] h-[min(580px,calc(100vh-6rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl"
           role="dialog"
           aria-label="CONTAM AI Chat"
         >
-          <header className="flex items-center justify-between bg-slate-900 px-4 py-3 text-white">
+          <header className="flex items-center justify-between bg-slate-900 dark:bg-slate-950 px-4 py-3 text-white">
             <div className="flex items-center gap-2">
               <span className="font-semibold">CONTAM AI</span>
-              <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-medium">
+              <span className="rounded-full bg-slate-700 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-medium">
                 Beta · {activeMode.label}
               </span>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-lg p-1 text-slate-300 hover:bg-slate-800 hover:text-white"
+              className="rounded-lg p-1 text-slate-300 hover:bg-slate-700 hover:text-white"
               aria-label="Cerrar chat"
             >
               <X className="size-4" />
             </button>
           </header>
 
-          <div className="flex gap-1 border-b border-slate-100 bg-slate-50 px-3 py-2">
+          <div className="flex gap-1 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
             {MODES.map((m) => (
               <button
                 key={m.id}
@@ -289,7 +289,7 @@ export function AiChatBubble() {
                   "flex-1 rounded-lg py-1.5 text-center text-xs font-medium transition-colors",
                   mode === m.id && m.enabled
                     ? "bg-blue-600 text-white"
-                    : "border border-slate-200 text-slate-400",
+                    : "border border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-300",
                   !m.enabled && "cursor-not-allowed opacity-60",
                 )}
               >
@@ -309,10 +309,10 @@ export function AiChatBubble() {
             </div>
           )}
 
-          <div className="border-b border-slate-100 px-3 py-2 text-xs text-slate-500">
+          <div className="border-b border-slate-100 dark:border-slate-700 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
             <label htmlFor="ai-thinking" className="flex items-center justify-between gap-2">
               <span>
-                Pensamiento: <strong className="text-slate-700">{Math.min(thinkingSeconds, maxThink)}s</strong>
+                Pensamiento: <strong className="text-slate-700 dark:text-slate-200">{Math.min(thinkingSeconds, maxThink)}s</strong>
                 {mode === "composer" && <span className="text-slate-400"> (1–45)</span>}
                 {mode === "debug" && <span className="text-slate-400"> (1–30)</span>}
               </span>
@@ -329,7 +329,7 @@ export function AiChatBubble() {
             </label>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-3">
+          <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-3">
             {messages.map((m, i) => (
               <div
                 key={i}
@@ -343,9 +343,9 @@ export function AiChatBubble() {
                     "rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap font-mono text-[12px]",
                     m.role === "user"
                       ? "bg-blue-600 text-white rounded-br-sm font-sans text-sm"
-                      : "border border-slate-200 bg-white text-slate-800 rounded-bl-sm",
-                    m.streaming && m.streamKind === "debug" && "border-orange-300 ring-1 ring-orange-200",
-                    m.streaming && m.streamKind !== "debug" && "border-blue-300 ring-1 ring-blue-200",
+                      : "border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-sm",
+                    m.streaming && m.streamKind === "debug" && "border-orange-300 dark:border-orange-500 ring-1 ring-orange-200 dark:ring-orange-700",
+                    m.streaming && m.streamKind !== "debug" && "border-blue-300 dark:border-blue-500 ring-1 ring-blue-200 dark:ring-blue-700",
                   )}
                 >
                   {m.streaming && m.streamKind === "debug" && (
@@ -363,14 +363,14 @@ export function AiChatBubble() {
                   {m.content}
                 </div>
                 {m.toolsUsed && m.toolsUsed.length > 0 && !m.streaming && (
-                  <span className="mt-0.5 font-sans text-[10px] text-slate-400">
+                  <span className="mt-0.5 font-sans text-[10px] text-slate-400 dark:text-slate-500">
                     {m.toolsUsed.join(", ")}
                   </span>
                 )}
               </div>
             ))}
             {loading && mode === "ask" && (
-              <div className="text-sm italic text-slate-500">
+              <div className="text-sm italic text-slate-400 dark:text-slate-400">
                 Analizando (~{Math.min(thinkingSeconds, maxThink)}s)…
               </div>
             )}
@@ -394,7 +394,7 @@ export function AiChatBubble() {
             <div ref={bottomRef} />
           </div>
 
-          <form onSubmit={handleSubmit} className="flex gap-2 border-t border-slate-100 p-3">
+          <form onSubmit={handleSubmit} className="flex gap-2 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -406,7 +406,7 @@ export function AiChatBubble() {
                     : "Ej: ¿Cuántos registros hay en plan_contable_pcge?"
               }
               disabled={loading}
-              className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
             <Button type="submit" size="sm" disabled={loading || !input.trim()}>
               Enviar
