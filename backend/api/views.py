@@ -4,6 +4,7 @@ from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
@@ -285,6 +286,16 @@ class EstadisticasAPIView(APIView):
             body["por_entidad"] = compute_kpis_by_ruc(rows, periodo_label)
 
         return Response(body)
+
+
+class HealthAPIView(APIView):
+    """GET: health check para Render."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({"status": "ok", "service": "contam-django"})
 
 
 class CentralizarCajaAPIView(APIView):

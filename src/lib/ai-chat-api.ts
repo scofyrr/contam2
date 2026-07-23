@@ -57,6 +57,9 @@ export function getAiApiBase(): string {
   const fromEnv = (import.meta.env.VITE_AI_API_URL as string | undefined)?.trim();
   if (fromEnv) return fromEnv.replace(/\/$/, "");
   if (import.meta.env.DEV) return "/ai-api";
+  if (import.meta.env.PROD) {
+    console.error("VITE_AI_API_URL no está configurada en producción.");
+  }
   return "http://localhost:8001";
 }
 

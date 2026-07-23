@@ -12,24 +12,24 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# 🔍 CONTROL TOTAL DEL .env: Buscamos el archivo de manera estricta
+# Carga .env local si existe; en Render las variables vienen del dashboard.
 _env_path = BASE_DIR / ".env"
-
 if _env_path.is_file():
-    # Forzamos a Python a sobreescribir cualquier dato viejo en memoria
     load_dotenv(dotenv_path=_env_path, override=True)
-else:
-    raise ImproperlyConfigured(
-        f"\n❌ ERROR CRÍTICO: No se encontró el archivo .env en la ruta esperada:\n"
-        f"👉 {_env_path}\n"
-        f"Por favor, asegúrate de que el archivo se llame exactamente '.env' (sin .txt ni .example) "
-        f"y que esté guardado dentro de la carpeta 'backend'."
-    )
 
-# Quick-start development settings - unsuitable for production
-SECRET_KEY = 'django-insecure-h2libc0+t3y6n$a@ljy1_1$5vry1#e(4jkprg_2e5hm2l1ysbf'
-DEBUG = True
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-h2libc0+t3y6n$a@ljy1_1$5vry1#e(4jkprg_2e5hm2l1ysbf",
+)
+DEBUG = os.getenv("DJANGO_DEBUG", "true").strip().lower() in ("1", "true", "yes")
+
+_allowed = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").strip()
+ALLOWED_HOSTS = [h.strip() for h in _allowed.split(",") if h.strip()]
+if os.getenv("RENDER"):
+    ALLOWED_HOSTS.append(".onrender.com")
+_render_host = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
+if _render_host and _render_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_render_host)
 
 # Application definition
 INSTALLED_APPS = [
@@ -129,11 +129,20 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
 
-# Permisos de comunicación (CORS)
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  
-    "http://localhost:8080",  # Tu React corriendo en Vite local
+# CORS — local + Render (subdominios *.onrender.com)
+_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+if _cors_origins:
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(",") if o.strip()]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:5173",
+    ]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://[\w-]+\.onrender\.com$",
 ]
+CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [

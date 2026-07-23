@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Literal
 
 from pathlib import Path
@@ -35,13 +36,26 @@ app = FastAPI(
     version="0.3.0",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[o.strip() for o in _cors_origins.split(",") if o.strip()],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=(
+            r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+            r"|https://[\w-]+\.onrender\.com"
+        ),
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 class ChatMessage(BaseModel):

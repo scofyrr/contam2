@@ -4,7 +4,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env", override=True)
+_env_file = BASE_DIR / ".env"
+if _env_file.is_file():
+    load_dotenv(_env_file, override=True)
 
 
 def _require(name: str) -> str:

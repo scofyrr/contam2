@@ -1,0 +1,90 @@
+# Render Blueprint — CONTAM ERP completo (Frontend + Django + AI Agent)
+# Despliegue: Render → New → Blueprint → repo → pegar secretos de render.env.example
+envVarGroups:
+  - name: contam-db
+    envVars:
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_SSLMODE
+        value: require
+
+services:
+  # ── 1. Django API ────────────────────────────────────────────────────────
+  - type: web
+    name: contam-django
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /api/health/
+    envVars:
+      - fromGroup: contam-db
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_SECRET_KEY
+        sync: false
+
+  # ── 2. AI Agent (Mistral + SUNAT + misma DB) ─────────────────────────────
+  - type: web
+    name: contam-ai
+    runtime: python
+    plan: free
+    rootDir: ai-agent/server
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: contam-db
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: MISTRAL_MODEL
+        value: mistral-small-latest
+      - key: SUNAT_CLIENT_ID
+        sync: false
+      - key: SUNAT_CLIENT_SECRET
+        sync: false
+
+  # ── 3. Frontend ──────────────────────────────────────────────────────────
+  - type: web
+    name: contam-erp
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_USE_NEW_SIRE_STRUCTURE
+        value: "true"
+      - key: VITE_USE_DJANGO_API
+        value: "true"
+      - key: VITE_ENABLE_PERFORMANCE_MONITORING
+        value: "false"
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: contam-django
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: VITE_AI_API_URL
+        fromService:
+          type: web
+          name: contam-ai
+          envVarKey: RENDER_EXTERNAL_URL
