@@ -1,0 +1,1 @@
+function e(){return String("true").toLowerCase()==="true"}function t(){return e()?"registros_sire_completo":"registros_sire"}function s(){return e()?"registros_sire_cabecera":"registros_sire"}function i(){return e()?"registros_sire_cabecera":"registros_sire"}export{i as a,t as b,s as g,e as u};

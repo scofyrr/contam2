@@ -1,1 +1,0 @@
-import{a0 as n,x as e,N as r}from"./index-CSNLuzEF.js";function o(){const{session:s,loading:t}=n();return t?e.jsx("div",{className:"min-h-screen grid place-items-center text-muted-foreground text-sm",children:"Cargando…"}):e.jsx(r,{to:s?"/sire-registros":"/login"})}export{o as component};
