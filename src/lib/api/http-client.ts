@@ -2,12 +2,13 @@
  * Cliente HTTP hacia Django DRF (reemplaza llamadas directas a supabase.from).
  */
 
-const API_BASE = (() => {
+import { getPublicEnv } from "@/lib/public-env";
+
+function getApiBase(): string {
   const raw =
-    (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ??
-    "http://localhost:8000";
+    getPublicEnv("VITE_API_URL")?.replace(/\/$/, "") ?? "http://localhost:8000";
   return raw.endsWith("/api") ? raw : `${raw}/api`;
-})();
+}
 
 export type ApiErrorBody = {
   error?: string;
@@ -46,7 +47,7 @@ export async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const url = path.startsWith("http") ? path : `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = path.startsWith("http") ? path : `${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`;
 
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && options.body) {

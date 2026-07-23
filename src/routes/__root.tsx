@@ -14,6 +14,7 @@ import {
 
 import { Toaster } from "@/components/ui/sonner";
 import appCss from "../styles.css?url";
+import { buildPublicEnvScript } from "@/lib/public-env";
 
 function NotFoundComponent() {
   return (
@@ -110,6 +111,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="es" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: buildPublicEnvScript(),
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var r=document.documentElement;var raw=localStorage.getItem('contam-theme-config');var cfg=raw?JSON.parse(raw):null;var mode=cfg&&cfg.mode?cfg.mode:(localStorage.getItem('contam-dark-mode')==='true'?'dark':'light');if(mode==='system')mode=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';if(mode==='dark')r.classList.add('dark');else r.classList.remove('dark');r.dataset.theme=mode;if(cfg){if(cfg.fontScale)r.dataset.fontScale=cfg.fontScale;if(cfg.colorBlindMode)r.dataset.colorBlind=cfg.colorBlindMode;if(cfg.contrastLevel)r.dataset.contrast=cfg.contrastLevel;var bp=mode==='light'?17:16;r.style.fontSize='calc('+bp+'px * '+(cfg.fontScale||100)/100+')';}}catch(e){}})()`,

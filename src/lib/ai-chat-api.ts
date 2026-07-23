@@ -53,8 +53,10 @@ export type AiChatResponse = {
   debug_meta?: Record<string, unknown>;
 };
 
+import { getPublicEnv } from "@/lib/public-env";
+
 export function getAiApiBase(): string {
-  const fromEnv = (import.meta.env.VITE_AI_API_URL as string | undefined)?.trim();
+  const fromEnv = getPublicEnv("VITE_AI_API_URL");
   if (fromEnv) return fromEnv.replace(/\/$/, "");
   if (import.meta.env.DEV) return "/ai-api";
   if (import.meta.env.PROD) {
