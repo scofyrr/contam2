@@ -84,15 +84,17 @@ services:
   - type: web
     name: contam-erp
     runtime: node
-    plan: free
-    buildCommand: NODE_OPTIONS="--max-old-space-size=460" npm ci && NODE_OPTIONS="--max-old-space-size=460" npm run build
-    startCommand: npm start
+    plan: standard
+    # Si dist/ ya viene del repo (GitHub Actions), Render solo instala deps de runtime.
+    # Si no, intenta compilar aquí con heap ampliado (Standard 2 GB).
+    buildCommand: >-
+      if [ -f dist/server/index.js ]; then npm ci --omit=dev;
+      else npm ci --include=dev && NODE_OPTIONS="--max-old-space-size=1536" npm run build; fi
+    startCommand: NODE_ENV=production npm start
     healthCheckPath: /
     envVars:
       - key: NODE_VERSION
         value: "20"
-      - key: NODE_ENV
-        value: production
       - key: VITE_SUPABASE_URL
         sync: false
       - key: VITE_SUPABASE_ANON_KEY

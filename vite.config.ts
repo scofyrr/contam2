@@ -13,6 +13,13 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    build: {
+      sourcemap: false,
+      reportCompressedSize: false,
+      rollupOptions: {
+        maxParallelFileOps: 2,
+      },
+    },
     server: {
       watch: {
         ignored: ["**/backend/venv/**", "**/ai-agent/server/venv/**"],
