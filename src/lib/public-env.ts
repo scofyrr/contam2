@@ -41,5 +41,7 @@ export function buildPublicEnvScript(): string {
     const value = fromProcess(key) ?? (import.meta.env[key] as string | undefined)?.trim();
     if (value) env[key] = value;
   }
-  return `window.__CONTAM_PUBLIC_ENV__=${JSON.stringify(env)};`;
+  // Evita romper el HTML y reduce mismatch SSR/cliente en el tag script.
+  const json = JSON.stringify(env).replace(/</g, "\\u003c");
+  return `window.__CONTAM_PUBLIC_ENV__=${json};`;
 }
