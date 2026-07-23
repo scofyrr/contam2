@@ -1,16 +1,11 @@
 # Render Blueprint — CONTAM ERP completo (Frontend + Django + AI Agent)
 # Despliegue: Render → New → Blueprint → repo → pegar secretos de render.env.example
+#
+# Nota: sync: false NO funciona en envVarGroups (Render las ignora).
+# Secretos de BD van en contam-django; contam-ai las hereda vía fromService.
 envVarGroups:
   - name: contam-db
     envVars:
-      - key: DB_NAME
-        sync: false
-      - key: DB_USER
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_HOST
-        sync: false
       - key: DB_PORT
         value: "5432"
       - key: DB_SSLMODE
@@ -34,6 +29,14 @@ services:
         value: "false"
       - key: DJANGO_SECRET_KEY
         sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_HOST
+        sync: false
 
   # ── 2. AI Agent (Mistral + SUNAT + misma DB) ─────────────────────────────
   - type: web
@@ -56,6 +59,26 @@ services:
         sync: false
       - key: SUNAT_CLIENT_SECRET
         sync: false
+      - key: DB_NAME
+        fromService:
+          type: web
+          name: contam-django
+          envVarKey: DB_NAME
+      - key: DB_USER
+        fromService:
+          type: web
+          name: contam-django
+          envVarKey: DB_USER
+      - key: DB_PASSWORD
+        fromService:
+          type: web
+          name: contam-django
+          envVarKey: DB_PASSWORD
+      - key: DB_HOST
+        fromService:
+          type: web
+          name: contam-django
+          envVarKey: DB_HOST
 
   # ── 3. Frontend ──────────────────────────────────────────────────────────
   - type: web
