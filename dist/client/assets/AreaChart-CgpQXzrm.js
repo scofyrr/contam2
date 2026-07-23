@@ -1,0 +1,1 @@
+import{m as a,X as r,Y as s,l as i}from"./generateCategoricalChart-Zz0KBq3u.js";import{A as x}from"./Area-BezAiOhm.js";var o=a({chartName:"AreaChart",GraphicalChild:x,axisComponents:[{axisType:"xAxis",AxisComp:r},{axisType:"yAxis",AxisComp:s}],formatAxisMap:i});export{o as A};
