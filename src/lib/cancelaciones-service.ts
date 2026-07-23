@@ -89,7 +89,7 @@ export async function fetchLineasAsiento(asientoId: string): Promise<LineaAsient
     .from("asientos_contables")
     .select(ASIENTOS_CONTABLES_SELECT)
     .eq("sire_registro_id", anchor.sire_registro_id)
-    .eq("tipo_asiento", anchor.tipo_asiento ?? "CAJA")
+    .eq("tipo_asiento", anchor.tipo_asiento ?? "cancelacion_caja")
     .order("created_at", { ascending: true });
 
   if (error) throw error;

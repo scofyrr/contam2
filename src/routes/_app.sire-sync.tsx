@@ -2,31 +2,55 @@ import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const SireDashboardHub = lazy(() =>
+  import("@/modules/sire/components/SireDashboardHub").then((m) => ({
+    default: m.SireDashboardHub,
+  })),
+);
+
 const SireSyncDashboardPremium = lazy(
   () => import("@/modules/sire/components/sire-sync-dashboard-premium"),
 );
 
 export const Route = createFileRoute("/_app/sire-sync")({
   component: SireSyncPage,
+  validateSearch: (search: Record<string, unknown>) => {
+    const tab = search.tab as string;
+    return {
+      tab: tab === "legacy" ? "legacy" : "hub",
+    };
+  },
 });
 
-function SyncSkeleton() {
+function HubSkeleton() {
   return (
-    <div className="min-h-full bg-gradient-to-b from-[#060B14] to-[#0A1628] p-8 space-y-6">
-      <Skeleton className="h-10 w-72 bg-white/10" />
-      <div className="grid md:grid-cols-3 gap-6">
-        <Skeleton className="h-40 rounded-xl bg-white/5" />
-        <Skeleton className="h-40 rounded-xl bg-white/5" />
-        <Skeleton className="h-40 rounded-xl bg-white/5" />
+    <div className="min-h-full space-y-6 p-6">
+      <Skeleton className="h-10 w-96" />
+      <Skeleton className="h-32 rounded-2xl" />
+      <div className="grid gap-4 sm:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-28 rounded-2xl" />
+        ))}
       </div>
+      <Skeleton className="h-64 rounded-2xl" />
     </div>
   );
 }
 
 function SireSyncPage() {
+  const { tab } = Route.useSearch();
+
+  if (tab === "legacy") {
+    return (
+      <Suspense fallback={<HubSkeleton />}>
+        <SireSyncDashboardPremium />
+      </Suspense>
+    );
+  }
+
   return (
-    <Suspense fallback={<SyncSkeleton />}>
-      <SireSyncDashboardPremium />
+    <Suspense fallback={<HubSkeleton />}>
+      <SireDashboardHub />
     </Suspense>
   );
 }

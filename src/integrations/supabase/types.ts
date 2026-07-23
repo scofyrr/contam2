@@ -693,6 +693,258 @@ export type Database = {
         }
         Relationships: []
       }
+      registros_sire_cabecera: {
+        Row: {
+          id: string
+          contribuyente_id: string | null
+          periodo_id: string | null
+          tipo: Database["public"]["Enums"]["sire_tipo_legacy"]
+          tipo_registro: Database["public"]["Enums"]["sire_tipo_registro_enum"] | null
+          origen: Database["public"]["Enums"]["sire_origen_registro_enum"] | null
+          ruc: string
+          razon_social: string
+          periodo: string
+          fecha_emision: string
+          fecha_vencimiento: string | null
+          cod_tipo_cdp: string
+          serie_cdp: string | null
+          nro_cdp_inicial: string
+          nro_doc_contraparte: string | null
+          nombre_contraparte: string | null
+          cod_moneda: string
+          tipo_cambio: number | null
+          estado_validacion: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          contribuyente_id?: string | null
+          periodo_id?: string | null
+          tipo: Database["public"]["Enums"]["sire_tipo_legacy"]
+          tipo_registro?: Database["public"]["Enums"]["sire_tipo_registro_enum"] | null
+          origen?: Database["public"]["Enums"]["sire_origen_registro_enum"] | null
+          ruc: string
+          razon_social: string
+          periodo: string
+          fecha_emision: string
+          fecha_vencimiento?: string | null
+          cod_tipo_cdp: string
+          serie_cdp?: string | null
+          nro_cdp_inicial: string
+          nro_doc_contraparte?: string | null
+          nombre_contraparte?: string | null
+          cod_moneda?: string
+          tipo_cambio?: number | null
+          estado_validacion?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          contribuyente_id?: string | null
+          periodo_id?: string | null
+          tipo?: Database["public"]["Enums"]["sire_tipo_legacy"]
+          tipo_registro?: Database["public"]["Enums"]["sire_tipo_registro_enum"] | null
+          origen?: Database["public"]["Enums"]["sire_origen_registro_enum"] | null
+          ruc?: string
+          razon_social?: string
+          periodo?: string
+          fecha_emision?: string
+          fecha_vencimiento?: string | null
+          cod_tipo_cdp?: string
+          serie_cdp?: string | null
+          nro_cdp_inicial?: string
+          nro_doc_contraparte?: string | null
+          nombre_contraparte?: string | null
+          cod_moneda?: string
+          tipo_cambio?: number | null
+          estado_validacion?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registros_sire_cabecera_contribuyente_id_fkey"
+            columns: ["contribuyente_id"]
+            isOneToOne: false
+            referencedRelation: "contribuyentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registros_sire_cabecera_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "sire_periodos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registros_sire_montos: {
+        Row: {
+          id: string
+          registro_sire_id: string
+          bi_grav: number | null
+          igv_grav: number | null
+          bi_adq_grav: number | null
+          igv_adq_grav: number | null
+          bi_grav_y_no_grav: number | null
+          igv_grav_y_no_grav: number | null
+          valor_no_grav: number | null
+          isc: number | null
+          icbper: number | null
+          otros_tributos: number | null
+          importe_total: number
+          base_imponible_gravada: number | null
+          igv_ipm: number | null
+          base_imponible_dgng: number | null
+          igv_dgng: number | null
+          valor_no_gravado: number | null
+          total_comprobante: number | null
+        }
+        Insert: {
+          id?: string
+          registro_sire_id: string
+          bi_grav?: number | null
+          igv_grav?: number | null
+          bi_adq_grav?: number | null
+          igv_adq_grav?: number | null
+          bi_grav_y_no_grav?: number | null
+          igv_grav_y_no_grav?: number | null
+          valor_no_grav?: number | null
+          isc?: number | null
+          icbper?: number | null
+          otros_tributos?: number | null
+          importe_total?: number
+          base_imponible_gravada?: number | null
+          igv_ipm?: number | null
+          base_imponible_dgng?: number | null
+          igv_dgng?: number | null
+          valor_no_gravado?: number | null
+          total_comprobante?: number | null
+        }
+        Update: {
+          id?: string
+          registro_sire_id?: string
+          bi_grav?: number | null
+          igv_grav?: number | null
+          bi_adq_grav?: number | null
+          igv_adq_grav?: number | null
+          bi_grav_y_no_grav?: number | null
+          igv_grav_y_no_grav?: number | null
+          valor_no_grav?: number | null
+          isc?: number | null
+          icbper?: number | null
+          otros_tributos?: number | null
+          importe_total?: number
+          base_imponible_gravada?: number | null
+          igv_ipm?: number | null
+          base_imponible_dgng?: number | null
+          igv_dgng?: number | null
+          valor_no_gravado?: number | null
+          total_comprobante?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registros_sire_montos_registro_sire_id_fkey"
+            columns: ["registro_sire_id"]
+            isOneToOne: true
+            referencedRelation: "registros_sire_cabecera"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sire_inconsistencias: {
+        Row: {
+          id: string
+          periodo_id: string
+          tipo_registro: Database["public"]["Enums"]["sire_tipo_registro_enum"]
+          comprobante_ref: string | null
+          descripcion_error: string
+          severidad: Database["public"]["Enums"]["sire_severidad_enum"]
+          resuelto: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          periodo_id: string
+          tipo_registro: Database["public"]["Enums"]["sire_tipo_registro_enum"]
+          comprobante_ref?: string | null
+          descripcion_error: string
+          severidad?: Database["public"]["Enums"]["sire_severidad_enum"]
+          resuelto?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          periodo_id?: string
+          tipo_registro?: Database["public"]["Enums"]["sire_tipo_registro_enum"]
+          comprobante_ref?: string | null
+          descripcion_error?: string
+          severidad?: Database["public"]["Enums"]["sire_severidad_enum"]
+          resuelto?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sire_inconsistencias_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "sire_periodos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sire_periodos: {
+        Row: {
+          id: string
+          contribuyente_id: string
+          periodo: string
+          estado_rvie: Database["public"]["Enums"]["sire_estado_periodo_enum"]
+          estado_rce: Database["public"]["Enums"]["sire_estado_periodo_enum"]
+          total_ventas_soles: number
+          total_compras_soles: number
+          fecha_sincronizacion: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          contribuyente_id: string
+          periodo: string
+          estado_rvie?: Database["public"]["Enums"]["sire_estado_periodo_enum"]
+          estado_rce?: Database["public"]["Enums"]["sire_estado_periodo_enum"]
+          total_ventas_soles?: number
+          total_compras_soles?: number
+          fecha_sincronizacion?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          contribuyente_id?: string
+          periodo?: string
+          estado_rvie?: Database["public"]["Enums"]["sire_estado_periodo_enum"]
+          estado_rce?: Database["public"]["Enums"]["sire_estado_periodo_enum"]
+          total_ventas_soles?: number
+          total_compras_soles?: number
+          fecha_sincronizacion?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sire_periodos_contribuyente_id_fkey"
+            columns: ["contribuyente_id"]
+            isOneToOne: false
+            referencedRelation: "contribuyentes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_contable_pcge: {
         Row: {
           id: string
@@ -951,6 +1203,29 @@ export type Database = {
       }
     }
     Functions: {
+      fn_evaluar_libros_obligados: {
+        Args: {
+          p_contribuyente_id: string
+          p_ejercicio: number
+        }
+        Returns: Json
+      }
+      fn_obtener_resumen_sire_periodo: {
+        Args: {
+          p_contribuyente_id: string
+          p_periodo: string
+        }
+        Returns: Json
+      }
+      fn_sincronizar_propuesta_sire: {
+        Args: {
+          p_contribuyente_id: string
+          p_periodo: string
+          p_tipo_registro: string
+          p_comprobantes: Json
+        }
+        Returns: Json
+      }
       rpc_liquidacion_caja: {
         Args: { p_registro_sire_id: string }
         Returns: Json
@@ -966,6 +1241,16 @@ export type Database = {
       moneda_iso: "PEN" | "USD" | "EUR"
       origen_libro: "VENTAS" | "COMPRAS"
       rol_usuario: "ADMIN" | "CONTADOR" | "OPERADOR"
+      sire_estado_periodo_enum:
+        | "PENDIENTE"
+        | "SINCRONIZADO"
+        | "CON_INCONSISTENCIAS"
+        | "VACIO"
+        | "ERROR"
+      sire_origen_registro_enum: "SUNAT_PROPUESTA" | "AJUSTE_POSTERIOR" | "REEMPLAZO"
+      sire_severidad_enum: "ALERTA" | "ERROR_BLOQUEANTE"
+      sire_tipo_legacy: "VENTA" | "COMPRA"
+      sire_tipo_registro_enum: "RVIE" | "RCE"
       tipo_entidad: "CLIENTE" | "PROVEEDOR" | "AMBOS"
     }
     CompositeTypes: {

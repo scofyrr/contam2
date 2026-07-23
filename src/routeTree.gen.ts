@@ -13,19 +13,28 @@ import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppWorkflowRouteImport } from './routes/_app.workflow'
+import { Route as AppTesoreriaRouteImport } from './routes/_app.tesoreria'
 import { Route as AppTareasRouteImport } from './routes/_app.tareas'
 import { Route as AppSireSyncRouteImport } from './routes/_app.sire-sync'
 import { Route as AppSireRegistrosRouteImport } from './routes/_app.sire-registros'
+import { Route as AppProfilingRouteImport } from './routes/_app.profiling'
 import { Route as AppPcgeRouteImport } from './routes/_app.pcge'
 import { Route as AppNotificacionesRouteImport } from './routes/_app.notificaciones'
 import { Route as AppMiCuentaRouteImport } from './routes/_app.mi-cuenta'
+import { Route as AppLibroMayorRouteImport } from './routes/_app.libro-mayor'
 import { Route as AppLibroDiarioRouteImport } from './routes/_app.libro-diario'
 import { Route as AppLibroCajaRouteImport } from './routes/_app.libro-caja'
+import { Route as AppImportadorRouteImport } from './routes/_app.importador'
 import { Route as AppFichaRucRouteImport } from './routes/_app.ficha-ruc'
 import { Route as AppDashboardEstadisticasRouteImport } from './routes/_app.dashboard-estadisticas'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppControlFormalRouteImport } from './routes/_app.control-formal'
 import { Route as AppContribuyentesRouteImport } from './routes/_app.contribuyentes'
+import { Route as AppContabilidadRouteImport } from './routes/_app.contabilidad'
+import { Route as AppComprasVentasRouteImport } from './routes/_app.compras-ventas'
 import { Route as AppCancelacionesRouteImport } from './routes/_app.cancelaciones'
+import { Route as AppAiCopilotRouteImport } from './routes/_app.ai-copilot'
 import { Route as ApiStatsKpisRouteImport } from './routes/api/stats/kpis'
 import { Route as ApiStatsChartsRouteImport } from './routes/api/stats/charts'
 import { Route as ApiSireValidateRouteImport } from './routes/api/sire/validate'
@@ -55,6 +64,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppWorkflowRoute = AppWorkflowRouteImport.update({
+  id: '/workflow',
+  path: '/workflow',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTesoreriaRoute = AppTesoreriaRouteImport.update({
+  id: '/tesoreria',
+  path: '/tesoreria',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTareasRoute = AppTareasRouteImport.update({
   id: '/tareas',
   path: '/tareas',
@@ -68,6 +87,11 @@ const AppSireSyncRoute = AppSireSyncRouteImport.update({
 const AppSireRegistrosRoute = AppSireRegistrosRouteImport.update({
   id: '/sire-registros',
   path: '/sire-registros',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfilingRoute = AppProfilingRouteImport.update({
+  id: '/profiling',
+  path: '/profiling',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPcgeRoute = AppPcgeRouteImport.update({
@@ -85,6 +109,11 @@ const AppMiCuentaRoute = AppMiCuentaRouteImport.update({
   path: '/mi-cuenta',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLibroMayorRoute = AppLibroMayorRouteImport.update({
+  id: '/libro-mayor',
+  path: '/libro-mayor',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLibroDiarioRoute = AppLibroDiarioRouteImport.update({
   id: '/libro-diario',
   path: '/libro-diario',
@@ -93,6 +122,11 @@ const AppLibroDiarioRoute = AppLibroDiarioRouteImport.update({
 const AppLibroCajaRoute = AppLibroCajaRouteImport.update({
   id: '/libro-caja',
   path: '/libro-caja',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImportadorRoute = AppImportadorRouteImport.update({
+  id: '/importador',
+  path: '/importador',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFichaRucRoute = AppFichaRucRouteImport.update({
@@ -111,14 +145,34 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppControlFormalRoute = AppControlFormalRouteImport.update({
+  id: '/control-formal',
+  path: '/control-formal',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppContribuyentesRoute = AppContribuyentesRouteImport.update({
   id: '/contribuyentes',
   path: '/contribuyentes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppContabilidadRoute = AppContabilidadRouteImport.update({
+  id: '/contabilidad',
+  path: '/contabilidad',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComprasVentasRoute = AppComprasVentasRouteImport.update({
+  id: '/compras-ventas',
+  path: '/compras-ventas',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCancelacionesRoute = AppCancelacionesRouteImport.update({
   id: '/cancelaciones',
   path: '/cancelaciones',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAiCopilotRoute = AppAiCopilotRouteImport.update({
+  id: '/ai-copilot',
+  path: '/ai-copilot',
   getParentRoute: () => AppRoute,
 } as any)
 const ApiStatsKpisRoute = ApiStatsKpisRouteImport.update({
@@ -173,19 +227,28 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/ai-copilot': typeof AppAiCopilotRoute
   '/cancelaciones': typeof AppCancelacionesRoute
+  '/compras-ventas': typeof AppComprasVentasRoute
+  '/contabilidad': typeof AppContabilidadRoute
   '/contribuyentes': typeof AppContribuyentesRoute
+  '/control-formal': typeof AppControlFormalRoute
   '/dashboard': typeof AppDashboardRoute
   '/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
   '/ficha-ruc': typeof AppFichaRucRoute
+  '/importador': typeof AppImportadorRoute
   '/libro-caja': typeof AppLibroCajaRoute
   '/libro-diario': typeof AppLibroDiarioRoute
+  '/libro-mayor': typeof AppLibroMayorRoute
   '/mi-cuenta': typeof AppMiCuentaRoute
   '/notificaciones': typeof AppNotificacionesRoute
   '/pcge': typeof AppPcgeRoute
+  '/profiling': typeof AppProfilingRoute
   '/sire-registros': typeof AppSireRegistrosRoute
   '/sire-sync': typeof AppSireSyncRoute
   '/tareas': typeof AppTareasRoute
+  '/tesoreria': typeof AppTesoreriaRoute
+  '/workflow': typeof AppWorkflowRoute
   '/admin/auditoria': typeof AppAdminAuditoriaRoute
   '/admin/configuracion': typeof AppAdminConfiguracionRoute
   '/admin/dashboard-estudio': typeof AppAdminDashboardEstudioRoute
@@ -200,19 +263,28 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/ai-copilot': typeof AppAiCopilotRoute
   '/cancelaciones': typeof AppCancelacionesRoute
+  '/compras-ventas': typeof AppComprasVentasRoute
+  '/contabilidad': typeof AppContabilidadRoute
   '/contribuyentes': typeof AppContribuyentesRoute
+  '/control-formal': typeof AppControlFormalRoute
   '/dashboard': typeof AppDashboardRoute
   '/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
   '/ficha-ruc': typeof AppFichaRucRoute
+  '/importador': typeof AppImportadorRoute
   '/libro-caja': typeof AppLibroCajaRoute
   '/libro-diario': typeof AppLibroDiarioRoute
+  '/libro-mayor': typeof AppLibroMayorRoute
   '/mi-cuenta': typeof AppMiCuentaRoute
   '/notificaciones': typeof AppNotificacionesRoute
   '/pcge': typeof AppPcgeRoute
+  '/profiling': typeof AppProfilingRoute
   '/sire-registros': typeof AppSireRegistrosRoute
   '/sire-sync': typeof AppSireSyncRoute
   '/tareas': typeof AppTareasRoute
+  '/tesoreria': typeof AppTesoreriaRoute
+  '/workflow': typeof AppWorkflowRoute
   '/admin/auditoria': typeof AppAdminAuditoriaRoute
   '/admin/configuracion': typeof AppAdminConfiguracionRoute
   '/admin/dashboard-estudio': typeof AppAdminDashboardEstudioRoute
@@ -229,19 +301,28 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/_app/ai-copilot': typeof AppAiCopilotRoute
   '/_app/cancelaciones': typeof AppCancelacionesRoute
+  '/_app/compras-ventas': typeof AppComprasVentasRoute
+  '/_app/contabilidad': typeof AppContabilidadRoute
   '/_app/contribuyentes': typeof AppContribuyentesRoute
+  '/_app/control-formal': typeof AppControlFormalRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/dashboard-estadisticas': typeof AppDashboardEstadisticasRoute
   '/_app/ficha-ruc': typeof AppFichaRucRoute
+  '/_app/importador': typeof AppImportadorRoute
   '/_app/libro-caja': typeof AppLibroCajaRoute
   '/_app/libro-diario': typeof AppLibroDiarioRoute
+  '/_app/libro-mayor': typeof AppLibroMayorRoute
   '/_app/mi-cuenta': typeof AppMiCuentaRoute
   '/_app/notificaciones': typeof AppNotificacionesRoute
   '/_app/pcge': typeof AppPcgeRoute
+  '/_app/profiling': typeof AppProfilingRoute
   '/_app/sire-registros': typeof AppSireRegistrosRoute
   '/_app/sire-sync': typeof AppSireSyncRoute
   '/_app/tareas': typeof AppTareasRoute
+  '/_app/tesoreria': typeof AppTesoreriaRoute
+  '/_app/workflow': typeof AppWorkflowRoute
   '/_app/admin/auditoria': typeof AppAdminAuditoriaRoute
   '/_app/admin/configuracion': typeof AppAdminConfiguracionRoute
   '/_app/admin/dashboard-estudio': typeof AppAdminDashboardEstudioRoute
@@ -258,19 +339,28 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/unauthorized'
+    | '/ai-copilot'
     | '/cancelaciones'
+    | '/compras-ventas'
+    | '/contabilidad'
     | '/contribuyentes'
+    | '/control-formal'
     | '/dashboard'
     | '/dashboard-estadisticas'
     | '/ficha-ruc'
+    | '/importador'
     | '/libro-caja'
     | '/libro-diario'
+    | '/libro-mayor'
     | '/mi-cuenta'
     | '/notificaciones'
     | '/pcge'
+    | '/profiling'
     | '/sire-registros'
     | '/sire-sync'
     | '/tareas'
+    | '/tesoreria'
+    | '/workflow'
     | '/admin/auditoria'
     | '/admin/configuracion'
     | '/admin/dashboard-estudio'
@@ -285,19 +375,28 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/unauthorized'
+    | '/ai-copilot'
     | '/cancelaciones'
+    | '/compras-ventas'
+    | '/contabilidad'
     | '/contribuyentes'
+    | '/control-formal'
     | '/dashboard'
     | '/dashboard-estadisticas'
     | '/ficha-ruc'
+    | '/importador'
     | '/libro-caja'
     | '/libro-diario'
+    | '/libro-mayor'
     | '/mi-cuenta'
     | '/notificaciones'
     | '/pcge'
+    | '/profiling'
     | '/sire-registros'
     | '/sire-sync'
     | '/tareas'
+    | '/tesoreria'
+    | '/workflow'
     | '/admin/auditoria'
     | '/admin/configuracion'
     | '/admin/dashboard-estudio'
@@ -313,19 +412,28 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/unauthorized'
+    | '/_app/ai-copilot'
     | '/_app/cancelaciones'
+    | '/_app/compras-ventas'
+    | '/_app/contabilidad'
     | '/_app/contribuyentes'
+    | '/_app/control-formal'
     | '/_app/dashboard'
     | '/_app/dashboard-estadisticas'
     | '/_app/ficha-ruc'
+    | '/_app/importador'
     | '/_app/libro-caja'
     | '/_app/libro-diario'
+    | '/_app/libro-mayor'
     | '/_app/mi-cuenta'
     | '/_app/notificaciones'
     | '/_app/pcge'
+    | '/_app/profiling'
     | '/_app/sire-registros'
     | '/_app/sire-sync'
     | '/_app/tareas'
+    | '/_app/tesoreria'
+    | '/_app/workflow'
     | '/_app/admin/auditoria'
     | '/_app/admin/configuracion'
     | '/_app/admin/dashboard-estudio'
@@ -377,6 +485,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/workflow': {
+      id: '/_app/workflow'
+      path: '/workflow'
+      fullPath: '/workflow'
+      preLoaderRoute: typeof AppWorkflowRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tesoreria': {
+      id: '/_app/tesoreria'
+      path: '/tesoreria'
+      fullPath: '/tesoreria'
+      preLoaderRoute: typeof AppTesoreriaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/tareas': {
       id: '/_app/tareas'
       path: '/tareas'
@@ -396,6 +518,13 @@ declare module '@tanstack/react-router' {
       path: '/sire-registros'
       fullPath: '/sire-registros'
       preLoaderRoute: typeof AppSireRegistrosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profiling': {
+      id: '/_app/profiling'
+      path: '/profiling'
+      fullPath: '/profiling'
+      preLoaderRoute: typeof AppProfilingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/pcge': {
@@ -419,6 +548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMiCuentaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/libro-mayor': {
+      id: '/_app/libro-mayor'
+      path: '/libro-mayor'
+      fullPath: '/libro-mayor'
+      preLoaderRoute: typeof AppLibroMayorRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/libro-diario': {
       id: '/_app/libro-diario'
       path: '/libro-diario'
@@ -431,6 +567,13 @@ declare module '@tanstack/react-router' {
       path: '/libro-caja'
       fullPath: '/libro-caja'
       preLoaderRoute: typeof AppLibroCajaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/importador': {
+      id: '/_app/importador'
+      path: '/importador'
+      fullPath: '/importador'
+      preLoaderRoute: typeof AppImportadorRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/ficha-ruc': {
@@ -454,6 +597,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/control-formal': {
+      id: '/_app/control-formal'
+      path: '/control-formal'
+      fullPath: '/control-formal'
+      preLoaderRoute: typeof AppControlFormalRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/contribuyentes': {
       id: '/_app/contribuyentes'
       path: '/contribuyentes'
@@ -461,11 +611,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppContribuyentesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/contabilidad': {
+      id: '/_app/contabilidad'
+      path: '/contabilidad'
+      fullPath: '/contabilidad'
+      preLoaderRoute: typeof AppContabilidadRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/compras-ventas': {
+      id: '/_app/compras-ventas'
+      path: '/compras-ventas'
+      fullPath: '/compras-ventas'
+      preLoaderRoute: typeof AppComprasVentasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/cancelaciones': {
       id: '/_app/cancelaciones'
       path: '/cancelaciones'
       fullPath: '/cancelaciones'
       preLoaderRoute: typeof AppCancelacionesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/ai-copilot': {
+      id: '/_app/ai-copilot'
+      path: '/ai-copilot'
+      fullPath: '/ai-copilot'
+      preLoaderRoute: typeof AppAiCopilotRouteImport
       parentRoute: typeof AppRoute
     }
     '/api/stats/kpis': {
@@ -535,19 +706,28 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAiCopilotRoute: typeof AppAiCopilotRoute
   AppCancelacionesRoute: typeof AppCancelacionesRoute
+  AppComprasVentasRoute: typeof AppComprasVentasRoute
+  AppContabilidadRoute: typeof AppContabilidadRoute
   AppContribuyentesRoute: typeof AppContribuyentesRoute
+  AppControlFormalRoute: typeof AppControlFormalRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDashboardEstadisticasRoute: typeof AppDashboardEstadisticasRoute
   AppFichaRucRoute: typeof AppFichaRucRoute
+  AppImportadorRoute: typeof AppImportadorRoute
   AppLibroCajaRoute: typeof AppLibroCajaRoute
   AppLibroDiarioRoute: typeof AppLibroDiarioRoute
+  AppLibroMayorRoute: typeof AppLibroMayorRoute
   AppMiCuentaRoute: typeof AppMiCuentaRoute
   AppNotificacionesRoute: typeof AppNotificacionesRoute
   AppPcgeRoute: typeof AppPcgeRoute
+  AppProfilingRoute: typeof AppProfilingRoute
   AppSireRegistrosRoute: typeof AppSireRegistrosRoute
   AppSireSyncRoute: typeof AppSireSyncRoute
   AppTareasRoute: typeof AppTareasRoute
+  AppTesoreriaRoute: typeof AppTesoreriaRoute
+  AppWorkflowRoute: typeof AppWorkflowRoute
   AppAdminAuditoriaRoute: typeof AppAdminAuditoriaRoute
   AppAdminConfiguracionRoute: typeof AppAdminConfiguracionRoute
   AppAdminDashboardEstudioRoute: typeof AppAdminDashboardEstudioRoute
@@ -557,19 +737,28 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAiCopilotRoute: AppAiCopilotRoute,
   AppCancelacionesRoute: AppCancelacionesRoute,
+  AppComprasVentasRoute: AppComprasVentasRoute,
+  AppContabilidadRoute: AppContabilidadRoute,
   AppContribuyentesRoute: AppContribuyentesRoute,
+  AppControlFormalRoute: AppControlFormalRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDashboardEstadisticasRoute: AppDashboardEstadisticasRoute,
   AppFichaRucRoute: AppFichaRucRoute,
+  AppImportadorRoute: AppImportadorRoute,
   AppLibroCajaRoute: AppLibroCajaRoute,
   AppLibroDiarioRoute: AppLibroDiarioRoute,
+  AppLibroMayorRoute: AppLibroMayorRoute,
   AppMiCuentaRoute: AppMiCuentaRoute,
   AppNotificacionesRoute: AppNotificacionesRoute,
   AppPcgeRoute: AppPcgeRoute,
+  AppProfilingRoute: AppProfilingRoute,
   AppSireRegistrosRoute: AppSireRegistrosRoute,
   AppSireSyncRoute: AppSireSyncRoute,
   AppTareasRoute: AppTareasRoute,
+  AppTesoreriaRoute: AppTesoreriaRoute,
+  AppWorkflowRoute: AppWorkflowRoute,
   AppAdminAuditoriaRoute: AppAdminAuditoriaRoute,
   AppAdminConfiguracionRoute: AppAdminConfiguracionRoute,
   AppAdminDashboardEstudioRoute: AppAdminDashboardEstudioRoute,

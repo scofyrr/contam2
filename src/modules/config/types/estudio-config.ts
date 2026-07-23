@@ -141,6 +141,8 @@ export const DEFAULT_ESTUDIO_CONFIG: EstudioConfigBundle = {
       "/dashboard",
       "/sire-registros",
       "/libro-diario",
+      "/libro-mayor",
+      "/workflow",
       "/libro-caja",
       "/pcge",
       "/contribuyentes",

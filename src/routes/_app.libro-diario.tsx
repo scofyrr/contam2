@@ -19,6 +19,7 @@ import { NuevaTareaButton } from "@/modules/tareas/components/NuevaTareaButton";
 import { exportLibroExcel, exportLibroPdf } from "@/lib/export-service";
 import { fetchLibroDiario } from "@/lib/sire-data";
 import type { ClienteOption } from "@/lib/cliente-search-service";
+import { StepGuardBanner } from "@/modules/workflow/components/StepGuardBanner";
 
 const VALID_TABS = ["premium", "provisiones", "general", "cxp"] as const;
 
@@ -58,6 +59,21 @@ function LibroDiarioPage() {
     enabled: !!rucSelected,
   });
 
+  const contribuyenteIdQuery = useQuery({
+    queryKey: ["libro-diario", "contribuyente-id", rucSelected],
+    queryFn: async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase
+        .from("contribuyentes")
+        .select("id")
+        .eq("ruc", rucSelected)
+        .maybeSingle();
+      return data?.id ?? null;
+    },
+    enabled: rucSelected.length === 11,
+    staleTime: 120_000,
+  });
+
   const rows = lineasQuery.data ?? [];
 
   return (
@@ -92,6 +108,12 @@ function LibroDiarioPage() {
           />
         </div>
       </header>
+
+      <StepGuardBanner
+        contribuyenteId={contribuyenteIdQuery.data ?? null}
+        periodo={periodo.trim()}
+        vista="libro-diario"
+      />
 
       <EmpresaPeriodoFilters
         cliente={cliente}

@@ -164,6 +164,8 @@ export const SIDEBAR_MODULE_LABELS: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/sire-registros": "Registros SIRE",
   "/libro-diario": "Libro Diario",
+  "/libro-mayor": "Libro Mayor",
+  "/workflow": "Flujo Contable",
   "/libro-caja": "Libro Caja",
   "/pcge": "Plan de Cuentas",
   "/contribuyentes": "Contribuyentes",

@@ -56,6 +56,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { usePermission } from "@/hooks/use-permissions";
+import { SunatConnectionHealthCard } from "@/components/admin/SunatConnectionHealthCard";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -215,7 +216,8 @@ export function ConfiguracionPremiumPanel() {
           </nav>
         </aside>
 
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-6 overflow-auto space-y-6">
+          <SunatConnectionHealthCard />
           {isLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-8 w-64 bg-white/5" />

@@ -1,6 +1,8 @@
 @import "tailwindcss" source(none);
+@config "../tailwind.config.js";
 @source "../src";
 @import "tw-animate-css";
+@import "./styles/glassmorphism.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -52,6 +54,13 @@
   --color-premium-coral: #ff6b6b;
   --color-premium-amber: #f0a500;
 
+  --color-brand-slate-950: #020617;
+  --color-brand-slate-900: #0f172a;
+  --color-brand-emerald-neon: #10b981;
+  --color-brand-cobalt-500: #3b82f6;
+  --color-brand-crimson-500: #ef4444;
+
+  --shadow-glass: 0 8px 32px rgba(2, 6, 23, 0.37), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --shadow-subtle: var(--shadow-subtle-token);
   --shadow-medium: var(--shadow-medium-token);
   --shadow-elevated: var(--shadow-elevated-token);

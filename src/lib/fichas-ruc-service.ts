@@ -46,15 +46,62 @@ export async function fetchAllFichas(): Promise<Record<string, FichaRuc>> {
     return fetchAllFichasViaApi();
   }
 
-  const { data, error } = await supabase.from("fichas_ruc").select("ruc");
-  throwIfSupabaseError(error, "Error al cargar fichas RUC");
+  // 1) Traer todas las cabeceras en una sola query
+  const { data: cabeceras, error: cabErr } = await supabase
+    .from("fichas_ruc")
+    .select("*");
+  throwIfSupabaseError(cabErr, "Error al cargar fichas RUC");
 
+  if (!cabeceras || cabeceras.length === 0) return {};
+
+  const rucs = cabeceras.map((r) => r.ruc as string);
+
+  // 2) Traer todas las tablas hijas en paralelo con .in("ruc", rucs)
+  const [tRes, rRes, pRes, eRes] = await Promise.all([
+    supabase.from("tributos_afectos").select("*").in("ruc", rucs).order("orden"),
+    supabase.from("representantes_legales").select("*").in("ruc", rucs).order("orden"),
+    supabase.from("otras_personas_vinculadas").select("*").in("ruc", rucs).order("orden"),
+    supabase.from("establecimientos_anexos").select("*").in("ruc", rucs).order("orden"),
+  ]);
+
+  throwIfSupabaseError(tRes.error, "Error al cargar tributos afectos");
+  throwIfSupabaseError(rRes.error, "Error al cargar representantes legales");
+  throwIfSupabaseError(pRes.error, "Error al cargar personas vinculadas");
+  throwIfSupabaseError(eRes.error, "Error al cargar establecimientos anexos");
+
+  // 3) Agrupar hijos por RUC en memoria (O(n), sin más queries)
+  const tributosMap = groupByRuc(tRes.data ?? []);
+  const representantesMap = groupByRuc(rRes.data ?? []);
+  const personasMap = groupByRuc(pRes.data ?? []);
+  const establecimientosMap = groupByRuc(eRes.data ?? []);
+
+  // 4) Ensamblar cada FichaRuc desde los datos ya cargados
   const out: Record<string, FichaRuc> = {};
-  for (const row of data ?? []) {
-    const ficha = await fetchFichaByRuc(row.ruc);
-    if (ficha) out[ficha.ruc] = ficha;
+  for (const row of cabeceras) {
+    const ruc = String(row.ruc);
+    const ficha = dbToFicha(
+      row as Record<string, unknown>,
+      tributosMap[ruc] ?? [],
+      representantesMap[ruc] ?? [],
+      personasMap[ruc] ?? [],
+      establecimientosMap[ruc] ?? [],
+    );
+    out[ruc] = ficha;
   }
   return out;
+}
+
+/** Agrupa un array de filas (con columna `ruc`) en un Map por RUC. */
+function groupByRuc(
+  rows: Record<string, unknown>[],
+): Record<string, Record<string, unknown>[]> {
+  const map: Record<string, Record<string, unknown>[]> = {};
+  for (const row of rows) {
+    const ruc = String(row.ruc ?? "");
+    if (!ruc) continue;
+    (map[ruc] ??= []).push(row);
+  }
+  return map;
 }
 
 export async function upsertFichaRuc(ficha: FichaRuc): Promise<FichaRuc> {

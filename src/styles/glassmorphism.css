@@ -1,0 +1,268 @@
+/* =============================================================================
+   CONTAM ERP — Glassmorphism Design System (Módulo 9)
+   Dark: Slate 950/900 + Emerald Neon | Light: Zinc clean + soft elevation
+   ============================================================================= */
+
+:root {
+  --glass-blur: 12px;
+  --glass-blur-md: 16px;
+  --glass-border-dark: rgba(148, 163, 184, 0.12);
+  --glass-border-light: rgba(15, 23, 42, 0.08);
+  --glass-bg-dark: rgba(15, 23, 42, 0.72);
+  --glass-bg-light: rgba(255, 255, 255, 0.82);
+  --glass-accent-emerald: #10b981;
+  --glass-accent-cobalt: #3b82f6;
+  --glass-accent-crimson: #ef4444;
+  --glass-surface-dark: #0f172a;
+  --glass-surface-deep: #020617;
+}
+
+/* ─── Panel base ─── */
+.glass-panel {
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border-light);
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 200ms ease;
+}
+
+.dark .glass-panel {
+  border-color: var(--glass-border-dark);
+  background: var(--glass-bg-dark);
+  box-shadow:
+    0 8px 32px rgba(2, 6, 23, 0.37),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.glass-panel:hover {
+  border-color: color-mix(in srgb, var(--glass-accent-emerald) 25%, transparent);
+}
+
+.dark .glass-panel:hover {
+  box-shadow:
+    0 12px 40px rgba(2, 6, 23, 0.5),
+    0 0 0 1px rgba(16, 185, 129, 0.08);
+}
+
+/* ─── Card elevada ─── */
+.glass-card {
+  border-radius: 1.25rem;
+  border: 1px solid var(--glass-border-light);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(244, 244, 245, 0.88) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur-md));
+  -webkit-backdrop-filter: blur(var(--glass-blur-md));
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  padding: 1.25rem;
+}
+
+.dark .glass-card {
+  border-color: rgba(51, 65, 85, 0.6);
+  background: linear-gradient(
+    145deg,
+    rgba(15, 23, 42, 0.88) 0%,
+    rgba(2, 6, 23, 0.92) 100%
+  );
+  box-shadow:
+    0 16px 48px rgba(2, 6, 23, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.glass-card-emerald {
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.12);
+}
+
+.glass-card-cobalt {
+  border-color: rgba(59, 130, 246, 0.35);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.12);
+}
+
+.glass-card-crimson {
+  border-color: rgba(239, 68, 68, 0.35);
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.12);
+}
+
+/* ─── Inputs ─── */
+.glass-input {
+  border-radius: 0.625rem;
+  border: 1px solid var(--glass-border-light);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: inherit;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.dark .glass-input {
+  border-color: rgba(51, 65, 85, 0.8);
+  background: rgba(2, 6, 23, 0.55);
+}
+
+.glass-input:focus,
+.glass-input:focus-visible {
+  outline: none;
+  border-color: var(--glass-accent-cobalt);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.dark .glass-input:focus,
+.dark .glass-input:focus-visible {
+  border-color: var(--glass-accent-emerald);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+/* ─── Buttons ─── */
+.glass-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--glass-border-light);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.dark .glass-button {
+  border-color: rgba(51, 65, 85, 0.8);
+  background: rgba(15, 23, 42, 0.75);
+  color: #e2e8f0;
+}
+
+.glass-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.glass-button:active {
+  transform: translateY(0);
+}
+
+.glass-button-primary {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.95));
+  color: #fff;
+}
+
+.glass-button-primary:hover {
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+}
+
+.glass-button-cobalt {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.95));
+  color: #fff;
+}
+
+.glass-button-cobalt:hover {
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.35);
+}
+
+.glass-button-danger {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.95));
+  color: #fff;
+}
+
+/* ─── Semantic text accents ─── */
+.text-glass-emerald {
+  color: var(--glass-accent-emerald);
+}
+
+.text-glass-cobalt {
+  color: var(--glass-accent-cobalt);
+}
+
+.text-glass-crimson {
+  color: var(--glass-accent-crimson);
+}
+
+/* ─── Background surfaces ─── */
+.bg-glass-dark {
+  background-color: var(--glass-surface-deep);
+}
+
+.bg-glass-panel {
+  background-color: var(--glass-surface-dark);
+}
+
+.dark .bg-glass-page {
+  background: linear-gradient(180deg, #020617 0%, #0f172a 50%, #020617 100%);
+}
+
+:root:not(.dark) .bg-glass-page {
+  background: linear-gradient(180deg, #fafafa 0%, #f4f4f5 50%, #fafafa 100%);
+}
+
+/* ─── Shimmer loading skeleton ─── */
+.glass-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.08) 0%,
+    rgba(148, 163, 184, 0.18) 50%,
+    rgba(148, 163, 184, 0.08) 100%
+  );
+  background-size: 200% 100%;
+  animation: glass-shimmer 2.4s ease-in-out infinite;
+}
+
+@keyframes glass-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ─── Report viewer chrome ─── */
+.glass-report-toolbar {
+  border-bottom: 1px solid var(--glass-border-light);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(var(--glass-blur-md));
+  -webkit-backdrop-filter: blur(var(--glass-blur-md));
+}
+
+.dark .glass-report-toolbar {
+  border-color: rgba(51, 65, 85, 0.6);
+  background: rgba(15, 23, 42, 0.92);
+}
+
+.glass-report-viewport {
+  background: #52525b;
+}
+
+.dark .glass-report-viewport {
+  background: #18181b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-shimmer {
+    animation: none;
+  }
+
+  .glass-button:hover {
+    transform: none;
+  }
+}
